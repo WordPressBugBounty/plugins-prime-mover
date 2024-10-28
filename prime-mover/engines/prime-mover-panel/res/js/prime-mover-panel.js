@@ -1,5 +1,6 @@
 (function ($) {
 	$(function(){	                
+		    PrimeMoverControlPanel.initializeAutoBackupBlogSelector();
             PrimeMoverControlPanel.deleteAllBackups();
             PrimeMoverControlPanel.computeBackupDirSize(); 
             PrimeMoverControlPanel.showHideAuthorizationKeys();  
@@ -91,7 +92,7 @@
                    "ajax_key" : prime_mover_control_panel_renderer.enable_troubleshooting,
                    "datatype" : "checkbox",
                    "dialog" : false
-                 },
+                 },                  
                  { 
                    "button_selector" : '#js-save-prime-mover-dropbox-access-token', 
                    "spinner_selector" : '.js-save-prime-mover-dropbox-access-token-spinner',
@@ -210,22 +211,17 @@
                    "ajax_key" : "gdrive_chunk_download_size",
                    "datatype" : "text",
                    "dialog" : false
-                 },                 
-                 { 
-                   "button_selector" : "#js-save-prime-mover-mysqldump-cnf-setting", 
-                   "spinner_selector" : ".js-save-prime-mover-mysqldump-cnf-setting-spinner",
-                   "data_selector" : "#js-prime_mover_mysqldump_cnf_setting",
-                   "ajax_action" : "prime_mover_save_mysqldump_settings",
-                   "ajax_key" : "mysqldump_cnf_path",
-                   "datatype" : "text",
-                   "dialog" : false
                  }
          ],
      	/**
     	 * Initialize Ajax handler
     	 */
          initializeAjaxHandlers: function() {
-              $.each(this.initializeData, function (i, activeSelectors) {                  
+        	 var initializeData = this.initializeData;
+	         var jsApiSettings = prime_mover_control_panel_renderer.prime_mover_settings_js_api;	        	
+	          initializeData = initializeData.concat(jsApiSettings);	
+	         
+              $.each(initializeData, function (i, activeSelectors) {                  
 		          $('body').on('click', activeSelectors.button_selector, function(){ 
 	                  var spinner_selector = activeSelectors.spinner_selector;
 	                    if ('text' === activeSelectors.datatype) {
@@ -238,12 +234,34 @@
 		                        value = true;
 		                    }
 	                    }
-	                   
-	                    var button_nonce = $(this).attr('data-nonce');	                    
+	                    
+	                    if ('radio' === activeSelectors.datatype) {
+	                    	var radio_checked = '';
+	                    	var value = '';
+	                    	if ($(activeSelectors.data_selector).is(":checked")) {
+	                    		radio_checked = true;
+		                    }
+	                    	if (radio_checked) {
+	                    		value = $(activeSelectors.data_selector + ":checked").val();
+	                    	}		                    
+	                    }
+	                    
+	                    if ('select' === activeSelectors.datatype) {
+	                    	var select_selected = '';	                    	
+	                        value = $(activeSelectors.data_selector).val();
+	                    			                    
+	                    }
+	                    
+	                    if ('buttonform' === activeSelectors.datatype) {
+							value = 'confirmed';
+						}
+						
+	                    var button_nonce = $(this).attr('data-nonce');	    
+	                    var panel_loaded_blog_id = $(this).attr('data-prime-mover-blogid-panel');
 	                    if (true === activeSelectors.dialog) {	                    	                    	
 	                    	var dialog_selector = activeSelectors.dialog_selector;
 	                    	PrimeMoverControlPanel.showDialogHandler( dialog_selector, button_nonce, activeSelectors.dialog_button_text, 'prime-mover-deleteall-button', spinner_selector, activeSelectors.ajax_action,
-	                 	            activeSelectors.ajax_key, value, prime_mover_control_panel_renderer.prime_mover_cancel_button, activeSelectors.data_selector);                     	
+	                 	            activeSelectors.ajax_key, value, prime_mover_control_panel_renderer.prime_mover_cancel_button, activeSelectors.data_selector, panel_loaded_blog_id);                     	
 	                    } else {	                    	
 	                    	if (PrimeMoverControlPanel.isDoingAjax(spinner_selector)) {
 		                        return;
@@ -253,18 +271,35 @@
 	                    	var data = PrimeMoverControlPanel.defineGenericData(activeSelectors.ajax_action, button_nonce);
 		                    
 	                    	data[activeSelectors.ajax_key] = value;
+	                    	if (panel_loaded_blog_id) {
+	                    		data['prime_mover_panel_js_blogid'] = panel_loaded_blog_id;
+	        				}
+	                    	
 		                    PrimeMoverControlPanel.doAjaxRequest(data, spinner_selector, activeSelectors.data_selector);	                    	
 	                    }	                    
 		          });                  
               }); 
          },
+         initializeAutoBackupBlogSelector: function() {
+         	$('body').on('click','.js-prime-mover-clear-site', function(e){     			
+     		    $('.js-prime-mover-site-selector').val('');	         	
+     		});  
+         	
+         	$(".js-prime-mover-site-selector").change(function() {
+         		   $(this).closest("form").submit();
+             });
+         },
      	/**
      	 * Show a dialog
      	 * This should be reusable by any settings IF necessary
      	 */
-         showDialogHandler: function(dialog_selector, button_nonce, button_text, button_class, button_spinner, ajax_action, data_key, data_value, button_cancel_text, data_selector) {
+         showDialogHandler: function(dialog_selector, button_nonce, button_text, button_class, button_spinner, ajax_action, data_key, data_value, button_cancel_text, data_selector, panel_loaded_blog_id) {
         	 if (typeof(data_selector) === 'undefined') {
                  var data_selector = '';
+             }
+             
+             if (typeof(panel_loaded_blog_id) === 'undefined') {
+                 var panel_loaded_blog_id = '';
              }
              $(dialog_selector).dialog({
 		        resizable: false,
@@ -286,6 +321,10 @@
 			                  var data = PrimeMoverControlPanel.defineGenericData(ajax_action, button_nonce);
 			                  data[data_key] = data_value;
 			                  
+			                  if (panel_loaded_blog_id) {
+	                    		data['prime_mover_panel_js_blogid'] = panel_loaded_blog_id;
+	        				  }
+	        				  
 			                  PrimeMoverControlPanel.doAjaxRequest(data, spinner_selector, data_selector);				    	  
 					  }
 			      },
@@ -618,12 +657,13 @@
     	 * Define ajax data
     	 */
         defineGenericData: function(action, nonce) {
-	  	var data = {
-		 action: action,
-		 dataType: 'json',	 
-		 savenonce: nonce			 		    				    					
-		};
-                return data;
+	  	     var data = {
+		     action: action,
+		     dataType: 'json',	 
+		     savenonce: nonce			 		    				    					
+		    };
+            
+	  	     return data;
         },
     	/**
     	 * Execute other hooks after response is received

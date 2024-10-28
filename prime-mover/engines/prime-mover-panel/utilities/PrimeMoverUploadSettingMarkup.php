@@ -51,7 +51,7 @@ class PrimeMoverUploadSettingMarkup
     public function renderGDriveDownloadChunkSetting($setting = '', $default = 0)
     {
         $current_gdrivedownload_chunk_size = $this->getCloudChunkSizeSetting($setting, $default);
-        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(esc_html__('Google Drive download chunk', 'prime-mover'));
+        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Google Drive download chunk', 'prime-mover'));
         ?>
         <p class="description">
           <label for="js-prime_mover_gdrivedownload_chunksize">
@@ -82,7 +82,7 @@ class PrimeMoverUploadSettingMarkup
     public function renderDropBoxUploadChunkSetting($setting = '', $default = 0)
     {
         $current_dropbox_chunk_size = $this->getCloudChunkSizeSetting($setting, $default);
-        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(esc_html__('Dropbox upload chunk', 'prime-mover'));
+        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Dropbox upload chunk', 'prime-mover'));
         ?>
         <p class="description">
           <label for="js-prime_mover_dropbox_chunksize">
@@ -113,7 +113,7 @@ class PrimeMoverUploadSettingMarkup
     public function renderGDriveUploadChunkSetting($setting = '', $default = 0)
     {
         $current_gdrive_chunk_size = $this->getCloudChunkSizeSetting($setting, $default);
-        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(esc_html__('Google Drive upload chunk', 'prime-mover'));
+        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Google Drive upload chunk', 'prime-mover'));
         ?>
         <p class="description">
           <label for="js-prime_mover_gdrive_chunksize">
@@ -194,7 +194,7 @@ class PrimeMoverUploadSettingMarkup
     public function renderUploadRefreshIntervalSetting($setting = '', $defaults = 0)
     {
         $current_upload_refresh_interval = $this->getUploadRefreshIntervalSetting($setting, $defaults);
-        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(esc_html__('Upload refresh interval', 'prime-mover'));
+        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Upload refresh interval', 'prime-mover'));
         ?>
         <p class="description">
           <label for="js-prime_mover_upload_refreshinterval">
@@ -225,7 +225,7 @@ class PrimeMoverUploadSettingMarkup
     public function renderUploadChunkSizeSetting($setting = '')
     {
         $current_upload_chunk_size = $this->getUploadChunkSizeSetting($setting);
-        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(esc_html__('Upload chunk size', 'prime-mover'));        
+        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Upload chunk size', 'prime-mover'));        
         ?>
         <p class="description">
           <label for="js-prime_mover_upload_chunksize">
@@ -259,7 +259,7 @@ class PrimeMoverUploadSettingMarkup
     public function renderUploadRetryLimitSetting($setting = '', $defaults = 0)
     {
         $current_upload_retry_setting = $this->getUploadRetrySetting($setting, $defaults);
-        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(esc_html__('Upload retry limit', 'prime-mover'));
+        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Upload retry limit', 'prime-mover'));
         ?>
         <p class="description">
           <label for="js-prime_mover_upload_retrylimit">

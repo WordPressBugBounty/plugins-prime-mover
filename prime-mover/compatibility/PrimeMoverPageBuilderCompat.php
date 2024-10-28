@@ -281,7 +281,7 @@ class PrimeMoverPageBuilderCompat
             return $primary_index_id;
         }
         
-        global $wpdb;
+        $wpdb = $this->getPrimeMover()->getSystemInitialization()->getWpdB();
         $query = $wpdb->prepare("
             UPDATE $wpdb->posts
             SET post_content = %s
@@ -312,7 +312,7 @@ class PrimeMoverPageBuilderCompat
             return $query;
         }
         
-        global $wpdb;
+        $wpdb = $this->getPrimeMover()->getSystemInitialization()->getWpdB();
         $postcontent_column = $this->getUserQueries()->parsePrimaryIndexUserColumns($column_strings, 'user');
         $where = "WHERE {$postcontent_column} LIKE '%tdc_css=\"%' AND post_status = 'publish'";
         
@@ -326,7 +326,9 @@ class PrimeMoverPageBuilderCompat
         }
         
         $orderby = $wpdb->prepare("ORDER BY {$primary_index} DESC LIMIT %d", PRIME_MOVER_NON_USER_ADJUSTMENT_LOOKUP_LIMIT);        
-        $sql = "SELECT {$column_strings} FROM {$wpdb->prefix}{$table} {$where} {$orderby}";
+        
+        $tbl = "{$wpdb->prefix}{$table}";
+        $sql = "SELECT {$column_strings} FROM `{$tbl}` {$where} {$orderby}";
                 
         return $sql;
     }

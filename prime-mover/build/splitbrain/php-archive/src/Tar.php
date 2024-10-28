@@ -710,7 +710,13 @@ class Tar extends Archive
             $written = @\fwrite($this->fh, $data);
         }
         if ($written === \false) {
-            throw new ArchiveIOException('Failed to write to archive stream');
+            $fwrite_error_msg = \error_get_last();
+            if (\is_array($fwrite_error_msg) && !empty($fwrite_error_msg['message'])) {
+                $fwrite_error_detail = $fwrite_error_msg['message'];
+                throw new ArchiveIOException($fwrite_error_detail);
+            } else {
+                throw new ArchiveIOException('Failed to write to archive stream');
+            }
         }
         return $written;
     }

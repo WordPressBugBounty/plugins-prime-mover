@@ -273,7 +273,7 @@ class PrimeMoverConfigUtilities
         }
         $this->getSystemFunctions()->switchToBlog($blogid_to_import);
         
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $db_site_url = $wpdb->get_var("SELECT option_value FROM $wpdb->options WHERE option_name = 'siteurl'");        
         
         $this->getSystemFunctions()->restoreCurrentBlog();                
@@ -325,7 +325,8 @@ class PrimeMoverConfigUtilities
         if ( ! get_post_meta($attachment_id, self::PRIME_MOVER_OLD_ATTACHMENT, true)) {
             return false;
         }
-        $replaceable_attachments = $this->getSystemFunctions()->getBlogOption($blog_id, self::AUTOADJUSTMENT_ATTACHMENT_ENABLED);
+
+        $replaceable_attachments = $this->getSystemFunctions()->getBlogOption($blog_id, self::AUTOADJUSTMENT_ATTACHMENT_ENABLED, false, '', true, true);
         if ( ! $replaceable_attachments ) {
             return false;
         }
@@ -443,8 +444,8 @@ class PrimeMoverConfigUtilities
      * Mark old attachments helpers
      */
     private function markedOldAttachmentsHelper()
-    {
-        global $wpdb;
+    {        
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $wpdb->query(  
             
             "INSERT INTO {$wpdb->postmeta} (post_id, meta_key, meta_value)
@@ -500,8 +501,9 @@ class PrimeMoverConfigUtilities
         if ($devattachment_current_setting) {
             $dev_attachment_protocol['replace'] = $devattachment_current_setting['replace'];
         }
-        delete_option(self::AUTOADJUSTMENT_ATTACHMENT_ENABLED);         
-        $this->getSystemFunctions()->updateBlogOption($blogid_to_import, self::AUTOADJUSTMENT_ATTACHMENT_ENABLED, $dev_attachment_protocol);        
+        delete_option(self::AUTOADJUSTMENT_ATTACHMENT_ENABLED);        
+
+        $this->getSystemFunctions()->updateBlogOption($blogid_to_import, self::AUTOADJUSTMENT_ATTACHMENT_ENABLED, $dev_attachment_protocol, true, '', true, true);        
         $this->getSystemFunctions()->restoreCurrentBlog(); 
     }
     
@@ -590,8 +592,8 @@ class PrimeMoverConfigUtilities
         delete_blog_option($blogid_to_import, 'siteurl');
         delete_blog_option($blogid_to_import, 'home');        
         
-        $this->getSystemFunctions()->updateBlogOption($blogid_to_import, 'siteurl', $site_url);
-        $this->getSystemFunctions()->updateBlogOption($blogid_to_import, 'home', $home_url);     
+        $this->getSystemFunctions()->updateBlogOption($blogid_to_import, 'siteurl', $site_url, true, '', true, true);
+        $this->getSystemFunctions()->updateBlogOption($blogid_to_import, 'home', $home_url, true, '', true, true);     
     }
     
     /**

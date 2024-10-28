@@ -244,11 +244,12 @@ class PrimeMoverFreemiusIntegration
         if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
+        
         if (!is_multisite()) {
             return;
         }
         
-        $current_user_id = get_current_user_id();
+        $current_user_id = $this->getSystemFunctions()->getLockedSettingsUser();
         $current_settings = get_user_meta($current_user_id, self::FREEMIUS_NETWORKUSERKEY, true);
         if (empty($current_settings)) {
             return;
@@ -257,7 +258,7 @@ class PrimeMoverFreemiusIntegration
         $this->deleteAllFreemiusOptions($blog_id, true);
         
         foreach ($current_settings as $option_name => $option_value) {
-            $this->getSystemFunctions()->updateSiteOption($option_name, $option_value, true);            
+            $this->getSystemFunctions()->updateSiteOption($option_name, $option_value, true, '', true, true);            
         }
         delete_user_meta($current_user_id, self::FREEMIUS_NETWORKUSERKEY);
     }
@@ -271,26 +272,28 @@ class PrimeMoverFreemiusIntegration
         if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
+        
         if (!is_multisite()) {
             return;
         }
         
         $settings_array = [];
-        $current_user_id = get_current_user_id();
+        $current_user_id = $this->getSystemFunctions()->getLockedSettingsUser();        
         $blog_id = get_current_blog_id();
         
         $current_options = $this->getAllFreemiusSDKOptions($blog_id, true);
-        if ( ! is_array($current_options) ) {
+        if (!is_array($current_options)) {
             return;
         }
+        
         $this->setFreemiusOptions($current_options);
         foreach ($current_options as $option) {
-             $settings_array[$option] = $this->getSystemFunctions()->getSiteOption($option, false, true, true);
+            $settings_array[$option] = $this->getSystemFunctions()->getSiteOption($option, false, true, true, '', true, true);
         }
         
-        do_action('prime_mover_update_user_meta', $current_user_id, self::FREEMIUS_NETWORKUSERKEY, $settings_array); 
-        
+        do_action('prime_mover_update_user_meta', $current_user_id, self::FREEMIUS_NETWORKUSERKEY, $settings_array);         
     }
+    
     /**
      * Append cart icon
      * @param string $markup
@@ -422,7 +425,7 @@ class PrimeMoverFreemiusIntegration
         if ($free_active && $pro_active) {
             $do_deactivation = true;
         }
-
+        
         if (!$free_active && !$pro_active ) {            
             $this->getSystemFunctions()->restoreCurrentBlog();
             do_action('prime_mover_log_processed_events', 'ERROR: Prime Mover encounters fatal error and deactivated.', 0, 'import', __FUNCTION__, $this);
@@ -748,13 +751,15 @@ class PrimeMoverFreemiusIntegration
     
     /**
      * Checks if customer
+     * @param boolean $logged_user_check
      * @return boolean
      */
-    public function maybeLoggedInUserIsCustomer()
+    public function maybeLoggedInUserIsCustomer($logged_user_check = true)
     {
-        if (!is_user_logged_in()) {
+        if (!is_user_logged_in() && $logged_user_check) {
             return true;
-        }        
+        }     
+        
         return ($this->isCustomer());
     }
     
@@ -862,16 +867,17 @@ class PrimeMoverFreemiusIntegration
      */
     private function backupFreemiusOptions($blog_id = 0)
     {
-        if ( ! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
         
         $settings_array = [];
-        $current_user_id = get_current_user_id();
+        $current_user_id = $this->getSystemFunctions()->getLockedSettingsUser();
         $current_options = $this->getAllFreemiusSDKOptions($blog_id);
         if ( ! is_array($current_options) ) {
             return;
         }
+        
         $this->setFreemiusOptions($current_options);
         foreach ($current_options as $option) {
             $this->getSystemFunctions()->switchToBlog($blog_id);
@@ -897,7 +903,7 @@ class PrimeMoverFreemiusIntegration
         if (!$network) {
             $this->getSystemFunctions()->switchToBlog($blog_id);
         }
-        global $wpdb;        
+        $wpdb = $this->getSystemFunctions()->getSystemInitialization()->getWpdB();        
         $affected_options = [];
         
         if ($network) {
@@ -949,7 +955,7 @@ class PrimeMoverFreemiusIntegration
         }        
         foreach ($current_options as $option) {         
             if ($network) {
-                $this->getSystemFunctions()->deleteSiteOption($option);
+                $this->getSystemFunctions()->deleteSiteOption($option, false, '', true, true);
             } else {
                 $this->getSystemFunctions()->switchToBlog($blog_id);
                 delete_option($option);
@@ -968,7 +974,7 @@ class PrimeMoverFreemiusIntegration
             return;
         }
         
-        $current_user_id = get_current_user_id();
+        $current_user_id = $this->getSystemFunctions()->getLockedSettingsUser();
         $current_settings = get_user_meta($current_user_id, self::FREEMIUS_USERKEY, true);
         if (empty($current_settings)) {
             return;

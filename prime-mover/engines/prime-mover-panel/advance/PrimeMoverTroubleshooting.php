@@ -32,6 +32,7 @@ class PrimeMoverTroubleshooting
     private $settings;
     private $troubleshooting_markup;
     private $maybe_log;
+    private $utilities;
     
     const TROUBLESHOOTING_KEY = 'enable_troubleshooting';
     const PERSIST_TROUBLESHOOTING_KEY = 'persist_troubleshooting';
@@ -54,6 +55,42 @@ class PrimeMoverTroubleshooting
         $this->settings = $settings;
         $this->troubleshooting_markup = $troubleshooting_markup;
         $this->maybe_log = false;
+        $this->utilities = $utilities;
+    }
+    
+    /**
+     * Get component auxiliary
+     */
+    public function getComponentAuxiliary()
+    {
+        $utilities = $this->getUtilities();
+        return $utilities['component_utilities'];
+    }
+    
+    /**
+     * Get utilities
+     * @return string|array
+     */
+    public function getUtilities()
+    {
+        return $this->utilities;
+    }
+    
+    /**
+     * Get Freemius integration
+     */
+    public function getFreemiusIntegration()
+    {
+        $utilities = $this->getUtilities();
+        return $utilities['freemius_integration'];
+    }
+    
+    /**
+     * Get shutdown utilities
+     */
+    public function getShutdownUtilities()
+    {
+        return $this->getFreemiusIntegration()->getShutdownUtilities();
     }
     
     /**
@@ -101,6 +138,7 @@ class PrimeMoverTroubleshooting
         add_action('prime_mover_render_troubleshooting_markup', [$this, 'renderJsTroubleShootingLogMarkup'], 14);
         add_action('prime_mover_render_troubleshooting_markup', [$this, 'renderUploadJsTroubleShootingLogMarkup'], 15);
         add_action('prime_mover_render_troubleshooting_markup', [$this, 'renderTurboModeMarkup'], 16);
+        add_action('prime_mover_render_troubleshooting_markup', [$this, 'renderClearLockedSettingsCallBack'], 17);
         
         add_filter('prime_mover_enable_turbo_mode_setting', [$this, 'maybeEnableTurboModeSetting'], 10, 1);
         add_filter('prime_mover_enable_upload_js_debug', [$this, 'maybeEnableJsUploadErrorAnalysis'], 10, 1);
@@ -117,6 +155,184 @@ class PrimeMoverTroubleshooting
         add_action('prime_mover_before_doing_export', [$this, 'maybeLog']);
         add_action('prime_mover_before_doing_import', [$this, 'maybeLog']);
         add_filter( 'prime_mover_filter_error_output', [ $this, 'maybeAddWpDebugInfo'], 400, 1);
+        
+        add_action('init', [$this, 'streamDownloadAutoBackupLog' ], 300);
+        add_action('wp_ajax_prime_mover_clear_automatic_backup_log', [$this,'clearAutoBackupLog']);
+        add_action('init', [$this, 'streamDownloadRuntimeErrorLog' ], 400);
+        
+        add_action('wp_ajax_prime_mover_clear_runtime_error_log', [$this,'clearRuntimeErrorLog']);
+        add_action('wp_ajax_prime_mover_clear_autobackup_init_meta', [$this,'clearAutoBackupInitKey']);
+        add_action('wp_ajax_prime_mover_clear_locked_settings', [$this,'clearLockedSettings']);
+    }
+
+    /**
+     * Clear auto backup init key
+     */
+    public function clearAutoBackupInitKey()
+    {
+        $response = [];
+        $clear_init = $this->getPrimeMoverSettings()->prepareSettings($response, 'clear_autobackup_init_meta_key',
+            'prime_mover_clear_autobackup_init_meta_nonce', false, $this->getPrimeMover()->getSystemInitialization()->getPrimeMoverSanitizeStringFilter());
+        
+        $status = false;
+        $message = esc_html__('Clear auto backup init key fails.', 'prime-mover');
+        
+        $blog_id = 0;
+        $value = '';
+        
+        if (is_array($clear_init)) {
+            $blog_id = key($clear_init);
+        }
+        
+        if ($blog_id && isset($clear_init[$blog_id])) {
+            $value = $clear_init[$blog_id];
+        }
+        
+        $blog_id = (int)$blog_id;
+        $user_id = $this->getPrimeMover()->getSystemFunctions()->getAutoBackupUser();
+        $user_id = (int)$user_id;
+        
+        if ('confirmed' === $value && $blog_id && $user_id) {
+            $meta_key = $this->getPrimeMover()->getSystemInitialization()->getAutoBackupInitMeta($blog_id, $user_id);
+            delete_user_meta($user_id, $meta_key);
+            $status = true;
+        }       
+        
+        if ($status) {
+            $message = esc_html__('Clear auto backup init key success.', 'prime-mover');
+        }
+        
+        $this->getPrimeMoverSettings()->returnToAjaxResponse($response, ['status' => $status, 'message' => $message]);
+    }
+    
+    /**
+     * Clear runtime error log
+     */
+    public function clearRuntimeErrorLog()
+    {
+        $response = [];
+        $clearlog = $this->getPrimeMoverSettings()->prepareSettings($response, 'clear_runtime_error_log_key',
+            'prime_mover_clear_runtime_error_log_nonce', false, $this->getPrimeMover()->getSystemInitialization()->getPrimeMoverSanitizeStringFilter());
+        
+        global $wp_filesystem;
+        $status = false;
+        $message = esc_html__('Clear log error fails.', 'prime-mover');
+        
+        $blog_id = 0;
+        $value = '';
+        $log_path = '';
+        
+        if (is_array($clearlog)) {
+            $blog_id = key($clearlog);
+        }
+        
+        if ($blog_id && isset($clearlog[$blog_id])) {
+            $value = $clearlog[$blog_id];
+        }
+        
+        $blog_id = (int)$blog_id;
+        if ('confirmed' === $value && $blog_id) {
+            $log_path = $this->getShutdownUtilities()->getAutoBackupRuntimeErrorLogPath($blog_id);            
+        }
+        
+        if ($log_path) {
+            $status = $wp_filesystem->put_contents($log_path, '', FS_CHMOD_FILE);
+        }
+        
+        if ($status) {
+            $message = esc_html__('Clear log success.', 'prime-mover');
+        }
+        
+        $this->getPrimeMoverSettings()->returnToAjaxResponse($response, ['status' => $status, 'message' => $message]);
+    }
+ 
+    /**
+     * Clear locked settings
+     */
+    public function clearLockedSettings()
+    {
+        $response = [];        
+        $clearlocksettings = $this->getPrimeMoverSettings()->prepareSettings($response, 'clear_locked_settings',
+            'prime_mover_clear_locked_settings_nonce', false, $this->getPrimeMover()->getSystemInitialization()->getPrimeMoverSanitizeStringFilter());
+
+        $status = false;
+        $message = esc_html__('Clear locked settings fails.', 'prime-mover');
+        
+        $blog_id = 0;
+        $value = '';
+        
+        if (is_array($clearlocksettings)) {
+            $blog_id = key($clearlocksettings);
+        }
+        
+        if ($blog_id && isset($clearlocksettings[$blog_id])) {
+            $value = $clearlocksettings[$blog_id];
+        }
+        
+        $blog_id = (int)$blog_id;
+        if ('confirmed' === $value && $blog_id) {            
+            $this->getComponentAuxiliary()->restoreAllFallBackSettings(0, 0, false, true); 
+            $status = true;                       
+        }
+        
+        if ($status) {
+            $message = esc_html__('Clear locked settings success.', 'prime-mover');
+        }
+        
+        $this->getPrimeMoverSettings()->returnToAjaxResponse($response, ['status' => $status, 'message' => $message]);
+    }
+    
+    /**
+     * Clear auto backup log
+     */
+    public function clearAutoBackupLog()
+    {
+        $response = [];        
+        $clearlog = $this->getPrimeMoverSettings()->prepareSettings($response, 'clear_automatic_backup_log',
+            'prime_mover_clear_automatic_backup_log_nonce', false, $this->getPrimeMover()->getSystemInitialization()->getPrimeMoverSanitizeStringFilter());
+        
+        global $wp_filesystem;
+        $status = false;
+        $message = esc_html__('Clear log error fails.', 'prime-mover');
+        
+        $blog_id = 0;
+        $value = '';
+        
+        if (is_array($clearlog)) {
+            $blog_id = key($clearlog);
+        }
+        
+        if ($blog_id && isset($clearlog[$blog_id])) {
+            $value = $clearlog[$blog_id];
+        }
+        
+        $blog_id = (int)$blog_id;        
+        if ('confirmed' === $value && $blog_id) {
+            $log_path = $this->getPrimeMover()->getSystemInitialization()->getTroubleShootingLogPath('automaticbackup', $blog_id);
+            $status = $wp_filesystem->put_contents($log_path, '', FS_CHMOD_FILE);
+        }
+        
+        if ($status) {
+            $message = esc_html__('Clear log success.', 'prime-mover');
+        }
+        
+        $this->getPrimeMoverSettings()->returnToAjaxResponse($response, ['status' => $status, 'message' => $message]);        
+    }
+    
+    /**
+     * Stream download automatic backup log
+     */
+    public function streamDownloadAutoBackupLog()
+    {
+        $this->getTroubleShootingMarkup()->streamDownloadHelper('prime_mover_automatic_backup_download_log_nonce', 'prime_mover_automatic_backup_download_log', 'automatic_backup_download_log', 'automaticbackup');
+    }
+    
+    /**
+     * Stream download autobackup runtime error log
+     */
+    public function streamDownloadRuntimeErrorLog()
+    {
+        $this->getTroubleShootingMarkup()->streamDownloadHelper('prime_mover_automatic_backup_runtime_error_nonce', 'prime_mover_automatic_runtime_error_log', 'automatic_backup_runtime_error_log', 'autobackup_error');
     }
     
     /**
@@ -453,6 +669,18 @@ class PrimeMoverTroubleshooting
     public function renderClearLogCallBack()
     {
         $this->getTroubleShootingMarkup()->renderClearLogCallBack();    
+    }
+ 
+    /**
+     * Render clear lock settings markup
+     */
+    public function renderClearLockedSettingsCallBack()
+    {
+        if (is_multisite()) {
+            return;    
+        }
+        
+        $this->getTroubleShootingMarkup()->renderClearLockedSettingsCallBack();
     }
     
     /**

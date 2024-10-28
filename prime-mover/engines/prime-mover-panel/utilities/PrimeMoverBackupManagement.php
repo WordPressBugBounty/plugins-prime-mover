@@ -31,6 +31,8 @@ class PrimeMoverBackupManagement
     private $delete_utilities;
     private $backupdir_size;
     private $component_aux;
+    private $settings_helper;
+    private $form_setting_keys;
     
     const COPYBACKUP_DIR = 'dont_copydir_when_deactivated';
     
@@ -40,9 +42,12 @@ class PrimeMoverBackupManagement
      * @param PrimeMoverSystemAuthorization $system_authorization
      * @param array $utilities
      * @param PrimeMoverSettings $settings
+     * @param PrimeMoverDeleteUtilities $delete_utilities
+     * @param PrimeMoverBackupDirectorySize $backupdir_size
+     * @param PrimeMoverSettingsHelper $settings_helper
      */
     public function __construct(PrimeMover $PrimeMover, PrimeMoverSystemAuthorization $system_authorization, array $utilities, 
-        PrimeMoverSettings $settings, PrimeMoverDeleteUtilities $delete_utilities, PrimeMoverBackupDirectorySize $backupdir_size) 
+        PrimeMoverSettings $settings, PrimeMoverDeleteUtilities $delete_utilities, PrimeMoverBackupDirectorySize $backupdir_size, PrimeMoverSettingsHelper $settings_helper) 
     {
         $this->prime_mover = $PrimeMover;
         $this->system_authorization = $system_authorization;
@@ -50,6 +55,30 @@ class PrimeMoverBackupManagement
         $this->delete_utilities = $delete_utilities;
         $this->backupdir_size = $backupdir_size;
         $this->component_aux = $utilities['component_utilities'];
+        $this->settings_helper = $settings_helper;
+        
+        $this->form_setting_keys = [
+            'prime_mover_save_automatic_backup_db_maintenance' => 'autobackup_db_maintenance_mode',
+            'prime_mover_save_automatic_backup_timeout_options' => 'autobackup_timeout_options'
+        ];
+    }
+
+    /**
+     * Get checkbox setting keys
+     * @return string[]
+     */
+    public function getFormSettingKeys()
+    {
+        return $this->form_setting_keys;
+    }
+    
+    /**
+     * Get settings helper
+     * @return \Codexonics\PrimeMoverFramework\utilities\PrimeMoverSettingsHelper
+     */
+    public function getSettingsHelper()
+    {
+        return $this->settings_helper;
     }
 
     /**
@@ -89,6 +118,15 @@ class PrimeMoverBackupManagement
     }    
 
     /**
+     * Get settings config
+     * @return \Codexonics\PrimeMoverFramework\app\PrimeMoverSettingsConfig
+     */
+    public function getSettingsConfig()
+    {
+        return $this->getSettingsHelper()->getSettingsConfig();
+    }
+    
+    /**
      * Init hooks
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverBackupManagement::itAddsInitHooks()
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverBackupManagement::itChecksIfHooksAreOutdated()
@@ -104,8 +142,51 @@ class PrimeMoverBackupManagement
         
         add_action('prime_mover_control_panel_settings', [$this, 'showBackupManagementSetting'], 40);   
         add_filter('prime_mover_filter_migratesites_column_markup', [$this, 'maybeFilterMigrateColumnMarkup'], 10, 3); 
+        
+        $form_setting_keys = array_values($this->getFormSettingKeys());
+        foreach ($form_setting_keys as $setting_keys) {
+            $settings_config = $this->getSettingsConfig()->getMasterSettingsConfig();
+            if (isset($settings_config[$setting_keys]['ajax_action'])) {
+                $ajax_action = $settings_config[$setting_keys]['ajax_action'];
+                add_action("wp_ajax_{$ajax_action}", [$this,'saveAutoBackupSettings']);
+            }
+        }
     }
  
+    /**
+     * Save automatic backup settings used in free version.
+     */
+    public function saveAutoBackupSettings()
+    {
+        if (!$this->getPrimeMover()->getSystemAuthorization()->isUserAuthorized()) {
+            return $this->getPrimeMoverSettings()->returnToAjaxResponse([], ['status' => false, 'message' => esc_html__('Unauthorized, please login to WordPress and try again.', 'prime-mover')]);
+        }
+        
+        $prefix = 'wp_ajax_';
+        $str = current_filter();
+        if (substr($str, 0, strlen($prefix)) == $prefix) {
+            $str = substr($str, strlen($prefix));
+        }
+        
+        $form_keys = $this->getFormSettingKeys();
+        if (!isset($form_keys[$str])) {
+            return $this->getPrimeMoverSettings()->returnToAjaxResponse([], ['status' => false, 'message' => esc_html__('Settings not defined.', 'prime-mover')]);
+        }
+        
+        $settings_identifier = $form_keys[$str];
+        $settings_config = $this->getSettingsConfig()->getMasterSettingsConfig();
+        if (!isset($settings_config[$settings_identifier]['validation_id'])) {
+            return $this->getPrimeMoverSettings()->returnToAjaxResponse([], ['status' => false, 'message' => esc_html__('Settings validation ID is not defined', 'prime-mover')]);
+        }
+        
+        $validation_id = $settings_config[$settings_identifier]['validation_id'];
+        $cron_sched = false;
+        if ('autobackup_schedule' === $settings_identifier) {
+            $cron_sched = true;
+        }
+        $this->getSettingsHelper()->saveSettings($settings_identifier, true, '', $validation_id, $cron_sched);
+    }
+    
     /**
      * Maybe filter migrate column markup
      * @param array $markup
@@ -207,8 +288,10 @@ class PrimeMoverBackupManagement
     ?>
        <h2><?php esc_html_e('Backup management', 'prime-mover')?></h2>
     <?php 
-       $this->getDeleteUtilities()->outputDeleteAllBackupsMarkup();
-       $this->getBackupDirSize()->outputBackupsDirSizeMarkup();
+       do_action('prime_mover_show_other_backup_management');
+    
+       $this->getBackupDirSize()->outputBackupsDirSizeMarkup(); 
+       $this->getDeleteUtilities()->outputDeleteAllBackupsMarkup();            
     }
     
     /**

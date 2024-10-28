@@ -169,9 +169,158 @@ class PrimeMoverMultilingualCompat
         add_filter('prime_mover_before_mysqldump_php', [$this, 'initializeCharSetParameters'], 40, 1);
         add_filter('prime_mover_inject_db_parameters', [$this, 'maybeDetectMismatchCharset'], 10, 2);
         
-        add_filter('prime_mover_filter_site_locales', [$this, 'maybeInjectActiveLanguagesLocale'], 10, 3);
+        add_filter('prime_mover_filter_site_locales', [$this, 'maybeInjectActiveLanguagesLocale'], 10, 3);       
+        add_filter('prime_mover_filter_export_footprint', [$this, 'maybeAddTableSpecificCollateToPackageConfig'], 600, 3); 
+        add_filter('prime_mover_filter_other_information', [$this, 'maybeComputeIncompatibleCollations'], 50, 2);
+        
+        add_filter('prime_mover_filter_sql_query', [$this, 'maybeRemoveIncompatibleCollations'], 150, 2);
     } 
- 
+    
+    /**
+     * Maybe remove incompatible collations in CREATE TABLE statements
+     * @param string $query
+     * @param array $ret
+     * @return string|string|array
+     */
+    public function maybeRemoveIncompatibleCollations($query = '', $ret = [])
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized() || !$query) {
+            return $query;
+        }
+        
+        if (0 !== strpos($query, "CREATE TABLE")) {
+            return $query;
+        }
+
+        if (!isset($ret['incompatible_collations'])) {
+            return $query;
+        }
+
+        $incompatible_solutions = $ret['incompatible_collations'];
+        if (!is_array($incompatible_solutions)) {
+            return $query;
+        }
+
+        $incompatible_solutions = array_keys($incompatible_solutions);
+        foreach ($incompatible_solutions as $incompatible) {
+            $query = str_replace("COLLATE {$incompatible}", '', $query);
+            $query = str_replace("COLLATE={$incompatible}", '', $query);
+        }
+        
+        return $query;
+    }
+    
+    /**
+     * Maybe compute incompatible collations before restoring database
+     * @param array $ret
+     * @param number $blog_id_imported
+     * @return array
+     */
+    public function maybeComputeIncompatibleCollations($ret = [], $blog_id_imported = 0)
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return $ret;
+        }
+
+        if (!isset($ret['imported_package_footprint']['tbl_specific_collations'])) {
+            return $ret;
+        }
+        
+        $table_specific_collations_source = $ret['imported_package_footprint']['tbl_specific_collations'];
+        if (!is_array($table_specific_collations_source) || empty($table_specific_collations_source)) {
+            return $ret;
+        }
+
+        if (empty($ret['wprime_tar_config_set']['prime_mover_source_site_db_collate'])) {
+            return $ret;
+        }
+        
+        $fallback_collation = $ret['wprime_tar_config_set']['prime_mover_source_site_db_collate'];
+        $collations_for_validation = $table_specific_collations_source;      
+        if (!in_array($fallback_collation, $collations_for_validation)) {
+            $collations_for_validation[] = $fallback_collation;
+        }        
+       
+        $collations_for_validation = map_deep($collations_for_validation, 'sanitize_text_field');
+        $collations_for_validation = array_filter($collations_for_validation);
+        $collations_for_validation = esc_sql($collations_for_validation);
+        $tbl_specific_collations_string = "'" . implode("','", $collations_for_validation) . "'";
+        $sql = "SHOW COLLATION where Collation IN ($tbl_specific_collations_string)";
+        
+        $wpdb = $this->getSystemInitialization()->getWpdB();
+        $res = $wpdb->get_results($sql, ARRAY_A);        
+        if (!is_array($res)) {
+            do_action('prime_mover_log_processed_events', "ERROR: SHOW COLLATION query result is not in array result format, SQL query below:", $blog_id_imported, 'import', __FUNCTION__, $this);
+            do_action('prime_mover_log_processed_events', $sql, $blog_id_imported, 'import', __FUNCTION__, $this);
+            
+            do_action('prime_mover_log_processed_events', "Collation SQL query result below:", $blog_id_imported, 'import', __FUNCTION__, $this);
+            do_action('prime_mover_log_processed_events', $res, $blog_id_imported, 'import', __FUNCTION__, $this);
+            
+            return $ret;
+        }
+
+        $supported = wp_list_pluck($res, 'Collation'); 
+        if (!is_array($supported)) {
+            do_action('prime_mover_log_processed_events', "ERROR: WP_LIST_PLUCK result is not in array result format while processing collations data, plucked result below:", $blog_id_imported, 'import', __FUNCTION__, $this);
+            do_action('prime_mover_log_processed_events', $supported, $blog_id_imported, 'import', __FUNCTION__, $this);
+            
+            return $ret;
+        }
+
+        $incompatible_collations = [];
+        if (!in_array($fallback_collation, $supported)) {
+            do_action('prime_mover_log_processed_events', "ERROR: SOURCE SITE COLLATION DOES NOT EXISTS ON THIS DB SERVER - USING THE TARGET SITE COLLATION INSTEAD WHICH IS SUPPORTED BY WPDB.", $blog_id_imported, 'import', __FUNCTION__, $this);
+            $fallback_collation = $this->getSystemInitialization()->getDbCollateUsedBySite();
+        }       
+        
+        foreach($table_specific_collations_source as $source_collation) {
+            if (!in_array($source_collation, $supported)) {
+                $incompatible_collations[$source_collation] = $fallback_collation;
+            }
+        }
+        
+        if (empty($incompatible_collations)) {
+            do_action('prime_mover_log_processed_events', "NO INCOMPATIBLE COLLATIONS DETECTED - SOURCE SITE COLLATIONS COMPATIBLE WITH TARGET SITE DATABASE SERVER.", $blog_id_imported, 'import', __FUNCTION__, $this);
+            return $ret;
+        }
+        
+        do_action('prime_mover_log_processed_events', "ERROR: INCOMPATIBLE COLLATIONS DETECTED WITH WORKAROUND COLLATIONS FOR MAXIMUM COMPATIBILITY:", $blog_id_imported, 'import', __FUNCTION__, $this);
+        do_action('prime_mover_log_processed_events', $incompatible_collations, $blog_id_imported, 'import', __FUNCTION__, $this);
+        
+        $ret['incompatible_collations'] = $incompatible_collations;
+        return $ret;
+    }
+    
+
+    /**
+     * Add table specific collate to package config
+     * @param array $export_system_footprint
+     * @param array $ret
+     * @param number $blogid_to_export
+     * @return array
+     */
+    public function maybeAddTableSpecificCollateToPackageConfig($export_system_footprint = [], $ret = [], $blogid_to_export = 0)
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return $export_system_footprint;
+        }
+        
+        if (!is_array($export_system_footprint) || !is_array($ret)) {
+            return $export_system_footprint;
+        }
+        
+        if (!isset($ret['tbl_specific_collations'])) {
+            return $export_system_footprint;
+        }
+        
+        if (!is_array($ret['tbl_specific_collations']) || empty($ret['tbl_specific_collations'])) {
+            return $export_system_footprint;
+        }
+        
+        $export_system_footprint['tbl_specific_collations'] = $ret['tbl_specific_collations'];
+        return $export_system_footprint;
+    }
+    
     /**
      * Inject active languages locale to make sure MO Files are exported correctly
      * @param array $locales
@@ -197,7 +346,7 @@ class PrimeMoverMultilingualCompat
             return $locales;
         }       
         
-        $settings = $this->getSystemFunctions()->getOption('icl_sitepress_settings', false);
+        $settings = $this->getSystemFunctions()->getOption('icl_sitepress_settings', false, '', true, true);
         $active_lang = [];
         if (is_array($settings) && isset($settings['active_languages']) && is_array($settings['active_languages'])) {
             $active_lang = $settings['active_languages'];
@@ -236,7 +385,7 @@ class PrimeMoverMultilingualCompat
         }
         $package_target_charset = $ret['wprime_tar_config_set']['prime_mover_target_db_charset'];
         
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         if (!is_object($wpdb) || !isset($wpdb->dbh)) {
             return;
         }
@@ -378,10 +527,10 @@ class PrimeMoverMultilingualCompat
        
         $tables = array_keys($ret['tbl_primary_keys']);        
         
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $collations = [];
         foreach ($tables as $table) {
-            $results = $wpdb->get_results("SHOW FULL COLUMNS FROM $table");
+            $results = $wpdb->get_results("SHOW FULL COLUMNS FROM `{$table}`");
             if (!$results ) {
                 continue;
             }

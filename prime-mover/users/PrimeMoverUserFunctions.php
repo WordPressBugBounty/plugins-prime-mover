@@ -204,7 +204,7 @@ class PrimeMoverUserFunctions
      */
     protected function seekPostsToUpdateQuery($ret = [])
     {
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $where = '';
         
         $left_off = 0;
@@ -237,7 +237,7 @@ class PrimeMoverUserFunctions
         }
         
         $this->getSystemFunctions()->switchToBlog($blog_id);
-        global $wpdb;        
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $wpdb->flush();
              
         $query = $this->seekPostsToUpdateQuery($ret);
@@ -260,7 +260,7 @@ class PrimeMoverUserFunctions
             
             $query = $this->seekPostsToUpdateQuery($ret);                          
             $retry_timeout = apply_filters('prime_mover_retry_timeout_seconds', PRIME_MOVER_RETRY_TIMEOUT_SECONDS, __FUNCTION__);
-            if ( (microtime(true) - $start_time) > $retry_timeout) {
+            if ( (microtime(true) - $start_time) > $retry_timeout) {                
                 $this->getSystemFunctions()->restoreCurrentBlog();                
                 do_action('prime_mover_log_processed_events', "$retry_timeout seconds time out on updating user authors" , $blog_id, 'import', __FUNCTION__, $this);
                
@@ -352,7 +352,7 @@ class PrimeMoverUserFunctions
      */
     private function updateAuthorBySQL($post_id = 0, $new_author = 0)
     {
-        global $wpdb; 
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $prep = $wpdb->prepare("
             UPDATE $wpdb->posts
             SET post_author = %d
@@ -442,7 +442,7 @@ class PrimeMoverUserFunctions
      */
     public function countUserMaxId()
     {
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         return $wpdb->get_var("SELECT MAX(post_author) FROM {$wpdb->prefix}posts");
     }
     
@@ -452,7 +452,7 @@ class PrimeMoverUserFunctions
      */
     public function countTotalPosts()
     {
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         return $wpdb->get_var("SELECT count(ID) FROM {$wpdb->prefix}posts");
     }
     
@@ -552,7 +552,7 @@ class PrimeMoverUserFunctions
             $given_db_prefix = $this->getSystemFunctions()->getDbPrefixOfSite($blog_id);
         }
         
-        global $wpdb;      
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $escaped_like = $wpdb->esc_like($given_db_prefix);
         $target_prefix = $escaped_like . '%';        
         $usermeta_table = $this->getSystemFunctions()->getUserMetaTableName();

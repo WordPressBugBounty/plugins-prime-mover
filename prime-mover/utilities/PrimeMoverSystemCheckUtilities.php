@@ -230,8 +230,7 @@ class PrimeMoverSystemCheckUtilities
         $this->getSystemFunctions()->switchToBlog($blogid_to_import);
         
         wp_cache_delete('alloptions', 'options');
-        $active_plugins = $this->getSystemFunctions()->getBlogOption($blogid_to_import, 'active_plugins');
-       
+        $active_plugins = $this->getSystemFunctions()->getBlogOption($blogid_to_import, 'active_plugins', false, '', true, true);       
         if ( ! is_array($active_plugins)) {
             $this->getSystemFunctions()->restoreCurrentBlog();
             return $ret;
@@ -370,7 +369,7 @@ class PrimeMoverSystemCheckUtilities
         }
         
         $this->getSystemFunctions()->switchToBlog($blog_id);
-        if ( $this->getSystemFunctions()->getSiteOption( 'ms_files_rewriting' ) && defined( 'UPLOADS' ) ) {
+        if ( $this->getSystemFunctions()->getSiteOption('ms_files_rewriting', false, true, false, '', true, true) && defined( 'UPLOADS' ) ) {
             $legacy = true;
             $this->getSystemInitialization()->setLegacyMultisite($legacy);
         }  
@@ -464,7 +463,8 @@ class PrimeMoverSystemCheckUtilities
      */
     public function getMySQLBaseDirExecutablePath($command = 'mysql', $is_windows = false)
     {
-        global $wp_filesystem, $wpdb;
+        global $wp_filesystem;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $executable = '';
         
         $result = $wpdb->get_results("SHOW VARIABLES WHERE Variable_name = 'basedir'", ARRAY_N);
@@ -658,7 +658,8 @@ class PrimeMoverSystemCheckUtilities
                 $offset = ftell($fin);
                 $ret['copychunked_offset'] = $offset;
                 $ret['copychunked_under_copy'] = $from;
-                
+                              
+                $ret = $this->getSystemInitialization()->maybeAutomaticBackupTimeout($ret);
                 do_action('prime_mover_log_processed_events', "$retry_timeout seconds time out while doing stream copy $source_id. Need to resume copying $from at position $offset.", $blog_id, 'import', __FUNCTION__, $this);
                 return $ret;
             }
@@ -907,6 +908,7 @@ class PrimeMoverSystemCheckUtilities
         $retry_timeout = apply_filters('prime_mover_retry_timeout_seconds', PRIME_MOVER_RETRY_TIMEOUT_SECONDS, __FUNCTION__);
         $running_time = microtime(true) - $start; 
         if ($running_time > $retry_timeout) {
+            $ret = $this->getSystemInitialization()->maybeAutomaticBackupTimeout($ret);            
             return $this->bailoutAndReturn('timeout need retry', false, $blog_id, $source, $destination, $ret);
         }
            
@@ -934,6 +936,7 @@ class PrimeMoverSystemCheckUtilities
         
         $running_time = microtime(true) - $start;
         if ($running_time > $retry_timeout) {
+            $ret = $this->getSystemInitialization()->maybeAutomaticBackupTimeout($ret); 
             return $this->bailoutAndReturn('timeout need retry', false, $blog_id, $source, $destination,  $ret);
         }
         
@@ -1365,7 +1368,7 @@ class PrimeMoverSystemCheckUtilities
      */
     protected function querySQLConfig($config = 'max_allowed_packet')
     {
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $result = false;
         
         if ('max_allowed_packet' === $config) {

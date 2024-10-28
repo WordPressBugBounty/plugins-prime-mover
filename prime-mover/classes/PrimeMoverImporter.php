@@ -1544,7 +1544,7 @@ class PrimeMoverImporter implements PrimeMoverImport
             return $ret;
         }   
         
-        global $wpdb;        
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         if (isset($ret['core_tables'])) {
             $coretables = $ret['core_tables'];            
         } else {
@@ -1741,7 +1741,7 @@ class PrimeMoverImporter implements PrimeMoverImport
             $is_retry = true;
         }        
         
-        global $wpdb;        
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         do_action('prime_mover_before_looping_restore_queries', $ret, $blogid_to_import);
         $ret['mysql_version'] = $wpdb->db_version();
         
@@ -1932,7 +1932,7 @@ class PrimeMoverImporter implements PrimeMoverImport
             return;
         }
         if (is_array($converted_table_names) && ! empty($converted_table_names)) {
-            global $wpdb;
+            $wpdb = $this->getSystemInitialization()->getWpdB();
             $options_table = $target_prefix . 'options';
             $deactivated_plugins = false;
             
@@ -1950,6 +1950,11 @@ class PrimeMoverImporter implements PrimeMoverImport
                 do_action('prime_mover_log_processed_events', "Renaming $original_table_name TO $new_table_name", $blog_id, 'import', __FUNCTION__, $this);                
                 $drop_result = $this->getSystemFunctions()->dropTable($drop_query, false, $wpdb, true);
                 
+                if (false === $drop_result && false === $this->getSystemFunctions()->isTableExists($new_table_name)) {
+                    do_action('prime_mover_log_processed_events', "The target $new_table_name does not exist so we force drop result to TRUE.", $blog_id, 'import', __FUNCTION__, $this); 
+                    $drop_result = true;
+                }
+                
                 if (true === $drop_result) {
                     do_action('prime_mover_log_processed_events', "Old $new_table_name successfully dropped.", $blog_id, 'import', __FUNCTION__, $this); 
                     
@@ -1964,7 +1969,7 @@ class PrimeMoverImporter implements PrimeMoverImport
                 
                 if ($options_table === $new_table_name) {                      
                     $this->renameSomeOptions($ret, $blog_id);
-                    $this->maybeRestoreDefaultUserRole($blog_id);
+                    $this->maybeRestoreDefaultUserRole($blog_id, $ret);
                     $deactivated_plugins = $this->getSystemFunctions()->activatePrimeMoverPluginOnly($blog_id);
                     
                     do_action('prime_mover_log_processed_events', 'Successfully renamed new options table.', $blog_id, 'import', __FUNCTION__, $this);
@@ -1977,31 +1982,115 @@ class PrimeMoverImporter implements PrimeMoverImport
     /**
      * Restore default user role if imported is not setting it.
      * @param number $blog_id
+     * @param array $ret
      */
-    protected function maybeRestoreDefaultUserRole($blog_id = 0)
+    protected function maybeRestoreDefaultUserRole($blog_id = 0, $ret = [])
     {
         if (!$this->getSystemAuthorization()->isUserAuthorized() || is_multisite()) {
             return;
         }
-        $current_user_id = get_current_user_id();
+        
+        $current_user_id = $this->getSystemInitialization()->getCurrentUserId();
         $db_prefix = $this->getSystemFunctions()->getDbPrefixOfSite(1);
+        
         $current_role_option = $db_prefix . 'user_roles';
         wp_cache_delete('alloptions', 'options');
-        if ($this->maybeRestoreEmergencyRoleOptions($current_role_option)) {
-            $this->getSystemFunctions()->updateOption($current_role_option, get_user_meta($current_user_id, $this->getSystemInitialization()->getDefaultUserRole(), true)); 
-            delete_user_meta($current_user_id, $this->getSystemInitialization()->getDefaultUserRole());            
+        $source_role_option = $this->getSystemFunctions()->getOption($current_role_option, false, '', true, true); 
+        $default_site_role_option = get_user_meta($current_user_id, $this->getSystemInitialization()->getDefaultUserRole(), true);
+        
+        if ($this->maybeRestoreEmergencyRoleOptions($current_role_option, $blog_id, $source_role_option)) {
+            $this->getSystemFunctions()->updateOption($current_role_option, $default_site_role_option); 
+            delete_user_meta($current_user_id, $this->getSystemInitialization()->getDefaultUserRole());  
+            
+             return;
         }
+        
+        $this->maybeRestoreMissingAdminCapsFromMu($ret, $source_role_option, $blog_id, $current_role_option, $current_user_id);                
+    }
+       
+    /**
+     * Restore missing administrator capabilities in single-site 
+     * These are list of capabilities meant only to network administrators from multisite
+     * But restore these capabilities (when missing) during the migration to single-site.
+     * 
+     * @param array $ret
+     * @param array $source_role_option
+     * @param number $blog_id
+     * @param string $current_role_option
+     * @param number $current_user_id
+     */
+    protected function maybeRestoreMissingAdminCapsFromMu($ret = [], $source_role_option = [], $blog_id = 0, $current_role_option = '', $current_user_id = 0)
+    {
+        $origin_blog_id = 1;
+        $multisite_source = false;
+        if (is_array($ret) && isset($ret['imported_package_footprint']['footprint_blog_id'])) {
+            $origin_blog_id = $ret['imported_package_footprint']['footprint_blog_id'];
+        }
+        
+        $origin_blog_id = (int)$origin_blog_id;
+        if ($origin_blog_id > 1) {
+            $multisite_source = true;
+        }
+        if (!$multisite_source) {
+            return;
+        }
+        
+        do_action('prime_mover_log_processed_events', "ADMIN CAPABILITIES CHECK: WE ARE MIGRATING FROM MULTISITE TO SINGLE SITE INSTALL CHECKING...", $blog_id, 'import', __FUNCTION__, $this);
+        if (!is_array($source_role_option) || empty($source_role_option)) {
+            return;
+        }
+        
+        $source_mu_admin_caps = [];
+        if (isset($source_role_option['administrator']['capabilities'])) {
+            $source_mu_admin_caps = $source_role_option['administrator']['capabilities'];
+        }
+        
+        if (empty($source_mu_admin_caps)) {
+            return;
+        }
+        
+        $default_admin_caps = primeMoverRestoreAdminCaps();
+        $changes = [];
+        foreach ($default_admin_caps as $cap_name) {
+            $update = false;
+            if (!isset($source_mu_admin_caps[$cap_name])) {
+                $update = true;
+                do_action('prime_mover_log_processed_events', "ADMIN CAPABILITIES CHECK: ERROR! MISSING $cap_name IN THE ADMINISTRATOR CAPABILITIES, RESTORING IT..", $blog_id, 'import', __FUNCTION__, $this);
+            }
+            
+            if (isset($source_mu_admin_caps[$cap_name]) && false === $source_mu_admin_caps[$cap_name]) {
+                $update = true;
+                do_action('prime_mover_log_processed_events', "ADMIN CAPABILITIES CHECK: ERROR! ADMINISTRATOR $cap_name IS SET BUT NOT GRANTED..RESTORING IT", $blog_id, 'import', __FUNCTION__, $this);
+            }
+            
+            if ($update) {
+                $changes[] = $cap_name;
+                $source_mu_admin_caps[$cap_name] = true;
+            }
+        }
+      
+        if (empty($changes)) {  
+            do_action('prime_mover_log_processed_events', "ADMIN CAPABILITIES CHECK: PASSED! NO CHANGES MADE TO DATABASE...", $blog_id, 'import', __FUNCTION__, $this);
+            return;
+        }
+        
+        unset($source_role_option['administrator']['capabilities']);
+        $source_role_option['administrator']['capabilities'] = $source_mu_admin_caps;
+        
+        $this->getSystemFunctions()->updateOption($current_role_option, $source_role_option);
+        delete_user_meta($current_user_id, $this->getSystemInitialization()->getDefaultUserRole());
+        do_action('prime_mover_log_processed_events', "ADMIN CAPABILITIES CHECK: UPDATED THE NECESSARY CHANGES TO DATABASE. DONE.", $blog_id, 'import', __FUNCTION__, $this);
     }
     
     /**
      * Check if we need to restore emergency user role options
      * @param array $current_role_option
      * @param number $blog_id
+     * @param array $source_role_option
      * @return boolean
      */
-    protected function maybeRestoreEmergencyRoleOptions($current_role_option = [], $blog_id = 0)
-    {
-        $source_role_option = $this->getSystemFunctions()->getOption($current_role_option);        
+    protected function maybeRestoreEmergencyRoleOptions($current_role_option = [], $blog_id = 0, $source_role_option = [])
+    {               
         if (!$source_role_option) {            
             do_action('prime_mover_log_processed_events', 'Imported options does not have WordPress user role set. Emergency restoration of default user role to avoid breaking restore process.', $blog_id, 'import', __FUNCTION__, $this);
             return true;
@@ -2021,7 +2110,7 @@ class PrimeMoverImporter implements PrimeMoverImport
      */
     protected function killBlockingProcesses($ret = [])
     {       
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         if (isset($ret['prime_mover_is_super_db_user']) && false === $ret['prime_mover_is_super_db_user']) {
             return;
         }
@@ -2080,7 +2169,7 @@ class PrimeMoverImporter implements PrimeMoverImport
         $this->getSystemFunctions()->switchToBlog($blogid_to_import);
         $this->getSystemFunctions()->maybeForceDeleteOptionCaches('active_plugins', true, false);
         
-        $active_plugins = $this->getSystemFunctions()->getOption('active_plugins', []);
+        $active_plugins = $this->getSystemFunctions()->getOption('active_plugins', [], '', true, true);
         global $wp_filesystem;
         $active_plugins_keys = array_keys($source_site_active_plugins);
         
@@ -2209,7 +2298,7 @@ class PrimeMoverImporter implements PrimeMoverImport
         if (empty($affected_options) || ! is_array($affected_options) || ! $blogid_to_import) {
             return;
         }
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $this->getSystemFunctions()->switchToBlog($blogid_to_import);
         
         $origin_prefix = $ret['origin_db_prefix'];        
@@ -2242,7 +2331,7 @@ class PrimeMoverImporter implements PrimeMoverImport
         }
 
         $this->getSystemFunctions()->switchToBlog($blogid_to_import); 
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         
         $options_query = "SELECT option_name FROM {$wpdb->prefix}options WHERE option_name LIKE %s";
         $prefix_search = $wpdb->esc_like($ret['origin_db_prefix']) . '%';
@@ -2313,21 +2402,16 @@ class PrimeMoverImporter implements PrimeMoverImport
            
             return apply_filters('prime_mover_save_return_import_progress', $ret, $blogid_to_import, $next_func, $current_func);
         }
-        $this->getProgressHandlers()->updateTrackerProgress(esc_html__('Renaming dB prefix with target site.', 'prime-mover'));
         
-        global $wpdb;
-        $db_search = "SHOW TABLES LIKE %s";
-        
+        $this->getProgressHandlers()->updateTrackerProgress(esc_html__('Renaming dB prefix with target site.', 'prime-mover'));        
         $clean_tables = [];
         $package_exported_tables = $ret['imported_package_footprint']['exported_db_tables'];
-        if ( ! is_array($package_exported_tables) ) {
-           
+        if (!is_array($package_exported_tables)) {           
             return apply_filters('prime_mover_save_return_import_progress', $ret, $blogid_to_import, $next_func, $current_func);
         }
-        foreach ($package_exported_tables as $table_to_validate) {
-            $table_to_validate = filter_var($table_to_validate, $this->getSystemInitialization()->getPrimeMoverSanitizeStringFilter());
-            $sql = $wpdb->prepare($db_search ,  $table_to_validate);
-            if ($wpdb->get_var($sql) === $table_to_validate) {
+        
+        foreach ($package_exported_tables as $table_to_validate) {            
+            if ($this->getSystemFunctions()->isTableExists($table_to_validate)) {
                 $clean_tables[] = $table_to_validate;
             }
         }
@@ -2421,10 +2505,10 @@ class PrimeMoverImporter implements PrimeMoverImport
             $table_rows_count = [];
         }        
         
-        global $wpdb;     
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         foreach ($all_tables as $k => $table) {   
             
-            $table_rows_count[$table] = $wpdb->get_var("SELECT count(*) FROM {$table}");
+            $table_rows_count[$table] = $wpdb->get_var("SELECT count(*) FROM `{$table}`");
             unset($all_tables[$k]);           
             
             if ((microtime(true) - $start_time) > $retry_timeout) { 
@@ -2548,7 +2632,7 @@ class PrimeMoverImporter implements PrimeMoverImport
             $all_tables = $ret['main_search_replace_tables'];
         }     
         
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $posts_table = $wpdb->posts;
         
         $excluded_columns = [$posts_table => 'guid']; 
@@ -2610,8 +2694,9 @@ class PrimeMoverImporter implements PrimeMoverImport
         $this->getProgressHandlers()->updateTrackerProgress(esc_html__('Saving uploads info..', 'prime-mover'));
         $upload_path_information = '';
         $upload_url_path_information = '';
-        $uploads_path = $this->getSystemFunctions()->getBlogOption($blogid_to_import, 'upload_path');
-        $upload_url_path = $this->getSystemFunctions()->getBlogOption($blogid_to_import, 'upload_url_path');
+        
+        $uploads_path = $this->getSystemFunctions()->getBlogOption($blogid_to_import, 'upload_path', false, '', true, true);
+        $upload_url_path = $this->getSystemFunctions()->getBlogOption($blogid_to_import, 'upload_url_path', false, '', true, true);
         
         if ($uploads_path) {            
             $upload_path_information = $uploads_path;
@@ -2670,9 +2755,9 @@ class PrimeMoverImporter implements PrimeMoverImport
         
         $upload_structure = $ret['upload_path_information'];
         $upload_url = $ret['upload_url_path_information'];
+        $this->getSystemFunctions()->updateBlogOption($blogid_to_import, 'upload_path', $upload_structure, true, '', true, true);
         
-        $this->getSystemFunctions()->updateBlogOption($blogid_to_import, 'upload_path', $upload_structure);
-        $this->getSystemFunctions()->updateBlogOption($blogid_to_import, 'upload_url_path', $upload_url);
+        $this->getSystemFunctions()->updateBlogOption($blogid_to_import, 'upload_url_path', $upload_url, true, '', true, true);
  
         $canonical_home = '';
         if (isset($ret['dev_home_url'])) {
@@ -2681,7 +2766,7 @@ class PrimeMoverImporter implements PrimeMoverImport
         $after_restore_home = get_home_url($blogid_to_import);
         if ($canonical_home && $after_restore_home && $after_restore_home !== $canonical_home) {
             do_action('prime_mover_log_processed_events', "Restoring to original home URL: $canonical_home", $blogid_to_import, 'import', $current_func, $this);
-            $this->getSystemFunctions()->updateBlogOption($blogid_to_import, 'home', $canonical_home);
+            $this->getSystemFunctions()->updateBlogOption($blogid_to_import, 'home', $canonical_home, true, '', true, true);
         }
         
         $canonical_siteurl = '';
@@ -2691,7 +2776,7 @@ class PrimeMoverImporter implements PrimeMoverImport
         
         if (isset($ret['force_site_url_update_later']) && true === $ret['force_site_url_update_later'] && $canonical_siteurl) {
             do_action('prime_mover_log_processed_events', "Restoring to original site URL: $canonical_siteurl", $blogid_to_import, 'import', $current_func, $this);
-            $this->getSystemFunctions()->updateBlogOption($blogid_to_import, 'siteurl', $canonical_siteurl);
+            $this->getSystemFunctions()->updateBlogOption($blogid_to_import, 'siteurl', $canonical_siteurl, true, '', true, true);
         }
         
         do_action('prime_mover_log_processed_events', $ret, $blogid_to_import, 'import', $current_func, $this, true);
@@ -2715,7 +2800,7 @@ class PrimeMoverImporter implements PrimeMoverImport
         if ( ! $this->getSystemAuthorization()->isUserAuthorized() ) {
             return $ret;
         }
-        $user_id = get_current_user_id();
+        $user_id = $this->getSystemInitialization()->getCurrentUserId();
         if ( ! $user_id ) {
             return $ret;
         }
@@ -2732,7 +2817,7 @@ class PrimeMoverImporter implements PrimeMoverImport
         $meta_key = $this->getProgressHandlers()->generateTrackerId($blogid_to_import, 'import');       
         wp_cache_delete($user_id, 'user_meta' );
         
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $wpdb->query("UNLOCK TABLES;");      
           
         $umeta_id = 0;
@@ -2762,7 +2847,7 @@ class PrimeMoverImporter implements PrimeMoverImport
         if ( ! $this->getSystemAuthorization()->isUserAuthorized() || ! $blogid_to_import) {
             return $ret;
         }
-        $user_id = get_current_user_id();
+        $user_id = $this->getSystemInitialization()->getCurrentUserId();
         $meta_key = $this->getProgressHandlers()->generateTrackerId($blogid_to_import, 'import');
         wp_cache_delete($user_id, 'user_meta' );
         

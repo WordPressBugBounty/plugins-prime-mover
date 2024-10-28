@@ -27,7 +27,7 @@ class PrimeMoverGearBoxScreenOptions
     const SCREEN_OPTION_SETTING_MIGRATED = 'prime_mover_screen_settings_migrated';
     
     /**
-     * 
+     * Constructor
      * @param PrimeMover $PrimeMover
      * @param PrimeMoverComponentAuxiliary $component_utilities
      */
@@ -97,12 +97,12 @@ class PrimeMoverGearBoxScreenOptions
             return;
         }    
         
-        if ('yes' === $this->getPrimeMover()->getSystemFunctions()->getSiteOption(self::SCREEN_OPTION_SETTING_MIGRATED, false, true, true)) {
+        if ('yes' === $this->getPrimeMover()->getSystemFunctions()->getSiteOption(self::SCREEN_OPTION_SETTING_MIGRATED, false, true, true, '', true, true)) {
             return;
         }
         
         $setting = [];   
-        $user_id = get_current_user_id();
+        $user_id = $this->getPrimeMover()->getSystemInitialization()->getCurrentUserId();
         $show_sites = get_user_option('multisite_migration_show_sites_with_backups');
         
         if ('yes' === $show_sites) {
@@ -122,12 +122,12 @@ class PrimeMoverGearBoxScreenOptions
         
         $site_ids = get_option('multisite_migration_backup_sites');             
         if ($site_ids) {
-            $this->getPrimeMover()->getSystemFunctions()->updateSiteOption($option_name, $site_ids, true);
-            
+            $this->getPrimeMover()->getSystemFunctions()->updateSiteOption($option_name, $site_ids, true);            
             delete_option('multisite_migration_backup_sites');
         }
-        $this->getPrimeMover()->getSystemFunctions()->restoreCurrentBlog();        
-        $this->getPrimeMover()->getSystemFunctions()->updateSiteOption(self::SCREEN_OPTION_SETTING_MIGRATED, 'yes', true);
+        
+        $this->getPrimeMover()->getSystemFunctions()->restoreCurrentBlog(); 
+        $this->getPrimeMover()->getSystemFunctions()->updateSiteOption(self::SCREEN_OPTION_SETTING_MIGRATED, 'yes', true, '', true, true);
     }
     
     /**
@@ -243,7 +243,7 @@ class PrimeMoverGearBoxScreenOptions
         if ( ! $this->getPrimeMover()->getSystemAuthorization()->isUserAuthorized() ) {
             return;
         } 
-        $user_id = get_current_user_id();
+        $user_id = $this->getPrimeMover()->getSystemInitialization()->getCurrentUserId();
         delete_user_meta($user_id, self::SCREEN_OPTION_SETTING);
     }
     
@@ -260,7 +260,7 @@ class PrimeMoverGearBoxScreenOptions
         if ( ! $this->getPrimeMover()->getSystemAuthorization()->isUserAuthorized() ) {
             return;
         } 
-        $user_id = get_current_user_id();
+        $user_id = $this->getPrimeMover()->getSystemInitialization()->getCurrentUserId();
         $value = $setting[self::SCREEN_OPTION_SETTING];
         if ('yes' === $value) {
             update_user_meta($user_id, self::SCREEN_OPTION_SETTING, $value);

@@ -8,10 +8,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PRIME_MOVER_VERSION', '1.9.9');
+define('PRIME_MOVER_VERSION', '2.0.0');
 define('PRIME_MOVER_PLUGIN_CODENAME', 'Prime Mover');
 define('PRIME_MOVER_PRO_PLUGIN_CODENAME', 'Prime Mover PRO');
-define('PRIME_MOVER_BACKUP_MARKUP_VERSION', '1.1.9');
+define('PRIME_MOVER_BACKUP_MARKUP_VERSION', '1.2.0');
 define('PRIME_MOVER_PLUGIN_PATH', plugin_dir_path(PRIME_MOVER_MAINPLUGIN_FILE));
 define('PRIME_MOVER_SHELL_ARCHIVER_FILENAME', 'prime-mover-shell-archiver.php');
 define('PRIME_MOVER_MUST_USE_PLUGIN_FILENAME', 'prime-mover-cli-plugin-manager.php');
@@ -41,6 +41,10 @@ if (!defined('CODEXONICS_CONTACT')) {
 
 if (!defined('CODEXONICS_ACTIVATE_LICENSE_GUIDE')) {
     define('CODEXONICS_ACTIVATE_LICENSE_GUIDE', 'https://codexonics.com/prime_mover/prime-mover/faq-i-cannot-activate-license-please-help/');
+}
+
+if (!defined('CODEXONICS_GDRIVE_CONNECT_DOC')) {
+    define('CODEXONICS_GDRIVE_CONNECT_DOC', 'https://codexonics.com/prime_mover/prime-mover/prime-mover-pro-google-drive-api-integration/#step-4-connect-to-google-drive-api-from-prime-mover-pro-settings-page');
 }
 
 if (!defined('CODEXONICS_LICENSING_GUIDE')) {
@@ -161,6 +165,10 @@ if (!defined('PRIME_MOVER_DEFAULT_FAST_HASH_ALGO')) {
 
 if (!defined('PRIME_MOVER_CRON_TEST_MODE')) {
     define('PRIME_MOVER_CRON_TEST_MODE', false);
+}
+
+if (!defined('PRIME_MOVER_XDEBUG_DEV_MODE')) {
+    define('PRIME_MOVER_XDEBUG_DEV_MODE', false);
 }
 
 if (!defined('PRIME_MOVER_CRON_DELETE_TMP_INTERVALS')) {
@@ -313,4 +321,36 @@ if (!defined('PRIME_MOVER_MODERN_UNICODE_CHARSET')) {
 
 if (!defined('PRIME_MOVER_CAN_COMPLETE_PACKAGE_BE_DEV')) {
     define('PRIME_MOVER_CAN_COMPLETE_PACKAGE_BE_DEV', false);
+}
+
+if (!defined('PRIME_MOVER_CRON_AUTOBACKUP_LOOP_INTERVAL')) {
+    define('PRIME_MOVER_CRON_AUTOBACKUP_LOOP_INTERVAL', 37);
+}
+
+if (!defined('PRIME_MOVER_CRON_AUTOBACKUP_EXPORT_INTERVAL')) {
+    define('PRIME_MOVER_CRON_AUTOBACKUP_EXPORT_INTERVAL', 15);
+}
+
+if (!defined('PRIME_MOVER_CRON_AUTOBACKUP_DEFAULT_TIMEOUT')) {
+    define('PRIME_MOVER_CRON_AUTOBACKUP_DEFAULT_TIMEOUT', 50);
+}
+
+if (!defined('PRIME_MOVER_CRON_AUTOBACKUP_DEFAULT_PROGRESS_INTERVAL')) {
+    define('PRIME_MOVER_CRON_AUTOBACKUP_DEFAULT_PROGRESS_INTERVAL', 'prime_mover_every_ninety_seconds');
+}
+
+if (!defined('PRIME_MOVER_EVENTS_VIEWER_LIST_TABLE_ITEMS')) {
+    define('PRIME_MOVER_EVENTS_VIEWER_LIST_TABLE_ITEM', 10);
+}
+
+if (!defined('PRIME_MOVER_CRON_DELETE_AUTOBACKUPLOG_INTERVALS')) {
+    define('PRIME_MOVER_CRON_DELETE_AUTOBACKUPLOG_INTERVALS', 15778800);
+}
+
+if (!defined('PRIME_MOVER_CRON_AUTOBACKUP_EXPIRATION')) {
+    define('PRIME_MOVER_CRON_AUTOBACKUP_EXPIRATION', 86400);
+}
+
+if (!defined('PRIME_MOVER_MUST_PLUGIN_MANAGER_CLASS')) {
+    define('PRIME_MOVER_MUST_PLUGIN_MANAGER_CLASS', 'Codexonics\PrimeMoverFramework\general\PrimeMoverMustUsePluginManager');
 }

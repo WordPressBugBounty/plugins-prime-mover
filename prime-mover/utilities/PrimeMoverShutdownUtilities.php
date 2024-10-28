@@ -263,9 +263,11 @@ class PrimeMoverShutdownUtilities
     {
         $blogexport_path = $this->getSystemFunctions()->getExportPathOfThisSubsite($blog_id);
         
+        $this->getSystemFunctions()->initializeFs(false);        
         global $wp_filesystem;
         $created = false;
-        if ( ! $wp_filesystem->exists($blogexport_path)) {
+        
+        if (!$wp_filesystem->exists($blogexport_path)) {
             $created = $wp_filesystem->mkdir($blogexport_path);            
         }      
         if ($created) {
@@ -273,6 +275,25 @@ class PrimeMoverShutdownUtilities
         }        
         
         return $blogexport_path . $errorfilename;          
+    }
+    
+    /**
+     * Get auto backup runtime error log path
+     * @param number $blog_id
+     * @return boolean|string
+     */
+    public function getAutoBackupRuntimeErrorLogPath($blog_id = 0)
+    {
+        if (!$blog_id) {
+            return false;
+        }
+        
+        $errorfilename = $this->getSystemInitialization()->generateTroubleShootingLogFileName('autobackup_error', $blog_id);
+        if (!$errorfilename) {
+            return false;
+        }
+        
+        return $this->getPrimeMoverErrorPath($blog_id, $errorfilename);       
     }
     
     /**

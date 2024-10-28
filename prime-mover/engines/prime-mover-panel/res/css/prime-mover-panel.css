@@ -103,3 +103,29 @@
 .prime_mover_gdrive_logout_link {
 	margin-left: 7px;
 }
+.prime-mover-site-selector {
+	text-align: center;
+	min-height: 30px;
+}
+
+.prime_mover_required_label:after {
+    content:" *";
+    color: red;
+}    
+
+.prime_mover_required_given:before {
+    content:" *";
+    color: red;
+}        
+
+.prime_mover_toolbox_headings {
+	font-weight: 350;
+	font-size: 1.2em;
+	text-transform: uppercase;
+} 
+
+.prime-mover-divider {
+	margin-left: 3px;
+	margin-right:3px;
+}  
+    

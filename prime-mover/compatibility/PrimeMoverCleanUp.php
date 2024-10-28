@@ -112,6 +112,59 @@ class PrimeMoverCleanUp
         add_action('prime_mover_before_streaming_errorlog', [$this, 'maybeCleanUpCorruptedPackage'], 10, 1);
         add_action('prime_mover_deactivated', [$this, 'maybeCleanupMuScript']);
         add_action('admin_init', [$this, 'maybeCleanUpOutdatedLockFiles'], 0);
+        
+        add_action('prime_mover_before_doing_export', [$this, 'maybeCleanUpFallBackUserMeta'], 250, 2);
+        add_action('prime_mover_after_completing_export', [$this, 'maybeCleanUpFallBackUserMeta'], 250);
+        
+        add_action('prime_mover_before_doing_import', [$this, 'maybeCleanUpFallBackUserMeta'], 250, 2);
+        add_action('prime_mover_after_actual_import', [$this, 'maybeCleanUpFallBackUserMeta'], 250);
+        
+    }
+    
+    /**
+     * Maybe clean up fall back user meta so they won't interfere with export/import
+     * @param number $blog_id
+     * @param boolean $process_initiated
+     */
+    public function maybeCleanUpFallBackUserMeta($blog_id = 0, $process_initiated = false)
+    {
+        if (is_multisite()) {
+            return;
+        }
+        
+        $locked = false;
+        $hook = current_filter();
+               
+        if (in_array($hook, ['prime_mover_before_doing_export', 'prime_mover_before_doing_import']) && true === $process_initiated) {
+            return;
+        }
+        
+        $file_locked_status = apply_filters('prime_mover_db_is_still_locked', false);
+        $user_locked_status = $this->getSystemInitialization()->getPrimeMoverCurrentDbExportUser();
+        $user_locked_status = (int)$user_locked_status;
+        
+        if (true === $file_locked_status && $user_locked_status > 0) {
+            $locked = true;
+        }
+        
+        if (true === $locked) {
+            return;
+        }
+        
+        $user_id = $this->getSystemInitialization()->getCurrentUserId();     
+        $user_id = (int)$user_id;
+        if (!$user_id) {
+            return;
+        }
+        
+        $fallback_keys = $this->getSystemInitialization()->getExcludedMetaKeyOnExportImport();
+        $delete_success = [];
+        foreach($fallback_keys as $key) {
+            $delete_success[$key] = delete_user_meta($user_id, $key);
+        }
+                
+        do_action('prime_mover_log_processed_events', "CLEANING UP FALLBACK USER META ON {$hook} ACTION HOOK USING user ID: $user_id.", 1, 'common', __FUNCTION__, $this);
+        do_action('prime_mover_log_processed_events', $delete_success, 1, 'common', __FUNCTION__, $this);        
     }
     
     /**

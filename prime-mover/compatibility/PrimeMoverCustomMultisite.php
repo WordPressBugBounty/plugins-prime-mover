@@ -106,7 +106,7 @@ class PrimeMoverCustomMultisite
             return $tables;
         }
         
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $multisite_core_tables = array_values($wpdb->tables('ms_global', true, $blogid_to_export));
         
         return array_diff($tables, $multisite_core_tables);
@@ -127,7 +127,7 @@ class PrimeMoverCustomMultisite
             return $all_tables;
         }
         
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         
         $global_tables = array_values($wpdb->tables('ms_global', true, $blog_id));
         $global_tables[] = $wpdb->users;

@@ -126,6 +126,7 @@ class PrimeMoverProgressHandlers
         add_action('prime_mover_shutdown', [$this,'primeMoverDeleteUserProgressMeta'], 10, 2);
         add_action('prime_mover_shutdown', [$this,'deleteCliTmpFiles'], 10, 1);
         add_action('prime_mover_shutdown', [$this,'primeMoverDeleteThirdPartyPluginsOption'], 10, 2);
+        add_action('prime_mover_shutdown', [$this,'primeMoverDeleteNetworkAutoBackupCron'], 10, 2);
         
         /**
          * On boot-up progress hooks
@@ -147,6 +148,7 @@ class PrimeMoverProgressHandlers
         add_action('prime_mover_bootup', [$this,'primeMoverDeleteUserProgressMeta'], 10, 2);
         add_action('prime_mover_bootup', [$this,'deleteCliTmpFiles'], 10, 1);
         add_action('prime_mover_bootup', [$this,'primeMoverDeleteThirdPartyPluginsOption'], 10, 2);
+        add_action('prime_mover_bootup', [$this,'primeMoverDeleteNetworkAutoBackupCron'], 10, 2);
         
         /**
          * Must be after all boot-up actions
@@ -284,7 +286,7 @@ class PrimeMoverProgressHandlers
             return false;
         }
         wp_cache_delete('alloptions', 'options');
-        $enabled = $this->getSystemFunctions()->getBlogOption($blog_id, self::PRIMEMOVER_MAINTENANCE);
+        $enabled = $this->getSystemFunctions()->getBlogOption($blog_id, self::PRIMEMOVER_MAINTENANCE, false, '', true, true);
         if ($enabled) {
             return true;
         }
@@ -315,13 +317,24 @@ class PrimeMoverProgressHandlers
     }
     
     /**
-     * Delete assembly option on boot
+     * Delete third party plugin option on boot
      * @param number $process_id
      * @param number $blog_id
      */
     public function primeMoverDeleteThirdPartyPluginsOption($process_id = 0, $blog_id = 0)
     {
         $option = '_thirdpartyplugins_' . $process_id;
+        delete_site_option($option);
+    }
+    
+    /**
+     * Delete autobackup cron option on boot
+     * @param number $process_id
+     * @param number $blog_id
+     */
+    public function primeMoverDeleteNetworkAutoBackupCron($process_id = 0, $blog_id = 0)
+    {
+        $option = '_primemoverautobackup_cron_' . $process_id;
         delete_site_option($option);
     }
     
@@ -382,6 +395,14 @@ class PrimeMoverProgressHandlers
         if ( ! $this->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
+                
+        if ($this->getSystemAuthorization()->isDoingAutoBackup()) {
+            $autobackup_maintenance_mode = apply_filters('prime_mover_get_setting', 'false', 'automatic_backup_db_maintenance_enabled', false, 'false', true, $blog_id);
+            if ('false' === $autobackup_maintenance_mode) {
+                return;
+            }            
+        }
+        
         $this->getSystemFunctions()->switchToBlog($blog_id);
         update_option(self::PRIMEMOVER_MAINTENANCE, 'yes');
         $this->getSystemFunctions()->restoreCurrentBlog();
@@ -508,7 +529,7 @@ class PrimeMoverProgressHandlers
         if ( ! $process_id || ! $mode ) {
             return;
         }
-        $this->updateTrackerProgress('boot', $mode, $process_id);
+        $this->updateTrackerProgress('boot', $mode, $process_id, $blog_id);
     }
     
     /**
@@ -658,9 +679,7 @@ class PrimeMoverProgressHandlers
      */
     public function commonProgressProcessor($mode = 'import')
     {
-        //Initialize response
-       
-        
+        //Initialize response        
         $response = [];
         $status_string = $mode . '_status';
         $output_string = $mode . '_result';
@@ -691,10 +710,11 @@ class PrimeMoverProgressHandlers
         if ( ! isset($progress_post[$progress_nonce]) || ! isset($progress_post[ 'blog_id' ]) ) {
             return wp_send_json( $response );
         }
+        
         if ( ! $this->getSystemFunctions()->primeMoverVerifyNonce($progress_post[$progress_nonce], $progress_nonce)) {
             return wp_send_json( $response );
         }
-        
+                
         //Get blog ID processed
         $blog_id = $progress_post[ 'blog_id' ];
         if ( ! $blog_id) {
@@ -707,12 +727,22 @@ class PrimeMoverProgressHandlers
         if ( ! empty($progress_post['trackercount']) && isset($progress_post['diffmode']) ) {
             $trackercount = (int) $progress_post['trackercount']; 
             $diffmode = (bool)$progress_post['diffmode'];
-            if (1 === $trackercount) {                
+            if (1 === $trackercount) {  
+                $response['bootup'] = true;    
+                $autobackup_wip_initialization = $this->getSystemInitialization()->getAutoBackupWipInitializationStatus();
+                $maybe_bailout_autobackup = apply_filters('prime_mover_maybe_bailout_autobackup', false, $blog_id, $autobackup_wip_initialization);
+                if ($maybe_bailout_autobackup) {
+                    $response['auto_backup_bailout'] = $maybe_bailout_autobackup;
+                    do_action('prime_mover_shutdown', $process_id, $blog_id);
+                    return wp_send_json( $response );
+                }
+                
                 do_action('prime_mover_bootup', $process_id, $blog_id, $diffmode, $mode);
                 do_action('prime_mover_log_processed_events', "Tracker count: " . $trackercount . ' BOOT-UP EVENT -DIFF MODE: ' . $diffmode,  $blog_id, $mode, 'commonProgressProcessor', $this);
+                
                 $is_local = $this->getSystemInitialization()->isLocalServer();
                 do_action('prime_mover_log_processed_events', "Local server: " . $is_local ,  $blog_id, $mode, 'commonProgressProcessor', $this);
-                $response['bootup'] = true;
+
                 return wp_send_json( $response );                
             }
             do_action('prime_mover_log_processed_events', "Tracker count: " . $trackercount,  $blog_id, $mode, 'commonProgressProcessor', $this);
@@ -731,7 +761,7 @@ class PrimeMoverProgressHandlers
         }
         $standard_processes = ['diffdetected', 'stoptracking'];
         if (in_array($latest, $standard_processes)) {
-            $response[$output_string] = $this->getSystemFunctions()->getSiteOption($mode . '_' . $process_id);
+            $response[$output_string] = $this->getSystemFunctions()->getSiteOption($mode . '_' . $process_id, false, true, false, '', true, true);
             do_action('prime_mover_log_processed_events', "Standard process detected: $latest", $blog_id, $mode, 'commonProgressProcessor', $this);             
             
             if ('stoptracking' === $latest) {                
@@ -741,7 +771,7 @@ class PrimeMoverProgressHandlers
         if ('package_downloaded' === $latest) {            
             
             $download_process_id = 'download_' . $process_id;
-            $response[$download_string] = $this->getSystemFunctions()->getSiteOption($download_process_id);
+            $response[$download_string] = $this->getSystemFunctions()->getSiteOption($download_process_id, false, true, false, '', true, true);
             
             do_action('prime_mover_log_processed_events', "Package download event detected: $download_process_id", $blog_id, $mode, 'commonProgressProcessor', $this);           
             do_action('prime_mover_log_processed_events', $response, $blog_id, $mode, 'commonProgressProcessor', $this);
@@ -772,7 +802,7 @@ class PrimeMoverProgressHandlers
         $notoptions_key = "$network_id:notoptions";
         wp_cache_delete( $notoptions_key, 'site-options' );
         
-        $progress = $this->getSystemFunctions()->getSiteOption($process_id, '', false);
+        $progress = $this->getSystemFunctions()->getSiteOption($process_id, '', false, false, '', true, true);
         
         do_action('prime_mover_log_processed_events', "Tracker progress non-cached request", $blog_id, $mode, 'commonProgressProcessor', $this);
         do_action('prime_mover_log_processed_events', "getSiteOption($process_id) = $progress", $blog_id, $mode, 'commonProgressProcessor', $this);
@@ -782,29 +812,34 @@ class PrimeMoverProgressHandlers
     
     /**
      * Generate tracker ID for monitoring the progress of a specific import/export process.
-     * @param int $blog_id
+     * @param number $blog_id
      * @param string $mode
-     * @return number|string
+     * @param boolean $force_autobackup_user
+     * @return string
      * @compatibility 5.6
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverProgressHandlers::itGeneratesTrackerId()
      */
-    public function generateTrackerId( $blog_id = 0, $mode = 'import')
+    public function generateTrackerId( $blog_id = 0, $mode = 'import', $force_autobackup_user = false)
     {
         $process_id = '';
-        if ( ! $blog_id ) {
+        if (!$blog_id ) {
             return $process_id; 
         }        
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return $process_id;
         }
         $user_ip = $this->getSystemInitialization()->getUserIp();
-        if (! $user_ip) {
+        if (!$user_ip) {
             return $process_id;
         }
-        $user_id = get_current_user_id();
-        $browser = $this->getSystemInitialization()->getUserAgent();
-        
-        $string = $browser . $user_ip . $user_id . $blog_id . $mode;        
+        if ($force_autobackup_user) {
+            $user_id = $this->getSystemFunctions()->getAutoBackupUser();
+        } else {
+            $user_id = $this->getSystemInitialization()->getCurrentUserId();
+        }
+                
+        $browser = $this->getSystemInitialization()->getUserAgent($force_autobackup_user);        
+        $string = $browser . $user_ip . $user_id . $blog_id . $mode;         
         
         return hash('sha256', $string);
     }
@@ -841,12 +876,13 @@ class PrimeMoverProgressHandlers
     
     /**
      * Save tracker progress
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverProgressHandlers::itUpdatesTrackerProgress()
      * @param string $progress
      * @param string $mode
      * @param string $process_id
-     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverProgressHandlers::itUpdatesTrackerProgress()
+     * @param number $blog_id
      */
-    public function updateTrackerProgress($progress = '', $mode = 'import', $process_id = '')
+    public function updateTrackerProgress($progress = '', $mode = 'import', $process_id = '', $blog_id = 0)
     {        
         if ( ! $this->getSystemAuthorization()->isUserAuthorized()) {
             return;
@@ -864,8 +900,12 @@ class PrimeMoverProgressHandlers
         }            
         if ($input_id) {
             add_action( "update_site_option_{$input_id}", [$this, 'dontCache'], 10, 1);
-            $this->getSystemFunctions()->updateSiteOption($input_id , $progress, true);
-            $blog_id = $this->getActiveProcessBlogId($input_id);
+            $this->getSystemFunctions()->updateSiteOption($input_id , $progress, true, '', true, true);
+            
+            if (!$blog_id) {
+                $blog_id = $this->getActiveProcessBlogId($input_id);
+            }            
+            
             do_action('prime_mover_log_processed_events', "Update tracker progress: updateSiteOption($input_id, $progress);", $blog_id, $mode, 'updateTrackerProgress', $this);
         }  
     }
@@ -933,6 +973,9 @@ class PrimeMoverProgressHandlers
      */
     public function primeMoverDeleteImportId($import_id = 0, $blog_id = 0)
     {
+        if ($this->getSystemAuthorization()->isDoingAutoBackup()) {
+            do_action('prime_mover_log_processed_events', "Started AUTOMATIC backup process", $blog_id, 'import', __FUNCTION__, $this);
+        }
         delete_site_option($import_id);
         do_action('prime_mover_log_processed_events', "Deleted import ID:  $import_id", $blog_id, 'import', __FUNCTION__, $this);
     }
@@ -1023,8 +1066,8 @@ class PrimeMoverProgressHandlers
         
         $key = 'download_size_' . $process_id;
         add_action( "update_site_option_{$key}", [$this, 'dontCache'], 10, 1);
-        
-        $this->getSystemFunctions()->updateSiteOption($key, $content_length);
+       
+        $this->getSystemFunctions()->updateSiteOption($key, $content_length, false, '', true, true);
     }
     
     /**
@@ -1077,7 +1120,7 @@ class PrimeMoverProgressHandlers
         add_action( "update_site_option_{$key}", [$this, 'dontCache'], 10, 1);
         $value = ['current_upload_size' => $content_length, 'total_upload_size' => $fileSize];
         
-        $this->getSystemFunctions()->updateSiteOption($key, $value);
+        $this->getSystemFunctions()->updateSiteOption($key, $value, false, '', true, true);
     }
     
     /**
@@ -1102,8 +1145,8 @@ class PrimeMoverProgressHandlers
         $process_id = $this->generateTrackerId($import_blog_id, 'import');        
         $key = 'download_tmp_path_' . $process_id;
         
-        add_action( "update_site_option_{$key}", [$this, 'dontCache'], 10, 1);        
-        $this->getSystemFunctions()->updateSiteOption($key, $r['filename']);         
+        add_action( "update_site_option_{$key}", [$this, 'dontCache'], 10, 1); 
+        $this->getSystemFunctions()->updateSiteOption($key, $r['filename'], false, '', true, true);         
     }
     
     /**
@@ -1115,7 +1158,7 @@ class PrimeMoverProgressHandlers
      */
     public function primeMoverDeleteUserProgressMeta($process_id = 0, $blog_id = 0)
     {
-        $user_id = get_current_user_id();
+        $user_id = $this->getSystemInitialization()->getCurrentUserId();
         if ( ! $user_id ) {
             return;
         }
@@ -1185,6 +1228,6 @@ class PrimeMoverProgressHandlers
     private function getSiteOptionNoCache($key = '')
     {
         $this->noCache();
-        return $this->getSystemFunctions()->getSiteOption($key);
+        return $this->getSystemFunctions()->getSiteOption($key, false, true, false, '', true, true);
     }
 }

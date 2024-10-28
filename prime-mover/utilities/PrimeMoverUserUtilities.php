@@ -889,6 +889,7 @@ class PrimeMoverUserUtilities
             $this->getUserFunctions()->getUserQueries()->maybeEnableUserImportExportTestMode(5, false);
             $user_equivalence = $this->getUserFunctions()->addNewElement($user_equivalence, $source_user_id, $new_user_id);            
             $count++;
+            
             $retry_timeout = apply_filters('prime_mover_retry_timeout_seconds', PRIME_MOVER_RETRY_TIMEOUT_SECONDS, __FUNCTION__);
             if ( (microtime(true) - $start_time) > $retry_timeout) {
                 return $this->doUserEquivalenceRetry($ret, $handle, $user_equivalence, $mismatch, $count, $blog_id, $retry_timeout);

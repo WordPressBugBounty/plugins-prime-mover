@@ -299,7 +299,7 @@ class PrimeMoverValidationUtilities
             return $log;
         }
         if ($source === 'dumpDbForExport') {
-            global $wpdb;
+            $wpdb = $this->getPrimeMover()->getSystemInitialization()->getWpdB();
             
             $log = str_replace($wpdb->dbuser, 'XXXXXXX', $log);
             $log = str_replace($wpdb->dbpassword, 'XXXXXXX', $log);

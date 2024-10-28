@@ -25,6 +25,14 @@
 	-webkit-border-radius:5px;
 }
 
+.prime_mover_event_viewers .prime-mover-configure-button-events {
+  white-space: normal;
+  height: auto;
+  text-align: center;
+  line-height: 2.0em;
+  width: 85%;	
+}
+
 .wrap .prime-mover-cart-dashicon {
     vertical-align: middle;
     padding-bottom: 5px;

@@ -56,8 +56,10 @@ class PrimeMoverSettingsMarkups
      * @param string $disabled
      * @param string $title
      * @param boolean $pro
+     * @param number $blog_id
      */
-    public function renderSubmitButton($nonce_key = '', $button_id = '', $spinner_class = '', $wrapper = 'div', $button_classes = 'button-primary', $button_text = '', $disabled = '', $title = '', $pro = true)
+    public function renderSubmitButton($nonce_key = '', $button_id = '', $spinner_class = '', $wrapper = 'div', $button_classes = 'button-primary', 
+        $button_text = '', $disabled = '', $title = '', $pro = true, $blog_id = 0)
     {
         $spinner_class = "$spinner_class prime_mover_settings_spinner";
         $main_opening_tag = '<div class="p_wrapper_prime_mover_setting">';
@@ -69,25 +71,49 @@ class PrimeMoverSettingsMarkups
             $spinner_tag = '<span class="' . esc_attr($spinner_class) . '"></span>';
         }
         if ( ! $button_text ) {
-            $button_text =  esc_html__('Save', 'prime-mover');
+            $button_text =  __('Save', 'prime-mover');
         }
-        echo $main_opening_tag;
-        
-        if ( false === apply_filters('prime_mover_is_loggedin_customer', false) && $pro) {            
+        echo $main_opening_tag;      
+        $render = false;
+        if ($blog_id) {
+            $render = apply_filters('prime_mover_multisite_blog_is_licensed', false, $blog_id);            
+        } else {
+            $render = apply_filters('prime_mover_is_loggedin_customer', false);
+        }
+        if (!$render && $pro) {            
     ?>        
             <a title="<?php esc_attr_e('This is PRO feature setting. Please upgrade to use this setting.', 'prime-mover'); ?>" 
             class="prime-mover-upgrade-button-simple button" href="<?php echo esc_url($this->getPrimeMover()->getSystemInitialization()->getUpgradeUrl()); ?>">
             <i class="dashicons dashicons-cart prime-mover-cart-dashicon"></i><?php esc_html_e('Upgrade to PRO', 'prime-mover'); ?></a>
      <?php        
-        } else {            
+        } else {
        ?>
-            <button title="<?php echo $title;?>" <?php echo $disabled; ?> data-nonce="<?php echo $this->getPrimeMover()->getSystemFunctions()->primeMoverCreateNonce($nonce_key); ?>" 
+            <button title="<?php echo esc_attr($title);?>" <?php echo esc_html($disabled); ?> data-prime-mover-blogid-panel="<?php echo esc_attr($blog_id); ?>" data-nonce="<?php echo $this->getPrimeMover()->getSystemFunctions()->primeMoverCreateNonce($nonce_key); ?>" 
             id="<?php echo esc_attr($button_id);?>" class="<?php echo esc_attr($button_classes);?>" type="button">
-            <?php echo $button_text;?></button>
+            <?php echo esc_html($button_text);?></button>
             <?php echo $spinner_tag; ?>   
     <?php    
         }          
         echo $main_closing_tag;
+    }
+    
+    /**
+     * Generate download URL for log
+     * @param string $nonce_key
+     * @param string $nonce_arg
+     * @param string $arg_key
+     * @param number $blog_id
+     * @return string|mixed
+     */
+    public function generateDownloadLogUrl($nonce_key = '', $nonce_arg = '', $arg_key = '', $blog_id = 0)
+    {
+        $nonce = $this->getPrimeMover()->getSystemFunctions()->primeMoverCreateNonce($nonce_key);
+        $params = [$arg_key => 'yes', $nonce_arg => $nonce];
+        if ($blog_id) {
+            $params['autobackup_blogid'] = $blog_id;
+        }
+        
+        return esc_url(add_query_arg($params));
     }
     
     /**
@@ -101,7 +127,7 @@ class PrimeMoverSettingsMarkups
         <tbody>
         <tr>
             <th scope="row">
-                <label><?php echo $heading; ?></label>
+                <label><?php echo esc_html($heading); ?></label>
             </th>
             <td>                      
                 <div class="prime-mover-setting-description">

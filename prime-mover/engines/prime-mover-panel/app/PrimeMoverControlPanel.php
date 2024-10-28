@@ -102,9 +102,26 @@ class PrimeMoverControlPanel
         
         add_filter('prime_mover_filter_button_class', [$this, 'usePrimaryButtonClassPro'], 10, 2); 
         add_filter('prime_mover_filter_upgrade_pro_text', [$this, 'maybeUseUpgradePlanText'], 10, 1);
-        add_filter('prime_mover_filter_package_manager_columns', [$this, 'maybeAddMigrateColumn'], 10, 2);        
+        add_filter('prime_mover_filter_package_manager_columns', [$this, 'maybeAddMigrateColumn'], 10, 2);   
+        
+        add_action('admin_post_prime-mover-load-scheduled-backup-settings', [$this, 'maybeSwitchBlogForScheduledBackupSettings']);
+        add_filter('prime_mover_control_panel_js_object', [$this, 'settingsApiJsObject'], 10, 1);
     }
-            
+           
+    /**
+     * Output settings parameter to JS Object
+     * @param array $var
+     * @return array
+     */
+    public function settingsApiJsObject($var = [])
+    {
+        if (!isset($var['prime_mover_settings_js_api'])) {            
+            $var['prime_mover_settings_js_api'] = apply_filters('prime_mover_settings_js_api_extension', []);
+        }
+        
+        return $var;
+    }
+    
     /**
      * Filter backup menu page title
      * @param string $title
@@ -118,7 +135,7 @@ class PrimeMoverControlPanel
         }
         
         if (true === apply_filters('prime_mover_multisite_blog_is_licensed', false, $blog_id)) {
-            return esc_html__('Prime Mover PRO Packages', 'prime-mover');
+            return esc_html__('Prime Mover PRO Package Manager', 'prime-mover');
         }
         
         return $title;
@@ -393,13 +410,159 @@ class PrimeMoverControlPanel
             $required_cap = 'manage_options';
         } 
 
-        add_submenu_page( 'migration-panel-settings', esc_html__('Basic settings', 'prime-mover'), esc_html__('Settings', 'prime-mover'),
+        add_submenu_page('migration-panel-settings', esc_html__('Basic settings', 'prime-mover'), esc_html__('Settings', 'prime-mover'),
             $required_cap, 'migration-panel-basic-settings', [$this, 'addBasicSubMenuPageCallBack']);
         
-        add_submenu_page( 'migration-panel-settings', esc_html__('Advanced settings', 'prime-mover'), esc_html__('Advanced', 'prime-mover'),
+        add_submenu_page('migration-panel-settings', esc_html__('Advanced settings', 'prime-mover'), esc_html__('Advanced', 'prime-mover'),
             $required_cap, 'migration-panel-advance-settings', [$this, 'addSubMenuPageCallBack']);
+        
+        add_submenu_page('migration-panel-settings', esc_html__('Toolbox', 'prime-mover'), esc_html__('Toolbox', 'prime-mover'),
+            $required_cap, 'migration-panel-toolbox', [$this, 'addScheduledBackupSettingsCallBack']);
     }
- 
+
+    /**
+     * Add schedule backup setting sub-menu page callback
+     */
+    public function addScheduledBackupSettingsCallBack()
+    {        
+        $error = false;  
+        $blog_id = 1;
+        $multisite = false;
+        if (is_multisite()) {
+            $multisite = true;
+        }
+        if ($multisite) {
+            $blog_id = $this->getPrimeMover()->getSystemInitialization()->getMainSiteBlogId();
+        }
+        
+        $error_msg = sprintf(
+            esc_html__('Error: Blog ID is not valid - go to %s, load the subsite and click %s', 'prime-mover'),
+            '<em>' . esc_html__('Prime Mover -> Packages', 'prime-mover') . '</em>',
+            '<strong>' . esc_html__('Scheduled backup settings','prime-mover') . '</strong>')
+            ;
+        
+        $get = $this->getPrimeMover()->getSystemInitialization()->getUserInput('get', ['prime_mover_site_blog_id' => FILTER_SANITIZE_NUMBER_INT], 
+            '', '', 0, true, true);
+        
+        if (!empty($get['prime_mover_site_blog_id'])) {
+            $blog_id = $get['prime_mover_site_blog_id'];
+            $blog_id = (int)$blog_id;
+        }
+       
+        if (!$error && $multisite && !$blog_id) {
+            $error = true;
+        }       
+       
+        if (!$error && $multisite && !get_blogaddress_by_id($blog_id)) {
+            $error = true;
+        }
+        ?>
+      <div class="wrap">       
+         <?php 
+         if ($error) {
+         ?>
+             <h1><?php echo esc_html__('Site Tools', 'prime-mover'); ?></h1> 
+             <div class="notice notice-error">
+                 <p><?php echo $error_msg;?></p>         
+             </div>         
+         <?php 
+         } else {
+         ?>  
+             <?php 
+             if ($multisite) {
+             ?>
+             <h1><?php echo sprintf(esc_html__('Site Tools for blog ID: %d', 'prime-mover'), $blog_id); ?></h1>            
+             <?php 
+             } else {                 
+             ?>
+             <h1><?php echo esc_html__('Site Tools', 'prime-mover'); ?></h1>             
+             <?php 
+             }
+             ?>     
+             <?php 
+                 do_action('prime_mover_show_scheduled_backup_notice', $blog_id);
+             ?>        
+             <p class="edit-site-actions prime-mover-edit-site-actions"><a href="<?php echo esc_url($this->getSystemFunctions()->getPublicSiteUrl($blog_id)); ?>"><?php esc_html_e('Visit Site', 'prime-mover');?></a> <span class="prime-mover-divider"> | </span> 
+             <a href="<?php echo $this->getSystemFunctions()->getCreateExportUrl($blog_id, true); ?>"><?php esc_html_e('Migration Tools', 'prime-mover'); ?></a> <span class="prime-mover-divider"> | </span>
+             <a href="<?php echo esc_url($this->getSystemFunctions()->getBackupMenuUrl($blog_id)); ?>"><?php esc_html_e('Package Manager', 'prime-mover'); ?></a> <span class="prime-mover-divider"> | </span>
+             <a href="<?php echo esc_url($this->getSystemFunctions()->getEventViewerUrl($blog_id)); ?>"><?php esc_html_e('Event Viewer', 'prime-mover'); ?></a>
+             </p>
+             <p class="edit-site-actions prime-mover-edit-site-actions">
+                 <?php esc_html_e('Site URL', 'prime-mover'); ?>: <code><?php echo esc_url($this->getSystemFunctions()->getPublicSiteUrl($blog_id)); ?></code>             
+             </p>
+             <hr/>
+             <h2 class="prime_mover_toolbox_headings">*** <?php echo esc_html__('Scheduled backup settings', 'prime-mover'); ?> ***</h2> 
+             <hr/> 
+             <form method="get" action="<?php echo esc_url(admin_url('admin-post.php'));?>">
+                 <input type="hidden" name="action" value="prime-mover-load-scheduled-backup-settings">
+                 <?php wp_nonce_field('prime-mover-load-scheduled-backup-settings', 'prime-mover-load-scheduled-backup-settings-nonce' ); ?>
+                 <?php $this->getSystemUtilities()->displayMultisiteBlogIdSelectors([], $blog_id, true); ?>   
+             </form>
+             <p class="prime_mover_required_given">
+             <?php esc_html_e('Required settings for automatic backup PRO feature', 'prime-mover'); ?>.              
+             <?php 
+             do_action('prime_mover_scheduled_backup_settings_per_site', $blog_id); 
+             ?>    
+      </div>       
+    <?php  
+         }
+    }
+
+    /**
+     * Switch to blog scheduled backup settings
+     */
+    public function maybeSwitchBlogForScheduledBackupSettings()
+    {
+        if (!$this->getPrimeMover()->getSystemAuthorization()->isUserAuthorized()) {
+            return $this->redirectToScheduledBackupSettings();
+        }
+        
+        $get = $this->getPrimeMover()->getSystemInitialization()->getUserInput('get',
+            [
+                'prime_mover_site_blog_id' => FILTER_SANITIZE_NUMBER_INT,
+                'action' => $this->getPrimeMover()->getSystemInitialization()->getPrimeMoverSanitizeStringFilter(),
+                'prime-mover-load-scheduled-backup-settings-nonce' => $this->getPrimeMover()->getSystemInitialization()->getPrimeMoverSanitizeStringFilter()
+            ],
+            '', '', 0, true, true);
+            
+        if (empty($get['action']) || empty($get['prime_mover_site_blog_id']) || empty($get['prime-mover-load-scheduled-backup-settings-nonce'])) {
+            return $this->redirectToScheduledBackupSettings();
+        }
+            
+        $action = $get['action'];
+        $blog_id = $get['prime_mover_site_blog_id'];
+        $nonce = $get['prime-mover-load-scheduled-backup-settings-nonce'];
+            
+        if ($action !== 'prime-mover-load-scheduled-backup-settings') {
+            return $this->redirectToScheduledBackupSettings();
+        }
+            
+        if (!wp_verify_nonce($nonce, $action)) {
+            return $this->redirectToScheduledBackupSettings();
+        }
+            
+        $blog_id = (int)$blog_id;
+        if (!$blog_id) {
+            return $this->redirectToScheduledBackupSettings();
+        }            
+        
+        $this->redirectToScheduledBackupSettings($blog_id);
+    }
+
+    /**
+     * Redirect to scheduled backup settings
+     * @param string $target
+     */
+    protected function redirectToScheduledBackupSettings($blog_id = 0)
+    {
+        if (!$blog_id) {
+            $blog_id = $this->getPrimeMover()->getSystemInitialization()->getMainSiteBlogId();
+        }
+        $target = $this->getSystemFunctions()->getScheduledBackupSettingsUrl($blog_id);
+        wp_redirect($target);
+        exit;
+    }
+    
     /**
      * Added menu page for basic settings
      */

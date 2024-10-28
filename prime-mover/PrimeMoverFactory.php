@@ -44,6 +44,7 @@ use Codexonics\PrimeMoverFramework\streams\PrimeMoverIterators;
 use Codexonics\PrimeMoverFramework\cli\PrimeMoverCLIShellArchiver;
 use Codexonics\PrimeMoverFramework\cli\PrimeMoverCLIArchive;
 use Codexonics\PrimeMoverFramework\menus\PrimeMoverBackupMenus;
+use Codexonics\PrimeMoverFramework\menus\PrimeMoverAutoBackupEventViewer;
 use Codexonics\PrimeMoverFramework\menus\PrimeMoverGearBoxScreenOptions;
 use Codexonics\PrimeMoverFramework\utilities\PrimeMoverBackupUtilities;
 use Codexonics\PrimeMoverFramework\classes\PrimeMoverUsers;
@@ -293,7 +294,10 @@ class PrimeMoverFactory
         }       
                
         $backup_menu = new PrimeMoverBackupMenus($prime_mover, $utilities);
-        $backup_menu->initHooks();        
+        $backup_menu->initHooks();
+        
+        $events_menu = new PrimeMoverAutoBackupEventViewer($prime_mover, $backup_menu, $utilities);
+        $events_menu->initHooks(); 
                 
         $fcompat = new PrimeMoverFreemiusCompat($prime_mover, $utilities, $pm_fs);
         $fcompat->registerHooks();
@@ -544,7 +548,7 @@ class PrimeMoverFactory
 
 /**
  * Instantiate
- * @var \PrimeMoverFramework\PrimeMoverFactory $loaded_instance
+ * @var \Codexonics\PrimeMoverFactory $loaded_instance
  */
 $cli = false;
 $parameters = [];

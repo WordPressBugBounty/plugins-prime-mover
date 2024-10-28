@@ -22,9 +22,16 @@ final class PrimeMoverMustUsePluginManager
 {
     private $input_post;
     private $input_get;
+    private $input_server;
     private $current_process;
     private $is_switched;
     private $locale;
+    private $doing_automatic_backup;
+    private $auto_backup_identity;
+    private $auto_backup_starttime;
+    private $auto_backup_user;
+    private $auto_backup_cron_initialized;
+    private $doing_primemover_process;
     
     const PRIME_MOVER_CORE_EXPORT_PROCESSES = ['prime_mover_process_export', 'prime_mover_monitor_export_progress', 'prime_mover_shutdown_export_process'];
     const PRIME_MOVER_CORE_IMPORT_PROCESSES = ['prime_mover_process_import', 'prime_mover_monitor_import_progress', 'prime_mover_shutdown_import_process'];
@@ -35,14 +42,31 @@ final class PrimeMoverMustUsePluginManager
      * Constructor
      * @param array $input_post
      * @param array $input_get
+     * @param array $input_server
      */
-    public function __construct($input_post = [], $input_get = [])
+    public function __construct($input_post = [], $input_get = [], $input_server = [])
     {
         $this->input_post = $input_post;
         $this->input_get = $input_get;
+        $this->input_server = $input_server;
         $this->current_process = '';
         $this->is_switched = false;
         $this->locale = 'en_US';
+        $this->doing_automatic_backup = false;
+        $this->auto_backup_identity = '';
+        $this->auto_backup_starttime = 0;
+        $this->auto_backup_user = 0;
+        $this->auto_backup_cron_initialized = false;
+        $this->doing_primemover_process = false;
+    }    
+    
+    /**
+     * Get autobackup cron initialization status
+     * @return boolean
+     */
+    public function getAutoBackupCronInitialized()
+    {
+        return $this->auto_backup_cron_initialized;
     }
     
     /**
@@ -87,7 +111,7 @@ final class PrimeMoverMustUsePluginManager
      */
     public function setCurrentProcess($input_post = [])
     {
-        if (!wp_doing_ajax()) {
+        if (!$this->isRequestValid()) {
             return;
         }
         $export_import_processes = ['prime_mover_process_export', 'prime_mover_process_import'];
@@ -145,12 +169,18 @@ final class PrimeMoverMustUsePluginManager
         }
         
         $mu_ajax = false;
-        if (!$network_admin && is_multisite() && wp_doing_ajax()) {
+        if (!$network_admin && is_multisite() && $this->isRequestValid()) {
             $mu_ajax = true;
         }
         
         $ajax_post = $this->getInputPost();
+        
         if ($mu_ajax && isset($ajax_post['action']) && (false !== strpos($ajax_post['action'], 'prime_mover_') || 'multisite_tempfile_cancel' === $ajax_post['action'])) {
+            $network_admin = true;
+        }
+        
+        if (!$network_admin && is_multisite() && !wp_doing_ajax() && !wp_doing_cron() && !is_network_admin() && is_main_site() && is_admin() && 
+            defined('PRIME_MOVER_CRON_TEST_MODE') && true === PRIME_MOVER_CRON_TEST_MODE) {
             $network_admin = true;
         }
         
@@ -176,15 +206,47 @@ final class PrimeMoverMustUsePluginManager
     {
         return $this->input_get;
     }
+    
+    /**
+     * Get input SERVER
+     * @return array
+     */
+    public function getInputServer()
+    {
+        return $this->input_server;
+    }
         
     /**
      * Check if we need to enable log
-     * @param string $current_process
      * @return boolean
      */
-    private function primeMoverMaybeEnablePluginManagerLog($current_process = '')
+    private function primeMoverMaybeEnablePluginManagerLog()
     {
-        return (defined('PRIME_MOVER_PLUGIN_MANAGER_LOG') && PRIME_MOVER_PLUGIN_MANAGER_LOG && file_exists(PRIME_MOVER_PLUGIN_MANAGER_LOG) && $current_process);
+        return (defined('PRIME_MOVER_PLUGIN_MANAGER_LOG') && PRIME_MOVER_PLUGIN_MANAGER_LOG && file_exists(PRIME_MOVER_PLUGIN_MANAGER_LOG));
+    }
+ 
+    /**
+     * Compute signature
+     * @return string
+     */
+    private function computeAutoBackupRequestSignature()
+    {               
+        $auth_key = '';
+        $enc_key = '';
+        if (defined('AUTH_KEY') && AUTH_KEY) {
+            $auth_key = AUTH_KEY;
+        }
+       
+        if (defined('PRIME_MOVER_DB_ENCRYPTION_KEY') && PRIME_MOVER_DB_ENCRYPTION_KEY) {
+            $enc_key = PRIME_MOVER_DB_ENCRYPTION_KEY;
+        }
+        
+        $enc_key = trim(PRIME_MOVER_DB_ENCRYPTION_KEY);        
+        if (!$auth_key || !$enc_key) {
+            return '';
+        }
+        
+        return hash_hmac('sha512', $enc_key, $auth_key); 
     }
     
     /**
@@ -196,43 +258,43 @@ final class PrimeMoverMustUsePluginManager
      */
     private function isDoingThisPrimeMoverProcess($input_post = [], $target_process = '', $mode = 'import')
     {
-        return (wp_doing_ajax() && !empty($input_post["prime_mover_next_{$mode}_method"]) && $target_process === $input_post["prime_mover_next_{$mode}_method"]);
+        return ($this->isRequestValid() && !empty($input_post["prime_mover_next_{$mode}_method"]) && $target_process === $input_post["prime_mover_next_{$mode}_method"]);
     }
-    
+     
     /**
      * Maybe load plugin manager
      * @return boolean
      */
     public function primeMoverMaybeLoadPluginManager()
     {
-        $input_post = $this->getInputPost();
+        $input_post = $this->getInputPost();        
         $input_get = $this->getInputGet();
-        
-        if (!wp_doing_ajax() && isset($input_get['prime_mover_export_hash']) && isset($input_get['prime_mover_blogid'])) {            
+        $input_server = $this->getInputServer();
+       
+        if (!$this->isRequestValid($input_server) && isset($input_get['prime_mover_export_hash']) && isset($input_get['prime_mover_blogid'])) {            
             return true;
         }
-        
-        if (wp_doing_ajax() && isset($input_post['action']) && in_array($input_post['action'], self::PRIME_MOVER_CORE_EXPORT_PROCESSES)) {   
+
+        if ($this->isRequestValid($input_server) && isset($input_post['action']) && in_array($input_post['action'], self::PRIME_MOVER_CORE_EXPORT_PROCESSES)) {   
+            $this->setCurrentProcess($input_post);
+            return true;
+        }
+ 
+        if ($this->isRequestValid($input_server) && isset($input_post['action']) && in_array($input_post['action'], self::PRIME_MOVER_CORE_IMPORT_PROCESSES)) { 
             $this->setCurrentProcess($input_post);
             return true;
         }
         
-        if (wp_doing_ajax() && isset($input_post['action']) && in_array($input_post['action'], self::PRIME_MOVER_CORE_IMPORT_PROCESSES)) { 
-            $this->setCurrentProcess($input_post);
-            return true;
-        }
-        
-        $bypass_upload_plugin_control = false;
-        
+        $bypass_upload_plugin_control = false;        
         if (defined('PRIME_MOVER_BYPASS_UPLOAD_PLUGIN_CONTROL') && true === PRIME_MOVER_BYPASS_UPLOAD_PLUGIN_CONTROL) {
             $bypass_upload_plugin_control = true;
         }
-        
-        if (wp_doing_ajax() && isset($input_post['action']) && in_array($input_post['action'], self::PRIME_MOVER_CORE_UPLOAD_PROCESSES) & false === $bypass_upload_plugin_control) {
+ 
+        if ($this->isRequestValid($input_server) && isset($input_post['action']) && in_array($input_post['action'], self::PRIME_MOVER_CORE_UPLOAD_PROCESSES) & false === $bypass_upload_plugin_control) {
             return true;
         }
-        
-        if (wp_doing_ajax() && isset($input_post['action']) && in_array($input_post['action'], self::PRIME_MOVER_CORE_PANEL_PROCESSES)) {
+
+        if ($this->isRequestValid($input_server) && isset($input_post['action']) && in_array($input_post['action'], self::PRIME_MOVER_CORE_PANEL_PROCESSES)) {
             return true;
         }
         
@@ -276,11 +338,108 @@ final class PrimeMoverMustUsePluginManager
     public function initMuHooks()
     {
         add_filter('option_active_plugins', [$this, 'loadOnlyPrimeMoverPlugin']);
-        add_filter('site_option_active_sitewide_plugins', [$this, 'loadOnlyPrimeMoverPlugin']);        
+        add_filter('site_option_active_sitewide_plugins', [$this, 'loadOnlyPrimeMoverPlugin']);
+        add_filter('content_url', [$this, 'maybeAdjustIfContentUrlIsRelative'], 10000, 1);
         
         add_filter('stylesheet_directory', [$this, 'disableThemeOnPrimeMoverProcesses'], 10000);        
         add_filter('template_directory', [$this, 'disableThemeOnPrimeMoverProcesses'], 10000); 
         add_filter('admin_memory_limit', [$this, 'maybeAdjustAdminMemoryMaxLimit'], 100000, 1);
+        
+        add_filter('upload_dir', [$this, 'maybeAdjustIfUploadUrlIsRelative'], 10000, 1);
+    }
+    
+    /**
+     * Prime Mover plugin only supports absolute wp-content URLs during runtime.
+     * @param string $content_url
+     * @return string
+     */
+    public function maybeAdjustIfContentUrlIsRelative($content_url = '')
+    {
+        if (!$this->isContentUrlRelative($content_url)) {
+            return $content_url;
+        }
+        
+        $site_url = get_option('siteurl');
+        if (!$site_url || !is_string($site_url)) {
+            return $content_url;
+        }
+        
+        $site_url = trim($site_url);
+        if (!$site_url) {
+            return $content_url;
+        }
+        
+        $site_url = untrailingslashit($site_url);
+        $content_url = $site_url . $content_url;
+        
+        return $content_url;
+    }
+    
+    /**
+     * Prime Mover plugin only supports absolute uploads base URLs during runtime.
+     * @param array $uploads
+     * @return array
+     */
+    public function maybeAdjustIfUploadUrlIsRelative($uploads = [])
+    {
+        if (!is_array($uploads)) {
+            return $uploads;
+        }
+        
+        if (empty($uploads['baseurl'])) {
+            return $uploads;
+        }
+        
+        $baseurl = $uploads['baseurl'];
+        if (!$this->isContentUrlRelative($baseurl)) {
+            return $uploads;
+        }
+        
+        $site_url = get_option('siteurl');
+        if (!$site_url || !is_string($site_url)) {
+            return $uploads;
+        }
+        
+        $site_url = trim($site_url);
+        if (!$site_url) {
+            return $uploads;
+        }
+        
+        $site_url = untrailingslashit($site_url);
+        $baseurl = $site_url . $baseurl;
+        $uploads['baseurl'] = $baseurl;
+        
+        return $uploads;
+    }
+    
+    /**
+     * Checks if content URL is relative
+     * @param string $content_url
+     * @return boolean
+     */
+    public function isContentUrlRelative($content_url = '')
+    {        
+        if (!$content_url || !is_string($content_url)) {
+            return false;
+        }
+        
+        $content_url = trim($content_url);
+        if (!$content_url) {
+            return false;
+        }
+        
+        $wp_make_link_relative = false;
+        if (wp_make_link_relative($content_url) === $content_url) {
+            $wp_make_link_relative = true;
+        }        
+        
+        $parse_res = false;
+        $parsed = wp_parse_url($content_url);
+        if (empty($parsed['scheme']) && empty($parsed['host']) && !empty($parsed['path'])) {
+            $parse_res = true;
+        }
+        
+        return ($wp_make_link_relative && $parse_res);
     }
     
     /**
@@ -350,6 +509,24 @@ final class PrimeMoverMustUsePluginManager
     }
     
     /**
+     * Set if we are doing Prime Mover processes
+     * @param boolean $status
+     */
+    public function setDoingPrimeMoverProcess($status = false)
+    {
+        $this->doing_primemover_process = $status;
+    }
+    
+    /**
+     * Check if we are doing Prime Mover processes
+     * @return boolean|string[]
+     */
+    public function getDoingPrimeMoverProcess()
+    {
+        return $this->doing_primemover_process;
+    }
+    
+    /**
      * Reset locale helper
      */
     private function resetLocale()
@@ -382,7 +559,7 @@ final class PrimeMoverMustUsePluginManager
      */
     private function maybeSwitchBlog()
     {        
-        if (!is_multisite() || !wp_doing_ajax()) {
+        if (!is_multisite() || !$this->isRequestValid()) {
             return false;
         }
         $input_post = $this->getInputPost();
@@ -466,7 +643,7 @@ final class PrimeMoverMustUsePluginManager
         $current_filter = current_filter();
         $current_process = $this->getCurrentProcess();
         
-        if ($this->primeMoverMaybeEnablePluginManagerLog($current_process)) {
+        if ($this->primeMoverMaybeEnablePluginManagerLog()) {
             
             file_put_contents(PRIME_MOVER_PLUGIN_MANAGER_LOG, "INPUT PLUGINS BEFORE FILTERING:" . PHP_EOL, FILE_APPEND | LOCK_EX);
             file_put_contents(PRIME_MOVER_PLUGIN_MANAGER_LOG, print_r($plugins, true)  . PHP_EOL, FILE_APPEND | LOCK_EX);
@@ -492,13 +669,177 @@ final class PrimeMoverMustUsePluginManager
             });
         }
         
-        if ($this->primeMoverMaybeEnablePluginManagerLog($current_process)) {
+        if ($this->primeMoverMaybeEnablePluginManagerLog()) {
             file_put_contents(PRIME_MOVER_PLUGIN_MANAGER_LOG, "FILTERED PLUGINS FINAL RESULT:" . PHP_EOL, FILE_APPEND | LOCK_EX);
             file_put_contents(PRIME_MOVER_PLUGIN_MANAGER_LOG, print_r($plugins, true)  . PHP_EOL, FILE_APPEND | LOCK_EX);
         }
         
         return $plugins;
     }   
+
+    /**
+     * Checks if requests are valid
+     * @param array $input_server
+     * @return boolean
+     */
+    private function isRequestValid($input_server = [])
+    {
+        if (wp_doing_ajax()) {
+            return true;
+        }
+        
+        if (empty($input_server)) {
+            return false;
+        }
+        
+        return $this->maybeAutoBackupApiValid($input_server);
+    }
+    
+    /**
+     * Checks if auto backup API request is valid
+     * @param array $input_server
+     * @return boolean
+     */
+    private function maybeAutoBackupApiValid($input_server = [])
+    {
+        if (empty($input_server['HTTP_X_PRIME_MOVER_AUTOBACKUP'])) {
+            return false;
+        }
+        
+        $request_passed = $input_server['HTTP_X_PRIME_MOVER_AUTOBACKUP'];
+        $signature = $this->computeAutoBackupRequestSignature();
+        
+        if (!$signature || !$request_passed) {
+            return false;
+        }
+        
+        return hash_equals($signature, $request_passed);
+    }
+    
+    /**
+     * Maybe doing automatic backup
+     * @return boolean
+     */
+    public function maybeDoingAutoBackup()
+    {
+        $input_server = $this->getInputServer();       
+        $this->doing_automatic_backup = $this->maybeAutoBackupApiValid($input_server);
+    }
+    
+    /**
+     * Auto backup status
+     * @return boolean
+     */
+    public function doingAutoBackup()
+    {
+        return $this->doing_automatic_backup;
+    }
+    
+    /**
+     * Maybe set automatic backup identity
+     */
+    public function maybeSetAutoBackupIdentity()
+    {
+        $input_server = $this->getInputServer();
+        if (empty($input_server['HTTP_X_PRIME_MOVER_CRONIDENTITY'])) {
+            return;
+        }
+ 
+        $this->auto_backup_identity = $input_server['HTTP_X_PRIME_MOVER_CRONIDENTITY'];
+    }
+    
+    /**
+     * Get automatic backup identity
+     * @return string
+     */
+    public function getAutoBackupIdentity()
+    {
+        return $this->auto_backup_identity;
+    }
+    
+    /**
+     * Maybe set auto-backup start time
+     */
+    public function maybeSetAutoBackupStartTime()
+    {
+        $input_server = $this->getInputServer();
+        if (empty($input_server['HTTP_X_PRIME_MOVER_CRONSTARTTIME'])) {
+            return;
+        }
+        
+        $start_time = $input_server['HTTP_X_PRIME_MOVER_CRONSTARTTIME'];
+        if (filter_var($start_time, FILTER_VALIDATE_FLOAT, ["options" => ["min_range"=> 1]])) {
+            $this->auto_backup_starttime = $start_time;
+        }       
+    }    
+    
+    /**
+     * Get autobackup start time
+     * @return number
+     */
+    public function getAutoBackupStartTime()
+    {
+        return $this->auto_backup_starttime;
+    }
+    
+    /**
+     * Maybe set autobackup user
+     */
+    public function maybeSetAutoBackupUser()
+    {
+        $input_server = $this->getInputServer();
+        if (empty($input_server['HTTP_X_PRIME_MOVER_AUTOBACKUP_USER'])) {
+            return;
+        }
+        
+        $user_id = $input_server['HTTP_X_PRIME_MOVER_AUTOBACKUP_USER'];
+        if (filter_var($user_id, FILTER_VALIDATE_INT, ["options" => ["min_range"=> 1]])) {
+            $this->auto_backup_user = (int)$user_id;
+        }
+    }
+    
+    /**
+     * Get autobackup user
+     * @return number
+     */
+    public function getAutoBackupUser()
+    {
+        return $this->auto_backup_user;
+    }
+    
+    /**
+     * Set autobackup cron timeout
+     */
+    public function setAutoBackupCronTimeOut()
+    {     
+        if ($this->doingAutoBackup() && !defined('PRIME_MOVER_RETRY_TIMEOUT_SECONDS')) {            
+            $input_server = $this->getInputServer();
+            if (empty($input_server['HTTP_X_PRIME_MOVER_AUTOBACKUP_TIMEOUT'])) {
+                define('PRIME_MOVER_RETRY_TIMEOUT_SECONDS', 50);
+                return;
+            }
+            
+            $timeout_option = $input_server['HTTP_X_PRIME_MOVER_AUTOBACKUP_TIMEOUT'];           
+            if (filter_var($timeout_option, FILTER_VALIDATE_INT, ["options" => ["min_range"=> 19]])) {
+                $timeout_option = (int)$timeout_option;
+            }
+
+            define('PRIME_MOVER_RETRY_TIMEOUT_SECONDS', $timeout_option);
+        }
+    }
+    
+    /**
+     * Set autobackup cron initialization status
+     */
+    public function setAutoBackupCronInitializationStatus()
+    {
+        if ($this->doingAutoBackup()) {
+            $input_server = $this->getInputServer();
+            if (!empty($input_server['HTTP_X_PRIME_MOVER_AUTOBACKUP_INITIALIZED'])) {
+                $this->auto_backup_cron_initialized = true;
+            }
+        }
+    }
 }
 
 function getPrimeMoverSanitizeStringFilter()
@@ -520,15 +861,26 @@ function getPrimeMoverSanitizeStringFilter()
  * @var PrimeMoverMustUsePluginManager $prime_mover_plugin_manager
  */
 global $prime_mover_plugin_manager;
-$prime_mover_plugin_manager = new \Codexonics\PrimeMoverFramework\general\PrimeMoverMustUsePluginManager(filter_input_array(INPUT_POST, getPrimeMoverSanitizeStringFilter()), filter_input_array(INPUT_GET, getPrimeMoverSanitizeStringFilter()));
+$prime_mover_plugin_manager = new \Codexonics\PrimeMoverFramework\general\PrimeMoverMustUsePluginManager(
+    filter_input_array(INPUT_POST, getPrimeMoverSanitizeStringFilter()), 
+    filter_input_array(INPUT_GET, getPrimeMoverSanitizeStringFilter()),
+    filter_input_array(INPUT_SERVER, getPrimeMoverSanitizeStringFilter())
+    );
 
 $prime_mover_plugin_manager->setConstants();
 $prime_mover_plugin_manager->initPluginsLoadedHook();
 
-if ($prime_mover_plugin_manager->primeMoverMaybeLoadPluginManager()) {  
+if ($prime_mover_plugin_manager->primeMoverMaybeLoadPluginManager()) {
+    $prime_mover_plugin_manager->setDoingPrimeMoverProcess(true);
     $prime_mover_plugin_manager->setLocale();
     $prime_mover_plugin_manager->initMuHooks();
     $prime_mover_plugin_manager->maybeDisableSomeBlockHooks();
     $prime_mover_plugin_manager->maybeIncreaseAllocatedResource();
-    $prime_mover_plugin_manager->disableCron();    
+    $prime_mover_plugin_manager->maybeDoingAutoBackup();
+    $prime_mover_plugin_manager->maybeSetAutoBackupIdentity();
+    $prime_mover_plugin_manager->maybeSetAutoBackupStartTime();
+    $prime_mover_plugin_manager->maybeSetAutoBackupUser();
+    $prime_mover_plugin_manager->disableCron(); 
+    $prime_mover_plugin_manager->setAutoBackupCronTimeOut();
+    $prime_mover_plugin_manager->setAutoBackupCronInitializationStatus();
 }

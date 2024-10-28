@@ -35,7 +35,7 @@ class PrimeMoverBackupMenus
     public function __construct(PrimeMover $prime_mover, $utilities = [])
     {
         $this->prime_mover = $prime_mover;
-        $this->utilities = $utilities;         
+        $this->utilities = $utilities;    
     }
   
     /**
@@ -132,10 +132,59 @@ class PrimeMoverBackupMenus
         add_action( 'wp_enqueue_scripts', [$this, 'maybeDisableHeartBeat'], 99 );
         
         add_filter('prime_mover_after_creating_tar_archive', [$this, 'logInProgressPackage'], 10, 2);        
-        add_action('prime_mover_after_generating_download_url', [$this, 'maybeMarkPackageCompleted'], 10,  3);
+        add_action('prime_mover_after_completing_export', [$this, 'maybeMarkPackageCompleted'], 10,  2);
         add_action('prime_mover_after_reallydeleting_package', [$this, 'maybeRemoveWipStatusOnError'], 10, 2);
+        
+        add_filter('prime_mover_excluded_options_db', [$this, 'excludeSomePrimeMoverOptionsInDump'], 1);
+    }
+    
+    /**
+     * Get excluded Prime Mover options from DB dump
+     * These options are site specific and not meant to be migrated or restored to another site/backup.
+     * @return string[]
+     */
+    public function getExcludedOptions()
+    {
+        return [
+            'prime_mover_in_progress_packages',
+            'prime_mover_backup_auth',
+            'prime_mover_autobackup_sites',
+            'prime_mover_validated_backups_option',
+            'prime_mover_backup_sites',
+            'prime_mover_backup_markup_version',
+            'prime_mover_backups_menu',
+            'prime_mover_gearbox_backups',
+            'prime_mover_gdrive_user_id',
+            'prime_mover_package_refresh_needed',
+            'prime_mover_settings_for_restore',
+            'prime_mover_singlesite_upgraded_2'
+        ];
     }
  
+    /**
+     * Exclude in-progress packages option in DB dump
+     * Blogs are already switched at this point if multisite
+     * @param array $ret
+     * @return array
+     */
+    public function excludeSomePrimeMoverOptionsInDump($ret = [])
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return $ret;
+        }
+        
+        $excluded_options = $this->getExcludedOptions();
+        foreach ($excluded_options as $excluded_option) {
+            $value = get_option($excluded_option);            
+            if (false !== $value) {
+                $value = $this->getSystemFunctions()->mapDeep($value, 'wp_normalize_path', '', ['package_filepath', 'filepath']);
+                $ret[$excluded_option] = $value;
+            }
+        }
+        
+        return $ret;
+    }
+    
     /**
      * Maybe remove WIP package status on runtime error
      * @param string $path_to_delete
@@ -148,13 +197,17 @@ class PrimeMoverBackupMenus
     
     /**
      * Maybe marked package completed - remove in-progress status
-     * @param string $results
-     * @param string $hash
+     * @param array $ret
      * @param number $blogid_to_export
      */
-    public function maybeMarkPackageCompleted($results = '', $hash = '', $blogid_to_export = 0)
+    public function maybeMarkPackageCompleted($ret = [], $blogid_to_export = 0)
     {
-        $this->getBackupUtilities()->maybeMarkPackageCompleted($results, $hash, $blogid_to_export);
+        if (!isset($ret['generated_archive_path'])) {
+            return;
+        }
+        
+        $results = $ret['generated_archive_path'];
+        $this->getBackupUtilities()->maybeMarkPackageCompleted($results, '', $blogid_to_export);
     }
     
     /**
@@ -208,7 +261,7 @@ class PrimeMoverBackupMenus
         
         $blog_id = (int)$blog_id;
         $latest_backup_markup = PRIME_MOVER_BACKUP_MARKUP_VERSION;
-        $option = $this->getSystemInitialization()->getPrimeMoverBackupMarkupVersion();        
+        $option = $this->getSystemInitialization()->getPrimeMoverBackupMarkupVersion();
         $backup_markup_db_version = $this->getSystemFunctions()->getBlogOption($blog_id, $option);   
         
         if ( ! $backup_markup_db_version ) {
@@ -356,15 +409,17 @@ class PrimeMoverBackupMenus
     /**
      * Enqueue backup menu assets
      * @param string $hook
-     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverBackupMenus::itEnqueuesScriptsOnBackupPage() 
-     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverBackupMenus::itDoesNotEnqueueNotOnBackupPage() 
+     * @param boolean $backup_menu_check
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverBackupMenus::itEnqueuesScriptsOnBackupPage()
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverBackupMenus::itDoesNotEnqueueNotOnBackupPage()
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverBackupMenus::itDoesNotEnqueueIfNotAuthorized() 
      */
-    public function enqueueScripts($hook = '')
+    public function enqueueScripts($hook = '', $backup_menu_check = true)
     {
-        if ( ! $this->isBackupsMenuPage($hook)) {
+        if ( ! $this->isBackupsMenuPage($hook) && $backup_menu_check) {
             return;
         }
+        
         if ( ! $this->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
@@ -425,21 +480,48 @@ class PrimeMoverBackupMenus
     }
     
     /**
-     * Add new backup markup
+     * Add new backup markup OR schedule backup settings button
      * @param number $blog_id
+     * @param string $mode
      * @return string
      */
-    protected function getAddNewBackupMarkup($blog_id = 0)
+    protected function getAddNewBackupMarkup($blog_id = 0, $mode = 'native')
     {
         $enabled = false;
-        $blog_id = (int) $blog_id;
-        if (is_multisite() && ! $blog_id ) {
+        $blog_id = (int) $blog_id;        
+        $modes = [
+            'native' =>
+                [
+                    'note' => esc_html__('Click to create new backup for this site.', 'prime-mover'),
+                    'url' => $this->getCreateExportUrl($blog_id),
+                    'class' => "page-title-action",
+                    'linktext' => esc_html__('Create new package', 'prime-mover')
+                ],
+            
+            'automaticbackup' =>
+                [
+                    'note' => esc_html__('Click to configure automatic backup settings for this site.', 'prime-mover'),
+                    'url' => esc_url($this->getSystemFunctions()->getScheduledBackupSettingsUrl($blog_id)),
+                    'class' => "page-title-action",
+                    'linktext' => esc_html__('Scheduled backup settings', 'prime-mover')
+                ],
+            
+            'eventviewer' =>
+            [
+                'note' => esc_html__('Click to check automatic backup events for this site.', 'prime-mover'),
+                'url' => esc_url($this->getSystemFunctions()->getEventViewerUrl($blog_id)),
+                'class' => "page-title-action",
+                'linktext' => esc_html__('Check Event viewer', 'prime-mover')
+            ]
+        ];        
+        
+        if (is_multisite() && !$blog_id) {
  
             $url = '#';
             $note = sprintf(esc_html__('You are not on a valid blog ID, you cannot create backups. Please enter blog ID.', 'prime-mover'), $blog_id);
             $class = "page-title-action button disabled prime-mover-autoexport-disabled";
             
-        } elseif (is_multisite() && ! get_blogaddress_by_id($blog_id)) {
+        } elseif (is_multisite() && !get_blogaddress_by_id($blog_id)) {
             
             $url = '#';
             $note = sprintf(esc_html__('Subsite with blog ID: %d does not exist, please create the subsite first.', 'prime-mover'), $blog_id);
@@ -447,16 +529,18 @@ class PrimeMoverBackupMenus
             
         } else {
             $enabled = true;
-            $note = esc_html__('Click to create new backup for this site.', 'prime-mover');
-            $url = $this->getCreateExportUrl($blog_id);
-            $class = "page-title-action";
-            
+            $note = $modes[$mode]['note'];
+            $url = $modes[$mode]['url'];
+            $class = $modes[$mode]['class'];
         }
         
-        $link_text = esc_html__('Create new package', 'prime-mover');
+        $link_text = $modes[$mode]['linktext'];        
         $addnewbackup_button = [$note, $url, $class, $link_text];        
         $original_button_markup = $addnewbackup_button;
-        list($note, $url, $class, $link_text) = apply_filters('prime_mover_addnew_backupmenu', $addnewbackup_button, $blog_id, $enabled, $original_button_markup);
+        
+        if ('native' === $mode) {
+            list($note, $url, $class, $link_text) = apply_filters('prime_mover_addnew_backupmenu', $addnewbackup_button, $blog_id, $enabled, $original_button_markup);
+        }        
         
         return '<a title="' . $note . '" href="' . $url . '" class="' . $class . '">' . $link_text . '</a>';
     }
@@ -487,8 +571,14 @@ class PrimeMoverBackupMenus
         }
         ?>
       <div class="wrap prime-mover-backup-menu-wrap">
-         <h1 class="wp-heading-inline"><?php echo apply_filters('prime_mover_filter_backuppage_heading', esc_html__('Prime Mover Packages', 'prime-mover'), $blog_id);?></h1>
-         <?php echo $this->getAddNewBackupMarkup($blog_id); ?>
+         <h1 class="wp-heading-inline"><?php echo apply_filters('prime_mover_filter_backuppage_heading', esc_html__('Prime Mover Package Manager', 'prime-mover'), $blog_id);?></h1>
+         
+         <p class="edit-site-actions prime-mover-edit-site-actions">
+             <?php echo $this->getAddNewBackupMarkup($blog_id, 'native'); ?>  
+             <?php echo $this->getAddNewBackupMarkup($blog_id, 'automaticbackup'); ?>
+             <?php echo $this->getAddNewBackupMarkup($blog_id, 'eventviewer'); ?>      
+         </p>
+         
          <?php 
          if ($this->getBackupUtilities()->blogIsUsable($blog_id)) {
          ?>
@@ -561,12 +651,13 @@ class PrimeMoverBackupMenus
      * Get blog ID under query in the backups menu list table
      * This will always return "1" in single-site
      * In multisite, may differ depending on what blog is queried.
-     * @return number
+     * @param boolean $sites_check
+     * @return NULL|mixed|number
      */
-    protected function getBlogIdUnderQuery()
+    public function getBlogIdUnderQuery($sites_check = true)
     {
         if (is_multisite()) {
-            return $this->getCanonicalSiteInMultisite();
+            return $this->getCanonicalSiteInMultisite($sites_check);
             
         } else {
             return 1;
@@ -584,9 +675,10 @@ class PrimeMoverBackupMenus
     
     /**
      * Get canonical site in multisite
+     * @param boolean $sites_check
      * @return NULL|mixed
      */
-    private function getCanonicalSiteInMultisite()
+    private function getCanonicalSiteInMultisite($sites_check = true)
     {
         if ( ! $this->getSystemAuthorization()->isUserAuthorized()) {
             return null;
@@ -599,6 +691,10 @@ class PrimeMoverBackupMenus
         
         if ( ! empty($queried['prime-mover-select-blog-to-query'] ) ) {
             return $queried['prime-mover-select-blog-to-query'];    
+        }
+        
+        if (!$sites_check) {
+            return null;    
         }
         
         $sites_with_backups = $this->getSitesWithBackups();

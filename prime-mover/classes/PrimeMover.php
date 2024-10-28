@@ -129,8 +129,9 @@ class PrimeMover
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMover::itChecksIfHooksAreOutdated()
      */
     public function primeMoverLoadHooks()
-    {        
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+    {       
+        add_action('init', [$this, 'primeMoverCreateFolder'], 1);
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
         $notice_hook = 'admin_notices';
@@ -141,6 +142,13 @@ class PrimeMover
         foreach ($this->getSystemInitialization()->getPrimeMoverAjaxActions() as $action_name => $action_processor) {
             add_action("wp_ajax_{$action_name}", [$this,$action_processor]);
         }
+       
+        /**
+         * Automatic backup support
+         */
+        add_action( "wp_ajax_nopriv_prime_mover_process_export" , [$this,'primeMoverExportProcessor']);
+        add_action( "wp_ajax_nopriv_prime_mover_monitor_export_progress" , [$this,'primeMoverExportProgressProcessor']);
+        add_action( "wp_ajax_nopriv_prime_mover_shutdown_export_process" , [$this,'primeMoverShutdownExportProcessor']);
         
         /**
          * GUI hooks for export, import and delete section in Network -> Sites
@@ -154,7 +162,7 @@ class PrimeMover
         add_action($notice_hook, [$this, 'multisiteShowNetworkAdminNotice'] );
         
         /** System Initialization hooks */
-        add_action('init', [$this, 'primeMoverCreateFolder'], 1);
+        
         add_action('init', [$this, 'primeMoverCreateTmpDownloadsFolder'], 1); 
         add_action('init', [$this, 'primeMoverCreateLockFilesFolder'], 1); 
         add_action('admin_init', [$this, 'multisiteInitializeWpFilesystemApi']);
@@ -164,7 +172,9 @@ class PrimeMover
         add_action('admin_init', [$this, 'initializeTroubleShootingLog'], 12);
         add_action('admin_init', [$this, 'initializeSiteInfoLog'], 13);
         add_action('admin_init', [$this, 'initializeExportDirIdentity'], 14);
-        add_action('admin_init', [$this, 'initializeCliMustUsePlugin'], 15);               
+        add_action('admin_init', [$this, 'initializeCliMustUsePlugin'], 15);
+        add_action('admin_init', [$this, 'initializeAutoBackupLog'], 16);  
+        add_action('admin_init', [$this, 'initializeExportDbLock'], 17);
         
         /** System check hooks */
         add_action('init', [$this, 'systemCheckHooks']);
@@ -454,6 +464,23 @@ class PrimeMover
     }
     
     /**
+     * Initialize auto backup log
+     */
+    public function initializeAutoBackupLog()
+    {
+        $blog_id = $this->getSystemInitialization()->getBlogIdOnScheduledBackupPage();
+        if (!$blog_id) {
+            return;
+        }
+        
+        if (!$this->getSystemFunctions()->blogIsUsable($blog_id)) {
+            return;
+        }
+        
+        $this->getSystemInitialization()->initializeAutoBackupLog();
+    }
+    
+    /**
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMover::itInitializesSiteInfoLog()
      */
     public function initializeSiteInfoLog()
@@ -467,6 +494,14 @@ class PrimeMover
     public function initializeExportDirIdentity()
     {
         $this->getSystemInitialization()->initializeExportDirIdentity();
+    }
+  
+    /**
+     * Initialize export dB Lock
+     */
+    public function initializeExportDbLock()
+    {
+        $this->getSystemInitialization()->initializeExportDbLock();
     }
     
     /**

@@ -3,7 +3,7 @@
         'name' => 'codex-m/prime-mover-panel',
         'pretty_version' => 'dev-master',
         'version' => 'dev-master',
-        'reference' => '7d1cae788ed44de8f039d8bf2aef744b2b743f62',
+        'reference' => 'a70d8358536da153fd8d715efc4d196df242b4f5',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'codex-m/prime-mover-panel' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => '7d1cae788ed44de8f039d8bf2aef744b2b743f62',
+            'reference' => 'a70d8358536da153fd8d715efc4d196df242b4f5',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

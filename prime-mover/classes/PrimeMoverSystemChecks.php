@@ -322,8 +322,8 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
             }
         }
        
-        $stylesheet = $this->getSystemFunctions()->getBlogOption($blogid_to_export, 'stylesheet');
-        $theme_template = $this->getSystemFunctions()->getBlogOption($blogid_to_export, 'template');
+        $stylesheet = $this->getSystemFunctions()->getBlogOption($blogid_to_export, 'stylesheet', false, '', true, true);
+        $theme_template = $this->getSystemFunctions()->getBlogOption($blogid_to_export, 'template', false, '', true, true);
         $stylesheet_info = wp_get_theme($stylesheet, PRIME_MOVER_THEME_CORE_PATH);
         $theme_template_info = wp_get_theme($theme_template, PRIME_MOVER_THEME_CORE_PATH);        
         $using_child_theme = $this->getSystemFunctions()->isUsingChildTheme($blogid_to_export);         
@@ -341,7 +341,7 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
         $footprint['using_child_theme'] = $using_child_theme;
         $footprint['footprint_blog_id'] = $blogid_to_export;
         
-        $site_url =	$this->getSystemFunctions()->getBlogOption($blogid_to_export, 'siteurl');  
+        $site_url =	$this->getSystemFunctions()->getBlogOption($blogid_to_export, 'siteurl', false, '', true, true);        
         $site_url_parsed = $this->getSystemFunctions()->removeSchemeFromUrl($site_url);
         if (!empty($site_url)) {
             $footprint['site_url'] = $site_url_parsed;
@@ -454,6 +454,7 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
         if ($batch_bytes < 5242880) {
             $batch_bytes = 5242880;
         }
+       
         $ret['batch_bytes'] = $batch_bytes;
         $ret['file_reading_position'] = $position;
         $ret['processed_file_count'] = $count;
@@ -600,6 +601,7 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
     {
         $add_result = false;
         do_action('prime_mover_log_processed_events', "Adding $file to archive", $blog_id, 'export', 'addFileToArchive', $this, true);
+        
         if ($this->addFileOnWindows($file, $files, $filesize, $zip)) {
             do_action('prime_mover_log_processed_events', "Successfully added special file exemption on Windows $file to archive", $blog_id, 'export', 'addFileToArchive', $this, true);
             $total_sizes += $filesize;
@@ -726,6 +728,7 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
                     do_action('prime_mover_log_processed_events', "File $file is excluded from the archive.", $blog_id, 'export', __FUNCTION__, $this, true);
                     continue;
                 }
+                
                 if (true === is_dir($file)) {
                     list($files, $count, $add_result) = $this->addEmptyDirectoryToArchive($source, $ret, $exporting_mode, $file, $files, $count, $key, $encrypt, $zip, $blog_id, $shell_mode);
                 } elseif (true === is_file($file)) {

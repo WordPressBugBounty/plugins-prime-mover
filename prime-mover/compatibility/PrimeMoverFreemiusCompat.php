@@ -52,7 +52,8 @@ class PrimeMoverFreemiusCompat
             'fs_active_plugins',
             'fs_api_cache',
             'fs_dbg_api_cache',
-            'fs_debug_mode'
+            'fs_debug_mode',
+            'fs_gdpr'
         ];
         
         $this->action_links = [
@@ -136,7 +137,7 @@ class PrimeMoverFreemiusCompat
         
         add_action('admin_head', [$this, 'jSUpgrade'], 100);
         add_action('admin_head', [$this, 'filterPrimeMoverSlug'], 50);
-        add_action('prime_mover_load_module_apps', [$this, 'removeVerifiedMeta'], 1000); 
+        add_action('prime_mover_load_module_apps', [$this, 'removeVerifiedMeta'], 1000);         
         
         $this->injectFreemiusHooks();
     }
@@ -147,7 +148,7 @@ class PrimeMoverFreemiusCompat
      */
     protected function isUpgradedUserVerified()
     {
-        return ('yes' === $this->getPrimeMover()->getSystemFunctions()->getSiteOption(self::ON_UPGRADE_USER_VERIFIED));
+        return ('yes' === $this->getPrimeMover()->getSystemFunctions()->getSiteOption(self::ON_UPGRADE_USER_VERIFIED, false, true, false, '', true, true));
     }
     
     /**
@@ -200,7 +201,7 @@ class PrimeMoverFreemiusCompat
         }
         
         if (true === apply_filters('prime_mover_is_loggedin_customer', false)) {
-            $this->getSystemFunctions()->deleteSiteOption(self::ON_UPGRADE_USER_VERIFIED); 
+            $this->getSystemFunctions()->deleteSiteOption(self::ON_UPGRADE_USER_VERIFIED, false, '', true, true); 
         }               
     }
     
@@ -451,7 +452,7 @@ class PrimeMoverFreemiusCompat
         $nonce = $settings_get['prime_mover_networksites_nonce'];
         
         if ('prime_mover_mark_user_read' === $action && $this->getSystemFunctions()->primeMoverVerifyNonce($nonce, 'prime_mover_user_read_mainsiteonly_notice')) {
-            $this->getPrimeMover()->getSystemFunctions()->updateSiteOption($this->getPrimeMover()->getSystemInitialization()->getUserUnderstandMainSiteOnly(), 'yes', true);
+            $this->getPrimeMover()->getSystemFunctions()->updateSiteOption($this->getPrimeMover()->getSystemInitialization()->getUserUnderstandMainSiteOnly(), 'yes', true, '', true, true);
             $this->redirectAndExit();
         }
     }
@@ -556,8 +557,8 @@ class PrimeMoverFreemiusCompat
     {
         $shouldread = false;
         $importantreadmsg_setting = $this->getPrimeMover()->getSystemInitialization()->getUserUnderstandMainSiteOnly();
-                
-        if ('yes' !== $this->getPrimeMover()->getSystemFunctions()->getSiteOption($importantreadmsg_setting)) {   
+        
+        if ('yes' !== $this->getPrimeMover()->getSystemFunctions()->getSiteOption($importantreadmsg_setting, false, true, false, '', true, true)) {   
             $shouldread = true;
         }
         
@@ -618,8 +619,8 @@ class PrimeMoverFreemiusCompat
                 'activate' => $this->getSystemInitialization()->getPrimeMoverSanitizeStringFilter()
             ], 'prime_mover_activate_validate');
         
-        if ($this->getSystemFunctions()->getSiteOption($this->getAutoDeactivationOption()) && isset($activation_params['activate']) && 'true' === $activation_params['activate']) {
-            $this->getSystemFunctions()->deleteSiteOption($this->getAutoDeactivationOption());
+        if ($this->getSystemFunctions()->getSiteOption($this->getAutoDeactivationOption(), false, true, false, '', true, true) && isset($activation_params['activate']) && 'true' === $activation_params['activate']) {
+            $this->getSystemFunctions()->deleteSiteOption($this->getAutoDeactivationOption(), false, '', true, true);
             $this->freemiusAllCleanedUp();
             $this->setRedirectTransient(false);
         }
@@ -666,7 +667,7 @@ class PrimeMoverFreemiusCompat
         delete_transient($transient);
         set_transient($transient, true, 60);
         if ($update_option) {
-            $this->getSystemFunctions()->updateSiteOption($this->getAutoDeactivationOption(), true);
+            $this->getSystemFunctions()->updateSiteOption($this->getAutoDeactivationOption(), true, false, '', true, true);
         }        
     }
     
@@ -711,7 +712,7 @@ class PrimeMoverFreemiusCompat
         }
         
         if ($nonce_verified && $this->getSystemAuthorization()->isUserAuthorized()) {
-            $this->getPrimeMover()->getSystemFunctions()->updateSiteOption(self::ON_UPGRADE_USER_VERIFIED, 'yes', true);
+            $this->getPrimeMover()->getSystemFunctions()->updateSiteOption(self::ON_UPGRADE_USER_VERIFIED, 'yes', true, '', true, true);
         }
         
         do_action('prime_mover_log_processed_events', "Prime Mover successfully executes Freemius Fixer", 0, 'common', __FUNCTION__ , $this);

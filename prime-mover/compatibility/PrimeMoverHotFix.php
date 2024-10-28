@@ -112,7 +112,7 @@ class PrimeMoverHotFix
             return $ret;
         }
         
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $res = $wpdb->get_results("SELECT @@SESSION.sql_mode", ARRAY_A);
         
         if (!is_array($res)) {
@@ -280,7 +280,7 @@ class PrimeMoverHotFix
         if (!function_exists('get_metadata_raw')) {
             return update_user_meta($user_id, $meta_key, $meta_value);
         }
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $meta_type = 'user';
         $prev_value = '';        
         if (!$meta_key || !is_numeric($user_id)) {
@@ -341,7 +341,7 @@ class PrimeMoverHotFix
      */
     private function insertData($user_id, $meta_key, $meta_value, $table, $column) 
     {
-        global $wpdb;               
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $result = $wpdb->insert($table, [$column => $user_id, 'meta_key' => $meta_key, 'meta_value' => maybe_serialize($meta_value)]);            
         if (!$result) {
             return false;

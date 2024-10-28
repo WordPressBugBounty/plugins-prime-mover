@@ -2,6 +2,14 @@
 
 **This is a list detailing changes for all Prime Mover releases.**
 
+= 1.9.7 =
+
+* Fixed: Fatal error in user import retry process using PHP 8.2.15.
+* Fixed: Auto-adjust user_id columns in database to correct values during import.
+* Fixed: Added settings filter 'prime_mover_custom_user_id_col' to adjust non-default user id columns.
+* Fixed: Infinite loop in third party processor during import process retry.
+* Compatibility: Tested for WordPress 6.5 release.
+
 = 1.9.6 =
 
 * Fixed: Connections using insecure transport are prohibited while require_secure_transport=ON.

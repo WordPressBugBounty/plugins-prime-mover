@@ -91,8 +91,9 @@ class PrimeMoverErrorHandlers
     public function initHooks()
     {
         add_action('prime_mover_maintenance_cron_tasks', [$this, 'deleteOldLogs']);
+        add_action('prime_mover_log_processed_events', [$this, 'primeMoverLogEvents'], 10, 7);
         
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
         
@@ -105,8 +106,7 @@ class PrimeMoverErrorHandlers
         add_action('prime_mover_before_doing_import', [$this, 'primeMoverDeleteErrorLog'], 10, 2 );        
         
         add_action('init', [$this, 'streamError'], 11);
-        add_action('prime_mover_before_doing_export', [$this, 'primeMoverDeleteErrorLog'], 10, 2 );
-        add_action('prime_mover_log_processed_events', [$this, 'primeMoverLogEvents'], 10, 7);
+        add_action('prime_mover_before_doing_export', [$this, 'primeMoverDeleteErrorLog'], 10, 2 );        
         
         add_action('prime_mover_bootup', [$this,'maybeRefreshLogEventFile'], 0, 3);
         add_filter('prime_mover_filter_error_output', [$this, 'appendSiteIdentityOnErrorLog'], 10, 2);
@@ -121,29 +121,108 @@ class PrimeMoverErrorHandlers
     }
  
     /**
+     * Delete outdated autobackup logs from clogging up the server
+     * This is called by WP Cron.
+     */
+    protected function deleteOldaAutoBackupLogs($file = '')
+    {                    
+        $creation_time = $this->getLogCreationTime($file);
+        if (!$creation_time) {
+            return;
+        }
+        
+        if ((time()-$creation_time) > PRIME_MOVER_CRON_DELETE_AUTOBACKUPLOG_INTERVALS) {
+            $this->getSystemFunctions()->primeMoverDoDelete($file, false);
+        }      
+    }
+    
+    /**
      * Delete outdated logs from clogging up server
      * This is called by WP Cron.
      */
     public function deleteOldLogs()
     {
+        $files = $this->getLogFiles();
+        foreach ($files as $file) {
+            $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+            $filename = basename($file);
+            
+            if (!$this->isLogFile($extension, $filename)) {
+                continue;
+            }
+            
+            if (!$this->getSystemFunctions()->nonCachedFileExists($file)) {
+                continue;
+            }
+            
+            if (false !== strpos($filename, '_automaticbackup')) {
+                $this->deleteOldaAutoBackupLogs($file);
+                
+            } else {
+                if ((time()-filectime($file)) > PRIME_MOVER_CRON_DELETE_TMP_INTERVALS) {
+                    $this->getSystemFunctions()->primeMoverDoDelete($file, false);    
+                }
+            }            
+        }         
+    }
+    
+    /**
+     * Get log files from export directory
+     * @return array|string[]|boolean
+     */
+    protected function getLogFiles()
+    {
         $log_path = $this->getSystemInitialization()->getMultisiteExportFolder();
-        if ( ! $this->getSystemFunctions()->nonCachedFileExists($log_path)) {
-            return;
+        if (!$this->getSystemFunctions()->nonCachedFileExists($log_path)) {
+            return [];
         }
         
         $log_path = trailingslashit($log_path);
         $this->getSystemInitialization()->multisiteInitializeWpFilesystemApiCli(false);
-        $files = list_files($log_path , 1, ['index.html', '.htaccess', '.export_identity']);
-        if ( ! is_array($files) ) {
-            return;
+        $files = list_files($log_path , 1, ['index.html', 'index.php', '.htaccess', '.export_identity']);
+        if (!is_array($files)) {
+            return [];
         }
-        foreach ($files as $file) {
-            $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-            $filename = basename($file);
-            if ($this->isLogFile($extension, $filename) && ((time()-filectime($file)) > PRIME_MOVER_CRON_DELETE_TMP_INTERVALS && $this->getSystemFunctions()->nonCachedFileExists($file))) {                
-                $this->getSystemFunctions()->primeMoverDoDelete($file, false);
-            }
-        }         
+        
+        return $files;
+    }
+ 
+    /**
+     * Get autobackup log creation time
+     * @param string $log
+     * @return boolean|number|boolean
+     */
+    protected function getLogCreationTime($log = '')
+    {
+        $res = false;
+        $f = fopen($log, 'rb');
+        if (false === $f) {
+            return false;
+        }
+        
+        $line = fgets($f);
+        if (false === $line) {
+            return false;
+        }
+        
+        fclose($f);
+        $line = trim($line);
+        if (!$line) {
+            return false;
+        }
+        
+        $datestring = strstr($line, '=>', true);
+        if (false === $datestring) {
+            return false;
+        }
+        
+        $res = strtotime($datestring);
+        if (!$res) {
+            return false;
+        }
+        
+        $res = (int)$res;        
+        return $res;
     }
     
     /**
@@ -169,7 +248,7 @@ class PrimeMoverErrorHandlers
         }
         
         $option = $this->getSystemInitialization()->getCliMasterTmpFilesOptions() . "_" . $blog_id;
-        $values = $this->getSystemFunctions()->getSiteOption($option);
+        $values = $this->getSystemFunctions()->getSiteOption($option, false, true, false, '', true, true);
         if (!is_array($values) || empty($values)) {
             return;
         }
@@ -194,23 +273,24 @@ class PrimeMoverErrorHandlers
         if (! $this->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
+        
         if ( ! $this->getSystemFunctions()->nonCachedFileExists($error_log_file) ) {
             return;
         }
-        $troubleshooting_path = $this->getSystemInitialization()->getTroubleShootingLogPath('migration'); 
+        
+        $logtype = 'migration';
+        $blog_id = 0;
+        if ($this->getSystemAuthorization()->isDoingAutoBackup()) {
+            $logtype = 'automaticbackup';
+            $blog_id = $this->getShutDownUtilities()->primeMoverGetProcessedID();
+        }       
+        
+        $troubleshooting_path = $this->getSystemInitialization()->getTroubleShootingLogPath($logtype, $blog_id); 
         if ( ! $this->getSystemFunctions()->nonCachedFileExists($troubleshooting_path) ) {
             return;
-        }
-        $migration_log_handle = fopen($troubleshooting_path, 'rb');
-        $error_log_handle = fopen($error_log_file, 'ab');
+        }        
         
-        if (false === $migration_log_handle || false === $error_log_handle) {
-            return;
-        }
-        stream_copy_to_stream($migration_log_handle, $error_log_handle);
-        
-        fclose($migration_log_handle);
-        fclose($error_log_handle);
+        $this->getSystemFunctions()->streamCopyToStream($troubleshooting_path, $error_log_file, 'rb', 'ab', false);
     }
     
     /**
@@ -242,7 +322,7 @@ class PrimeMoverErrorHandlers
             return $error_output;
         }
         $plugins = [];
-        $network_active = $this->getSystemFunctions()->getSiteOption('active_sitewide_plugins');
+        $network_active = $this->getSystemFunctions()->getSiteOption('active_sitewide_plugins', false, true, false, '', true, true);
         if ( ! is_array($network_active) || empty($network_active) ) {
             $error_output['active_sitewide_plugins'] = $plugins;
             return $error_output;
@@ -315,9 +395,10 @@ class PrimeMoverErrorHandlers
         }
         if ($blog_id) {
             $error_output['blog_id'] = $blog_id;
-            $error_output['site_title'] = $this->getSystemFunctions()->getBlogOption($blog_id, 'blogname');
+            $error_output['site_title'] = $this->getSystemFunctions()->getBlogOption($blog_id, 'blogname', false, '', true, true);
         }
-        $error_output['super_admin_id'] = get_current_user_id();        
+        
+        $error_output['super_admin_id'] = $this->getSystemInitialization()->getCurrentUserId();        
         return $error_output;
     }
     
@@ -374,9 +455,15 @@ class PrimeMoverErrorHandlers
         if (defined('PRIME_MOVER_ENABLE_EVENT_LOG') && false === PRIME_MOVER_ENABLE_EVENT_LOG) {
             return;
         }
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized() && !wp_doing_cron()) {
             return;
         }
+        
+        $logtype = 'migration';
+        if (wp_doing_cron() || $this->getSystemAuthorization()->isDoingAutoBackup()) {
+            $logtype = 'automaticbackup';
+        }
+        
         if ($this->getSystemFunctions()->isRefererBackupMenu()) {
             return;
         }
@@ -386,11 +473,12 @@ class PrimeMoverErrorHandlers
         if ($pii_log && ! $this->enableUserLogging() ) {
             return;
         }
-        $troubleshooting_path = $this->getSystemInitialization()->getTroubleShootingLogPath('migration');        
-        if ( ! $troubleshooting_path || ! $mode || ! $source ) {
+        
+        $troubleshooting_path = $this->getSystemInitialization()->getTroubleShootingLogPath($logtype, $blog_id);        
+        if (!$troubleshooting_path || !$mode || !$source ) {
             return;
         }
-        if ( ! $this->isLogPathValid($troubleshooting_path) ) {
+        if (!$this->isLogPathValid($troubleshooting_path) ) {
             return;
         }
         

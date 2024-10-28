@@ -343,7 +343,7 @@ class PrimeMoverUserQueries
             return $processed_object_ids;
         }
         $result = false;
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         
         $data = ['object_id' => $object_id, 'term_taxonomy_id' => $term_taxonomy_id];
         $format = ['%d','%d'];
@@ -390,7 +390,7 @@ class PrimeMoverUserQueries
             return false;
         }        
         
-        global $wpdb;        
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         return $wpdb->delete($wpdb->term_relationships, ['object_id' => $object_id, 'term_taxonomy_id' => $term_taxonomy_id], ['%d', '%d']);
     }
     
@@ -421,7 +421,7 @@ class PrimeMoverUserQueries
      */
     protected function getTermTaxonomyId($taxonomy = '', $offset = 0)
     {        
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         
         $query = "SELECT term_taxonomy_id FROM {$wpdb->term_taxonomy} WHERE taxonomy = %s ORDER BY term_taxonomy_id ASC LIMIT %d, 1";
         $prepared = $wpdb->prepare($query, $taxonomy, $offset);
@@ -438,7 +438,7 @@ class PrimeMoverUserQueries
      */
     protected function getUsersInTerms($term_taxonomy_id = 0, $offset = 0)
     {
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         
         $query = "SELECT object_id FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d ORDER BY object_id ASC LIMIT %d, 5";
         $prepared = $wpdb->prepare($query, $term_taxonomy_id, $offset);
@@ -526,7 +526,7 @@ class PrimeMoverUserQueries
             return;
         }
         
-        $this->getSystemFunctions()->updateBlogOption($current_blog_id, self::PRIME_MOVER_USER_TAXONOMY_OPTION, $taxonomies, false);        
+        $this->getSystemFunctions()->updateBlogOption($current_blog_id, self::PRIME_MOVER_USER_TAXONOMY_OPTION, $taxonomies, false, '', true, true);        
         do_action('prime_mover_do_anything_on_wp_loaded');
         
         $this->getSystemFunctions()->restoreCurrentBlog();
@@ -590,7 +590,7 @@ class PrimeMoverUserQueries
     public function dBCustomerUserIdsHelper($ret = [], $table = '', $blogid_to_import = 0, $leftoff_identifier = '', $primary_index = '', $column_strings = '',
         $update_variable = '', $progress_identifier = '', $start_time = 0, $last_processor = false, $handle_unique_constraint = '', $non_user_adjustment = false, $filter_clause = [])
     {
-        global $wpdb;        
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $this->getSystemFunctions()->switchToBlog($blogid_to_import);
         
         if (!$this->getSystemAuthorization()->isUserAuthorized()) {  
@@ -603,7 +603,9 @@ class PrimeMoverUserQueries
         }
         
         $table_exists = false;
-        if ($wpdb->get_var( "SHOW TABLES LIKE '{$wpdb->prefix}{$table}';")) {
+        $table_like = "{$wpdb->prefix}{$table}";
+        $sql = $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table_like));
+        if ($wpdb->get_var($sql)) {
             $table_exists = true;
         }
         
@@ -666,7 +668,8 @@ class PrimeMoverUserQueries
     protected function dropIndexesConstraint($table = '', wpdb $wpdb = null, $index = '')
     {           
         if (1 === $this->indexExists($table, $wpdb, $index)) {
-            $wpdb->query("ALTER TABLE {$wpdb->prefix}{$table} DROP INDEX {$index}");
+            $tbl = "{$wpdb->prefix}{$table}";
+            $wpdb->query("ALTER TABLE `{$tbl}` DROP INDEX {$index}");
         }        
     }
 
@@ -679,7 +682,8 @@ class PrimeMoverUserQueries
      */
     protected function indexExists($table = '', wpdb $wpdb = null, $index = '')
     {
-        $res = $wpdb->query($wpdb->prepare("SHOW KEYS FROM {$wpdb->prefix}{$table} WHERE Key_name=%s", $index));
+        $tbl = "{$wpdb->prefix}{$table}";
+        $res = $wpdb->query($wpdb->prepare("SHOW KEYS FROM `{$tbl}` WHERE Key_name=%s", $index));
         return $res;
     }
     
@@ -705,7 +709,7 @@ class PrimeMoverUserQueries
             return $query;
         }
                 
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $user_id_column = $this->parsePrimaryIndexUserColumns($column_strings, 'user');
         $where = "WHERE {$user_id_column} IS NOT NULL";
         
@@ -738,8 +742,9 @@ class PrimeMoverUserQueries
             $where .= " )";
         }
         
-        $orderby = $wpdb->prepare("ORDER BY {$primary_index} DESC LIMIT %d", PRIME_MOVER_CUSTOMER_LOOKUP_LIMIT);            
-        return "SELECT {$column_strings} FROM {$wpdb->prefix}{$table} {$where} {$orderby}";                
+        $orderby = $wpdb->prepare("ORDER BY {$primary_index} DESC LIMIT %d", PRIME_MOVER_CUSTOMER_LOOKUP_LIMIT); 
+        $tbl = "{$wpdb->prefix}{$table}";
+        return "SELECT {$column_strings} FROM `{$tbl}` {$where} {$orderby}";                
     } 
     
     /**
@@ -894,10 +899,11 @@ class PrimeMoverUserQueries
     public function updateCustomerUserIdBySQL($primary_index_id = 0, $migrated_user_id = 0, $table = '', $primary_index = '', $user_id_column = '', $query = '', $is_serialized = false)
     {
         
-        global $wpdb; 
+        $wpdb = $this->getSystemInitialization()->getWpdB();
+        $tbl = "{$wpdb->prefix}{$table}";
         if (!$query && $is_serialized && is_string($migrated_user_id)) {            
             $query = $wpdb->prepare("
-                   UPDATE {$wpdb->prefix}{$table}
+                   UPDATE `{$tbl}`
                    SET {$user_id_column} = %s
                    WHERE {$primary_index} = %d",
                    $migrated_user_id, $primary_index_id
@@ -907,7 +913,7 @@ class PrimeMoverUserQueries
         
         if (!$query) {            
             $query = $wpdb->prepare("
-                   UPDATE {$wpdb->prefix}{$table}
+                   UPDATE `{$tbl}`
                    SET {$user_id_column} = %d
                    WHERE {$primary_index} = %d",
                    $migrated_user_id, $primary_index_id
@@ -985,7 +991,8 @@ class PrimeMoverUserQueries
     protected function enForceIndexesConstraint($table = '', wpdb $wpdb = null, $index = '')
     {
         if (0 === $this->indexExists($table, $wpdb, $index)) {
-            $wpdb->query("ALTER TABLE {$wpdb->prefix}{$table} ADD CONSTRAINT {$index} UNIQUE ({$index})");
+            $tbl = "{$wpdb->prefix}{$table}";
+            $wpdb->query("ALTER TABLE `{$tbl}` ADD CONSTRAINT {$index} UNIQUE ({$index})");
         }        
     }
     

@@ -28,7 +28,7 @@ class PrimeMoverOpenSSLUtilities
      * Cipher method
      * @var string
      */
-    private $cipher = 'AES-256-CBC';
+    private $cipher = PRIME_MOVER_OPENSSL_CIPHER;
     
     /**
      * 
@@ -419,33 +419,7 @@ class PrimeMoverOpenSSLUtilities
      */
     public function openSSLDecrypt($ciphertext = '', $key = '', $return_null_on_false = false)
     {
-        if ( ! $ciphertext || ! $key ) {
-            if ($return_null_on_false) {
-                return null;
-            } else {
-                return $ciphertext;
-            }            
-        }
-        $cipher_method = $this->getCipherMethod();
-        $c = base64_decode($ciphertext);
-        $ivlen = openssl_cipher_iv_length($cipher_method);
-        $iv = substr($c, 0, $ivlen);
-        $sha2len = 32;
-        $hmac = substr($c, $ivlen, $sha2len);
-        $ciphertext_raw = substr($c, $ivlen+$sha2len);
-        $original_plaintext = @openssl_decrypt($ciphertext_raw, $cipher_method, $key, OPENSSL_RAW_DATA, $iv);
-        if ( false === $original_plaintext  && $return_null_on_false) {
-            return null;
-        }
-        $calcmac = hash_hmac('sha256', $ciphertext_raw, $key, true);
-        if ( ! is_string($hmac) || ! is_string($calcmac)) {
-            return $ciphertext;
-        }
-        if (hash_equals($hmac, $calcmac))
-        {
-            return $original_plaintext;
-        }
-        return $ciphertext;
+        return primeMoverOpenSSLDecrypt($ciphertext, $key, $return_null_on_false);
     }
     
     /**
@@ -456,14 +430,8 @@ class PrimeMoverOpenSSLUtilities
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSettings::itSavesEncryptedSettings()
      */
     public function openSSLEncrypt($plaintext = '', $key = '')
-    {
-        $cipher_method = $this->getCipherMethod();
-        $ivlen = openssl_cipher_iv_length($cipher_method);
-        $iv = openssl_random_pseudo_bytes($ivlen);
-        
-        $ciphertext_raw = openssl_encrypt($plaintext, $cipher_method, $key, OPENSSL_RAW_DATA, $iv);
-        $hmac = hash_hmac('sha256', $ciphertext_raw, $key, true);
-        return base64_encode( $iv.$hmac.$ciphertext_raw );
+    {        
+        return primeMoverOpenSSLEncrypt($plaintext, $key);
     }    
 
     /**

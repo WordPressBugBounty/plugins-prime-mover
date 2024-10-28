@@ -53,7 +53,7 @@ class PrimeMoverDisplayRunTimeSettings
             $this->getPrimeMover()->getSystemInitialization()->getSearchReplaceBatchSizeSetting() => 
              [
                 'default' => PRIME_MOVER_SRCH_RLC_BATCH_SIZE,              
-                'col_heading' => esc_html__('Search-replace batch size', 'prime-mover'),
+                'col_heading' => __('Search-replace batch size', 'prime-mover'),
                 'identifier' => $this->getPrimeMover()->getSystemInitialization()->getSearchReplaceBatchSizeSetting(),                
                 'setting_heading' => esc_html__('Search replace batch size (integers only)', 'prime-mover'),
                 'first_description' => esc_html__('When doing search and replace during import - Prime Mover by default retrieves 25000 rows from database and then process it. This default value should work fine in most environments', 'prime-mover'),
@@ -66,7 +66,7 @@ class PrimeMoverDisplayRunTimeSettings
             $this->getPrimeMover()->getSystemInitialization()->getDbDumpBatchSizeSetting() =>
             [
                 'default' => PRIME_MOVER_PHPDUMP_BATCHSIZE,
-                'col_heading' => esc_html__('MySQLdump batch size', 'prime-mover'),
+                'col_heading' => __('MySQLdump batch size', 'prime-mover'),
                 'identifier' => $this->getPrimeMover()->getSystemInitialization()->getDbDumpBatchSizeSetting(),
                 'setting_heading' => esc_html__('MySQLdump batch size (integers only)', 'prime-mover'),
                 'first_description' => esc_html__('When doing export - Prime Mover by default dumps 5000 rows from database at a time. This default value should work fine in most hosting platforms.', 'prime-mover'),

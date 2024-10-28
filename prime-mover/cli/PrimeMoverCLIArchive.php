@@ -192,7 +192,7 @@ class PrimeMoverCLIArchive
         
         $loader = [];
         $loader['loader'] = $core_load_path;
-        $loader['user_id'] = get_current_user_id();
+        $loader['user_id'] = $this->getSystemInitialization()->getCurrentUserId();
         
         $loader['ip'] = $aux_data['ip'];      
         $loader['user_agent'] = $aux_data['browser'];        
@@ -672,7 +672,7 @@ class PrimeMoverCLIArchive
         $values = [$ret['master_tmp_shell_files'], $ret['master_tmp_shell_dirs']];
         
         $option = $this->getSystemInitialization()->getCliMasterTmpFilesOptions() . "_" . $blog_id;
-        $this->getSystemFunctions()->updateSiteOption($option, $values, true);
+        $this->getSystemFunctions()->updateSiteOption($option, $values, true, '', true, true);
         
         return $ret;
     }

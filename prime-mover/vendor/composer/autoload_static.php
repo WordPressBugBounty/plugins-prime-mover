@@ -4,12 +4,13 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit03222f6063e16d390a9d8898b83cec14
+class ComposerStaticInit368b6fde35050ae007aff0a90d135a24
 {
     public static $classMap = array (
         'Codexonics\\PrimeMoverFramework\\advance\\PrimeMoverTroubleshooting' => __DIR__ . '/../..' . '/engines/prime-mover-panel/advance/PrimeMoverTroubleshooting.php',
         'Codexonics\\PrimeMoverFramework\\advance\\PrimeMoverUploadSettings' => __DIR__ . '/../..' . '/engines/prime-mover-panel/advance/PrimeMoverUploadSettings.php',
         'Codexonics\\PrimeMoverFramework\\app\\CreateBlogSpecificID' => __DIR__ . '/../..' . '/engines/prime-mover-flywheel/app/CreateBlogSpecificID.php',
+        'Codexonics\\PrimeMoverFramework\\app\\PrimeMoverAutomaticBackup' => __DIR__ . '/../..' . '/engines/prime-mover-flywheel/app/PrimeMoverAutomaticBackup.php',
         'Codexonics\\PrimeMoverFramework\\app\\PrimeMoverControlPanel' => __DIR__ . '/../..' . '/engines/prime-mover-panel/app/PrimeMoverControlPanel.php',
         'Codexonics\\PrimeMoverFramework\\app\\PrimeMoverDisplayCustomDirSettings' => __DIR__ . '/../..' . '/engines/prime-mover-panel/app/PrimeMoverDisplayCustomDirSettings.php',
         'Codexonics\\PrimeMoverFramework\\app\\PrimeMoverDisplayDropBoxSettings' => __DIR__ . '/../..' . '/engines/prime-mover-panel/app/PrimeMoverDisplayDropBoxSettings.php',
@@ -32,6 +33,8 @@ class ComposerStaticInit03222f6063e16d390a9d8898b83cec14
         'Codexonics\\PrimeMoverFramework\\app\\PrimeMoverMultisiteMainSite' => __DIR__ . '/../..' . '/engines/prime-mover-flywheel/app/PrimeMoverMultisiteMainSite.php',
         'Codexonics\\PrimeMoverFramework\\app\\PrimeMoverReset' => __DIR__ . '/../..' . '/engines/prime-mover-panel/app/PrimeMoverReset.php',
         'Codexonics\\PrimeMoverFramework\\app\\PrimeMoverSettings' => __DIR__ . '/../..' . '/engines/prime-mover-panel/app/PrimeMoverSettings.php',
+        'Codexonics\\PrimeMoverFramework\\app\\PrimeMoverSettingsConfig' => __DIR__ . '/../..' . '/engines/prime-mover-panel/app/PrimeMoverSettingsConfig.php',
+        'Codexonics\\PrimeMoverFramework\\app\\PrimeMoverSettingsTemplate' => __DIR__ . '/../..' . '/engines/prime-mover-panel/app/PrimeMoverSettingsTemplate.php',
         'Codexonics\\PrimeMoverFramework\\archiver\\PrimeMoverArchiver' => __DIR__ . '/../..' . '/archiver/PrimeMoverArchiver.php',
         'Codexonics\\PrimeMoverFramework\\build\\Ifsnop\\Mysqldump\\CompressBzip2' => __DIR__ . '/../..' . '/build/ifsnop/mysqldump-php/src/Ifsnop/Mysqldump/Mysqldump.php',
         'Codexonics\\PrimeMoverFramework\\build\\Ifsnop\\Mysqldump\\CompressGzip' => __DIR__ . '/../..' . '/build/ifsnop/mysqldump-php/src/Ifsnop/Mysqldump/Mysqldump.php',
@@ -89,6 +92,8 @@ class ComposerStaticInit03222f6063e16d390a9d8898b83cec14
         'Codexonics\\PrimeMoverFramework\\extensions\\PrimeMoverLearnDash' => __DIR__ . '/../..' . '/engines/prime-mover-panel/extensions/PrimeMoverLearnDash.php',
         'Codexonics\\PrimeMoverFramework\\extensions\\PrimeMoverRelevanssi' => __DIR__ . '/../..' . '/engines/prime-mover-panel/extensions/PrimeMoverRelevanssi.php',
         'Codexonics\\PrimeMoverFramework\\extensions\\PrimeMoverWpFusion' => __DIR__ . '/../..' . '/engines/prime-mover-panel/extensions/PrimeMoverWpFusion.php',
+        'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverAutoBackupSettingsHelper' => __DIR__ . '/../..' . '/engines/prime-mover-panel/helpers/PrimeMoverAutoBackupSettingsHelper.php',
+        'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverAutomaticBackupHelper' => __DIR__ . '/../..' . '/engines/prime-mover-flywheel/helpers/PrimeMoverAutomaticBackupHelper.php',
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverCustomExportDirectory' => __DIR__ . '/../..' . '/engines/prime-mover-panel/helpers/PrimeMoverCustomExportDirectory.php',
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverDownloadAuthentication' => __DIR__ . '/../..' . '/engines/prime-mover-panel/helpers/PrimeMoverDownloadAuthentication.php',
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverDownloadSecurity' => __DIR__ . '/../..' . '/engines/prime-mover-panel/helpers/PrimeMoverDownloadSecurity.php',
@@ -111,8 +116,10 @@ class ComposerStaticInit03222f6063e16d390a9d8898b83cec14
         'Codexonics\\PrimeMoverFramework\\interfaces\\PrimeMoverSystemCheck' => __DIR__ . '/../..' . '/interfaces/PrimeMoverSystemCheck.php',
         'Codexonics\\PrimeMoverFramework\\interfaces\\PrimeMoverSystemInitialize' => __DIR__ . '/../..' . '/interfaces/PrimeMoverSystemInitialize.php',
         'Codexonics\\PrimeMoverFramework\\interfaces\\PrimeMoverSystemProcessor' => __DIR__ . '/../..' . '/interfaces/PrimeMoverSystemProcessor.php',
+        'Codexonics\\PrimeMoverFramework\\menus\\PrimeMoverAutoBackupEventViewer' => __DIR__ . '/../..' . '/menus/PrimeMoverAutoBackupEventViewer.php',
         'Codexonics\\PrimeMoverFramework\\menus\\PrimeMoverBackupMenuListTable' => __DIR__ . '/../..' . '/menus/PrimeMoverBackupMenuListTable.php',
         'Codexonics\\PrimeMoverFramework\\menus\\PrimeMoverBackupMenus' => __DIR__ . '/../..' . '/menus/PrimeMoverBackupMenus.php',
+        'Codexonics\\PrimeMoverFramework\\menus\\PrimeMoverEventViewerListTable' => __DIR__ . '/../..' . '/menus/PrimeMoverEventViewerListTable.php',
         'Codexonics\\PrimeMoverFramework\\menus\\PrimeMoverGearBoxScreenOptions' => __DIR__ . '/../..' . '/menus/PrimeMoverGearBoxScreenOptions.php',
         'Codexonics\\PrimeMoverFramework\\streams\\PrimeMoverDatabaseUtilities' => __DIR__ . '/../..' . '/streams/PrimeMoverDatabaseUtilities.php',
         'Codexonics\\PrimeMoverFramework\\streams\\PrimeMoverIterators' => __DIR__ . '/../..' . '/streams/PrimeMoverIterators.php',
@@ -121,6 +128,8 @@ class ComposerStaticInit03222f6063e16d390a9d8898b83cec14
         'Codexonics\\PrimeMoverFramework\\users\\PrimeMoverUserFunctions' => __DIR__ . '/../..' . '/users/PrimeMoverUserFunctions.php',
         'Codexonics\\PrimeMoverFramework\\users\\PrimeMoverUserQueries' => __DIR__ . '/../..' . '/users/PrimeMoverUserQueries.php',
         'Codexonics\\PrimeMoverFramework\\utilities\\DupxUpdateEngine' => __DIR__ . '/../..' . '/utilities/DupxUpdateEngine.php',
+        'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverAutoBackupSetting' => __DIR__ . '/../..' . '/engines/prime-mover-panel/utilities/PrimeMoverAutoBackupSetting.php',
+        'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverAutoBackupUtilities' => __DIR__ . '/../..' . '/engines/prime-mover-flywheel/utilities/PrimeMoverAutoBackupUtilities.php',
         'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverBackupDirectorySize' => __DIR__ . '/../..' . '/engines/prime-mover-panel/utilities/PrimeMoverBackupDirectorySize.php',
         'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverBackupManagement' => __DIR__ . '/../..' . '/engines/prime-mover-panel/utilities/PrimeMoverBackupManagement.php',
         'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverBackupUtilities' => __DIR__ . '/../..' . '/utilities/PrimeMoverBackupUtilities.php',
@@ -138,10 +147,12 @@ class ComposerStaticInit03222f6063e16d390a9d8898b83cec14
         'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverPanelValidationUtilities' => __DIR__ . '/../..' . '/engines/prime-mover-panel/utilities/PrimeMoverPanelValidationUtilities.php',
         'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverSearchReplace' => __DIR__ . '/../..' . '/utilities/PrimeMoverSearchReplace.php',
         'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverSearchReplaceUtilities' => __DIR__ . '/../..' . '/utilities/PrimeMoverSearchReplaceUtilities.php',
+        'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverSettingsHelper' => __DIR__ . '/../..' . '/engines/prime-mover-panel/utilities/PrimeMoverSettingsHelper.php',
         'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverSettingsMarkups' => __DIR__ . '/../..' . '/engines/prime-mover-panel/utilities/PrimeMoverSettingsMarkups.php',
         'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverShutdownUtilities' => __DIR__ . '/../..' . '/utilities/PrimeMoverShutdownUtilities.php',
         'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverSystemCheckUtilities' => __DIR__ . '/../..' . '/utilities/PrimeMoverSystemCheckUtilities.php',
         'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverSystemUtilities' => __DIR__ . '/../..' . '/utilities/PrimeMoverSystemUtilities.php',
+        'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverToolBox' => __DIR__ . '/../..' . '/engines/prime-mover-panel/utilities/PrimeMoverToolBox.php',
         'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverTroubleshootingMarkup' => __DIR__ . '/../..' . '/engines/prime-mover-panel/utilities/PrimeMoverTroubleshootingMarkup.php',
         'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverUploadSettingMarkup' => __DIR__ . '/../..' . '/engines/prime-mover-panel/utilities/PrimeMoverUploadSettingMarkup.php',
         'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverUploadUtilities' => __DIR__ . '/../..' . '/utilities/PrimeMoverUploadUtilities.php',
@@ -160,7 +171,7 @@ class ComposerStaticInit03222f6063e16d390a9d8898b83cec14
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->classMap = ComposerStaticInit03222f6063e16d390a9d8898b83cec14::$classMap;
+            $loader->classMap = ComposerStaticInit368b6fde35050ae007aff0a90d135a24::$classMap;
 
         }, null, ClassLoader::class);
     }

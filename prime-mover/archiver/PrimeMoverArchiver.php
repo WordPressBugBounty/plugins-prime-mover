@@ -535,9 +535,10 @@ class PrimeMoverArchiver
             $ret['error'] = $addresult;
             return $ret;
         }
-        
+
         if (is_array($addresult) && isset($addresult['tar_add_offset'])) {
-            $ret['tar_add_file_offset'] = (int)$addresult['tar_add_offset'];            
+            $ret['tar_add_file_offset'] = (int)$addresult['tar_add_offset'];   
+            $ret = $this->getSystemChecks()->getSystemInitialization()->maybeAutomaticBackupTimeout($ret); 
         }
         
         if (is_array($addresult) && isset($addresult['iv'])) {
@@ -698,13 +699,15 @@ class PrimeMoverArchiver
                 $file_position = 0;
             }
             
-            if (is_array($res) && isset($res['tar_add_offset']) && isset($res['iv']) && isset($res['bytes_written'])) { 
+            if (is_array($res) && isset($res['tar_add_offset']) && isset($res['iv']) && isset($res['bytes_written'])) {
                 $file_offset = (int)$res['tar_add_offset'];
                 $bytes_written = (int)$res['bytes_written'];
                 do_action('prime_mover_log_processed_events', "Stopping archiving on $line due to timeout.", $blog_id, 'export', __FUNCTION__, $this);
                 do_action('prime_mover_log_processed_events',"Need to resume on file list position $pos and $line position $file_offset, already processed $bytes_written bytes.", $blog_id, 'export', __FUNCTION__, $this);               
                 
                 $ret['tar_add_dir_offsets'] = ['list_position' => $pos, 'file_position' => $file_offset, 'files_archived' => $files_archived, 'bytes_written' => $bytes_written, 'initialization_vector' => $res['iv']];
+                $ret = $this->getSystemChecks()->getSystemInitialization()->maybeAutomaticBackupTimeout($ret);    
+                
                 return $ret;
             }
             

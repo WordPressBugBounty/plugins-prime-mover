@@ -1027,9 +1027,10 @@ class PrimeMoverExportUtilities
         if ( ! $blog_id || ! $sanitized_name ) {
             return $export_mode;
         }
-        
+
+        $meta_key = $this->getExporter()->getSystemInitialization()->getCurrentGearBoxPackagesMetaKey();
         $option_name = $this->getExporter()->getSystemInitialization()->generateZipDownloadOptionName($sanitized_name, $blog_id);        
-        $setting = $this->getExporter()->getSystemFunctions()->getSiteOption($option_name, false, true, true);        
+        $setting = $this->getExporter()->getSystemFunctions()->getSiteOption($option_name, false, true, true, $meta_key, true, false);        
         
         if ( ! $setting || empty($setting['export_option'])) {
             return $export_mode;

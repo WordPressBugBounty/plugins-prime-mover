@@ -179,7 +179,7 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
         if (!empty($ret['srch_rplc_table_definition'][$table]) && !empty($ret['srch_rplc_table_definition'][$table]['columns']) && !empty($ret['srch_rplc_table_definition'][$table]['pk'])) {            
             return [$ret['srch_rplc_table_definition'][$table]['columns'], $ret['srch_rplc_table_definition'][$table]['pk'], $ret];
         }
-        $fields = mysqli_query($dbh, 'DESCRIBE '.$table);
+        $fields = mysqli_query($dbh, 'DESCRIBE '. "`{$table}`");
         while ($column = mysqli_fetch_array($fields)) {
             $primary_key = false;
             if ('PRI' === $column['Key']) {
@@ -451,7 +451,7 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
      */
     private static function isTimeOut($start_time = 0, $ret = [])
     {
-        $elapsed = microtime(true) - $start_time;        
+        $elapsed = microtime(true) - $start_time;     
         $retry_timeout = apply_filters('prime_mover_retry_timeout_seconds', PRIME_MOVER_RETRY_TIMEOUT_SECONDS, 'searchAndReplace');        
         if ($elapsed > $retry_timeout) {
             do_action('prime_mover_log_processed_events', "Retry search replace after $elapsed seconds elapsed time." , $ret['blog_id'], 'import', 'isTimeOut', 'PrimeMoverSearchReplace');

@@ -37,6 +37,7 @@ class PrimeMoverDatabaseUtilities
     private $maybe_enc;
     private $int_types;
     private $user_adj_columns;
+    private $table_specific_collations;
     
     /**
      * Construct
@@ -63,6 +64,7 @@ class PrimeMoverDatabaseUtilities
         ];
         
         $this->user_adj_columns = [];
+        $this->table_specific_collations = [];
     }
     
     /**
@@ -72,6 +74,24 @@ class PrimeMoverDatabaseUtilities
     public function setUserAdjColumns($user_adj_columns = [])
     {
         $this->user_adj_columns = $user_adj_columns;
+    }
+ 
+    /**
+     * Set table specific collations
+     * @param array $tbl_specific_collations
+     */
+    public function setTableSpecificCollations($tbl_specific_collations = [])
+    {
+        $this->table_specific_collations = $tbl_specific_collations;
+    }
+    
+    /**
+     * Get table specific collations
+     * @return array
+     */
+    public function getTableSpecificCollations()
+    {
+        return $this->table_specific_collations;
     }
     
     /**
@@ -171,8 +191,29 @@ class PrimeMoverDatabaseUtilities
         add_filter('prime_mover_filter_sql_query', [$this, 'maybeRemovePageCompression'], 100, 1);
         add_filter('prime_mover_filter_sql_query', [$this, 'maybeRemovePageCheckSum'], 200, 1);
         add_filter('prime_mover_filter_ret_after_db_dump', [$this, 'maybeAddUserAdjColumns'], 50, 1);
+        
+        add_filter('prime_mover_filter_ret_after_db_dump', [$this, 'maybeAddTableSpecificCollations'], 60, 1);
     }
- 
+
+    /**
+     * Maybe add table specific collations
+     * @param array $ret
+     * @return array
+     */
+    public function maybeAddTableSpecificCollations($ret = [])
+    {
+        if (isset($ret['tbl_specific_collations'])) {
+            return $ret;
+        }
+        
+        $table_specific_collations = $this->getTableSpecificCollations();
+        if (is_array($table_specific_collations) && !empty($table_specific_collations)) {
+            $ret['tbl_specific_collations'] = $table_specific_collations;
+        }
+        
+        return $ret;
+    }
+    
     /**
      * Maybe add user adjustment columns
      * @param array $ret
@@ -263,13 +304,18 @@ class PrimeMoverDatabaseUtilities
             $pdo_connection_mode = $ret['pdo_connection_mode'];
         }
         
+        $log_blogid = 0;
+        if (isset($ret['original_blogid'])) {
+            $log_blogid = $ret['original_blogid'];
+        }
+        $log_blogid = (int)$log_blogid = 0;;
         if ('no_port_conn' === $pdo_connection_mode) {
-            do_action('prime_mover_log_processed_events', "No port connection already established - skipping PDO instance check.", 0, 'export', __FUNCTION__, $this);
+            do_action('prime_mover_log_processed_events', "No port connection already established - skipping PDO instance check.", $log_blogid, 'export', __FUNCTION__, $this);
             return $pdo_connection;
         }
         
         if ('ported_conn' === $pdo_connection_mode) {
-            do_action('prime_mover_log_processed_events', "Port connection already established - skipping PDO instance check.", 0, 'export', __FUNCTION__, $this);
+            do_action('prime_mover_log_processed_events', "Port connection already established - skipping PDO instance check.", $log_blogid, 'export', __FUNCTION__, $this);
             return $pdo_connection_ported;
         }
              
@@ -503,7 +549,7 @@ class PrimeMoverDatabaseUtilities
      */
     public function checkdBUserPrivilege($ret = [], $mode = '')
     {
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         if (!$this->getSystemAuthorization()->isUserAuthorized() || !is_array($ret)) {
             return $ret;
         }
@@ -585,7 +631,7 @@ class PrimeMoverDatabaseUtilities
      */
     protected function reEnableAutoIncrementUserMeta()
     {
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $usermeta_table = $this->getSystemFunctions()->getUserMetaTableName();
         
         $umeta_id_max = $wpdb->get_var("SELECT max(umeta_id) FROM `{$usermeta_table}`");
@@ -631,7 +677,7 @@ class PrimeMoverDatabaseUtilities
      */
     protected function isUserMetaTableCorrupted()
     {
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $usermeta_table = $this->getSystemFunctions()->getUserMetaTableName();
         $columns = $wpdb->get_results("SHOW COLUMNS FROM `{$usermeta_table}` WHERE Extra = 'auto_increment'", ARRAY_A);
         
@@ -660,7 +706,7 @@ class PrimeMoverDatabaseUtilities
             return $ret['db_port'];
         }       
         
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $result = $wpdb->get_results("SHOW VARIABLES WHERE Variable_name = 'port'", ARRAY_N);
         if (!is_array($result) ) {
             return $port;
@@ -737,6 +783,8 @@ class PrimeMoverDatabaseUtilities
         
         $primary_keys = [];
         $autouser_id_adjust = [];
+        $table_collations = [];
+        
         $source_blog_id = 0;
         $columns_user_adj_setting = [];
         
@@ -765,6 +813,11 @@ class PrimeMoverDatabaseUtilities
                     $autouser_id_adjust[] = $v;
                 }                
             }
+
+            $tbl_collation = $this->getTableCollation($table);
+            if ($tbl_collation && !in_array($tbl_collation, $table_collations)) {
+                $table_collations[] = $tbl_collation;
+            }
         }
         
         if (!empty($primary_keys)) {
@@ -776,7 +829,38 @@ class PrimeMoverDatabaseUtilities
             $this->setUserAdjColumns($autouser_id_adjust);
         }
         
+        if (!empty($table_collations)) {
+            $ret['tbl_specific_collations'] = $table_collations;
+            $this->setTableSpecificCollations($table_collations);
+        }
+        
         return $ret;
+    }
+    
+    /**
+     * Get table collation
+     * @param string $table
+     * @return string | NULL
+     */
+    protected function getTableCollation($table = '')
+    {
+        if (!$table) {
+            return null;
+        }
+        
+        $wpdb = $this->getSystemInitialization()->getWpdB();
+        $sql = $wpdb->prepare('SHOW TABLE STATUS WHERE Name = %s', $table);
+        $res = $wpdb->get_results($sql, ARRAY_A);
+        if (!is_array($res)) {
+            return null;
+        }
+        
+        if (empty($res[0]['Collation'])) {
+            return null;
+        }
+        
+        $collation = $res[0]['Collation'];
+        return $collation;
     }
     
     /**
@@ -791,7 +875,7 @@ class PrimeMoverDatabaseUtilities
      */
     protected function queryCustomUserIdColumn($table = '', $primary_keys = [], $columns_user_adj_setting = [], $source_blog_id = 0, $core_tables = [], $ret = [])
     {
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $primary_key = '';              
         $table = (string) $table;
         
@@ -920,7 +1004,7 @@ class PrimeMoverDatabaseUtilities
      */
     protected function queryPrimaryKeys($table = '')
     {
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         return $wpdb->get_results("SHOW KEYS FROM `{$table}` WHERE Key_name = 'PRIMARY' OR (Non_unique = 0 AND `Null` = '')", ARRAY_A);  
     }
     
@@ -931,7 +1015,7 @@ class PrimeMoverDatabaseUtilities
      */
     protected function processOrderByKeys($table = '', $primary_keys = [])
     {
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $columns = $wpdb->get_results("SHOW COLUMNS FROM `{$table}`", ARRAY_A);  
         $orderbycolumn = '';
         foreach ($columns as $column) {

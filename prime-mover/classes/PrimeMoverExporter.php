@@ -78,15 +78,14 @@ class PrimeMoverExporter implements PrimeMoverExport
             $ret['error'] = esc_html__('Unauthorized', 'prime-mover');
             return $ret;
         }
+                
         $ret = apply_filters('prime_mover_get_export_progress', $ret, $blogid_to_export);
-        
-        /** @var Type $previous_func Previous function*/
-        list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);
-        
         if (isset($ret['error'])) {
             return $ret;
         }
         
+        /** @var Type $previous_func Previous function*/
+        list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);
         if (!$this->getUsersObject()->maybeExportUsers($ret)) {
             return apply_filters('prime_mover_save_return_export_progress', $ret, $blogid_to_export, $next_func, $current_func);;
         }
@@ -114,14 +113,14 @@ class PrimeMoverExporter implements PrimeMoverExport
             $ret['error'] = esc_html__('Unauthorized', 'prime-mover');
             return $ret;
         }
+        
         $ret = apply_filters('prime_mover_get_export_progress', $ret, $blogid_to_export);
-        
-        /** @var Type $previous_func Previous function*/
-        list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);
-        
         if (isset($ret['error'])) {
             return $ret;
         }
+        
+        /** @var Type $previous_func Previous function*/
+        list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);
         if ( ! $this->getUsersObject()->maybeExportUsers($ret)) {
             return apply_filters('prime_mover_save_return_export_progress', $ret, $blogid_to_export, $next_func, $current_func);
         }
@@ -142,18 +141,17 @@ class PrimeMoverExporter implements PrimeMoverExport
      */
     public function maybeAddUsersExportFileToArchive($ret = [], $blogid_to_export = 0, $start_time = 0)
     {
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             $ret['error'] = esc_html__('Unauthorized', 'prime-mover');
             return $ret;
         }
         $ret = apply_filters('prime_mover_get_export_progress', $ret, $blogid_to_export);
-        
-        /** @var Type $previous_func previous function */
-        list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);
-        
         if (isset($ret['error'])) {
             return $ret;
         }
+        
+        /** @var Type $previous_func previous function */
+        list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);        
         if ( ! $this->getUsersObject()->maybeExportUsers($ret)) {
             return apply_filters('prime_mover_save_return_export_progress', $ret, $blogid_to_export, $next_func, $current_func);
         }        
@@ -178,16 +176,16 @@ class PrimeMoverExporter implements PrimeMoverExport
      */
     public function exportUsers($ret = [], $blogid_to_export = 0, $start_time = 0)
     {
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             $ret['error'] = esc_html__('Unauthorized', 'prime-mover');
             return $ret;
         }
         $ret = apply_filters('prime_mover_get_export_progress', $ret, $blogid_to_export);
-        list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);
-        
         if (isset($ret['error'])) {
             return $ret;
         }
+        
+        list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);        
         if ( ! $this->getUsersObject()->maybeExportUsers($ret)) {
             $ret['include_users'] = false;
             return apply_filters('prime_mover_save_return_export_progress', $ret, $blogid_to_export, $next_func, $current_func);
@@ -297,7 +295,7 @@ class PrimeMoverExporter implements PrimeMoverExport
         }  
         
         add_filter('prime_mover_save_return_export_progress', [$this, 'saveExportProgressData'], 10, 4);
-        add_filter('prime_mover_get_export_progress', [$this, 'getExportProgressData'], 10, 2);
+        add_filter('prime_mover_get_export_progress', [$this, 'getExportProgressData'], 10, 3);
     }
     
     /**
@@ -331,7 +329,7 @@ class PrimeMoverExporter implements PrimeMoverExport
      */
     public function generateThemesFilesList($ret = [], $blogid_to_export = 0, $start_time = 0)
     {
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             $ret['error'] = esc_html__('Unauthorized', 'prime-mover');
             return $ret;
         }
@@ -339,6 +337,7 @@ class PrimeMoverExporter implements PrimeMoverExport
         if (isset($ret['error'])) {
             return $ret;
         }
+        
         $process_methods = [];
         list($process_methods['current'], $process_methods['previous'],  $process_methods['next']) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);
         
@@ -445,7 +444,7 @@ class PrimeMoverExporter implements PrimeMoverExport
      */
     public function maybeExportThemes($ret = [], $blogid_to_export = 0, $start_time = 0)
     {
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             $ret['error'] = esc_html__('Unauthorized', 'prime-mover');
             return $ret;
         }
@@ -535,6 +534,7 @@ class PrimeMoverExporter implements PrimeMoverExport
         if (isset($ret['error'])) {
             return $ret;
         }
+        
         $process_methods = [];        
         list($process_methods['current'], $process_methods['previous'],  $process_methods['next']) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);
         
@@ -596,6 +596,7 @@ class PrimeMoverExporter implements PrimeMoverExport
             $ret['error'] = esc_html__('Unauthorized', 'prime-mover');
             return $ret;
         }       
+        
         $ret = apply_filters('prime_mover_get_export_progress', $ret, $blogid_to_export);
         if (isset($ret['error'])) {
             return $ret;
@@ -734,7 +735,7 @@ class PrimeMoverExporter implements PrimeMoverExport
      */
     public function createTempfolderForThisSiteExport($ret = [], $blogid_to_export = 0, $start_time = 0)
     {        
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             $ret['error'] = esc_html__('Unauthorized', 'prime-mover');
             return $ret;
         }
@@ -805,21 +806,29 @@ class PrimeMoverExporter implements PrimeMoverExport
         
     /**
      * Create unique folder name
-     * {@inheritDoc}
-     * @see \Codexonics\PrimeMoverFramework\interfaces\PrimeMoverExport::multisiteCreateFoldername()
      * @compatible 5.6
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverExporter::itCreatesFolderName() 
-     * 
+     * {@inheritDoc}
+     * @see \Codexonics\PrimeMoverFramework\interfaces\PrimeMoverExport::multisiteCreateFoldername()
      */
-    public function multisiteCreateFoldername($blogid_to_export = 0, $original_id = 0)
+    public function multisiteCreateFoldername($blogid_to_export = 0, $original_id = 0, $hash_name = true, $add_blog_id = true)
     {
         if (! $this->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
-        $blog_name = $this->getSystemFunctions()->getBlogOption($original_id, 'blogname' );
+        
+        $blog_name = $this->getSystemFunctions()->getBlogOption($original_id, 'blogname',  false, '', true, true);
         $sanitized_site_name = mb_strimwidth( sanitize_key( $blog_name ), 0, 8, '');        
-        $file_name = $sanitized_site_name . wp_generate_password( 15, false, false ) . 'blogid_' . $blogid_to_export;
-
+        $hash_part = '_';
+        if ($hash_name) {
+            $hash_part = wp_generate_password( 15, false, false );
+        }
+        
+        $blog_id_part = 'singlesite';
+        if ($add_blog_id) {
+            $blog_id_part = 'blogid_' . $blogid_to_export;
+        }
+        $file_name = $sanitized_site_name . $hash_part . $blog_id_part;
         return sanitize_file_name($file_name);
     }
     
@@ -870,15 +879,17 @@ class PrimeMoverExporter implements PrimeMoverExport
      */
     public function dumpDbForExport($ret = [], $blogid_to_export = 0, $start_time = 0)
     {        
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             $ret['error'] = esc_html__('Unauthorized', 'prime-mover');
             return $ret;
-        }        
+        }  
+        
         $ret = apply_filters('prime_mover_get_export_progress', $ret, $blogid_to_export);
-        list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);
         if (isset($ret['error'])) {
             return $ret;
         }
+        
+        list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);        
         
         $dump_in_progress = $this->maybeDumpInProgress($ret);        
         $this->reportDbDumpProgress($ret);           
@@ -987,7 +998,7 @@ class PrimeMoverExporter implements PrimeMoverExport
             do_action('prime_mover_log_processed_events', 'Starting MySQLdump using PHP', $blogid_to_export, 'export', $current_func, $this);
             
             $this->getSystemFunctions()->temporarilyIncreaseMemoryLimits();
-            $dump_result = $this->executeDumpUsingPHP($filter_export_data, $target_path, $clean_tables, $ret, $start_time);
+            $dump_result = $this->executeDumpUsingPHP($filter_export_data, $target_path, $clean_tables, $ret, $start_time, $blogid_to_export);
             
         } else {
             do_action('prime_mover_log_processed_events', 'Starting MySQLdump using native shell command.', $blogid_to_export, 'export', $current_func, $this);
@@ -1129,7 +1140,8 @@ class PrimeMoverExporter implements PrimeMoverExport
                         $ret['shell_db_dump_index_to_resume'] = $offset;
                         $ret['shell_db_dump_original_table_counts'] = $original_tables_count;
                         $ret['shell_db_dump_create_tables'] = $create_table;
-                    
+                        $ret = $this->getSystemInitialization()->maybeAutomaticBackupTimeout($ret);
+                        
                         return $ret;
                 }
             }
@@ -1210,16 +1222,17 @@ class PrimeMoverExporter implements PrimeMoverExport
      * @param array $clean_tables
      * @param array $ret
      * @param number $db_dump_start
+     * @param number $blog_id
      * @return string[]|array|string[]|NULL[]|boolean[]|string[]|NULL[]
      */
-    private function executeDumpUsingPHP($filter_export_data = false, $target_path = '', $clean_tables = [], $ret = [], $db_dump_start = 0)
+    private function executeDumpUsingPHP($filter_export_data = false, $target_path = '', $clean_tables = [], $ret = [], $db_dump_start = 0, $blog_id = 0)
     {
         $dump_ret = [];
         if ( ! $target_path ) {
             $dump_ret['error'] = esc_html__('Undefined execute dump in PHP parameters.', 'prime-mover');
             return $dump_ret;
         }
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             $dump_ret['error'] = esc_html__('Unauthorized dump.', 'prime-mover');
             return $dump_ret;
         }
@@ -1294,7 +1307,7 @@ class PrimeMoverExporter implements PrimeMoverExport
             if ($connection_mode) {
                 $ret['pdo_connection_mode'] = $connection_mode;
             }
-            do_action('prime_mover_log_processed_events', $mysql_server, 0, 'export', __FUNCTION__, $this);
+            do_action('prime_mover_log_processed_events', $mysql_server, $blog_id, 'export', __FUNCTION__, $this);
             
             if ( ! empty($ret['php_db_dump_clean_tables'] ) ) {
                 $clean_tables = $ret['php_db_dump_clean_tables'];
@@ -1305,7 +1318,7 @@ class PrimeMoverExporter implements PrimeMoverExport
             } else {
                 $batch_size = $this->getSystemInitialization()->getMySqlDumpPHPBatchSize();
             }            
-            do_action('prime_mover_log_processed_events', "PHPDump Batch Size: $batch_size", 0, 'export', __FUNCTION__, $this);            
+            do_action('prime_mover_log_processed_events', "PHPDump Batch Size: $batch_size", $blog_id, 'export', __FUNCTION__, $this);            
             $table_count = count($clean_tables);
             $pdoSettings = apply_filters('prime_mover_get_dump_pdo_settings', [], $ret); 
             if ( ! empty($ret['php_db_dump_original_table_row_counts']) ) {
@@ -1356,6 +1369,7 @@ class PrimeMoverExporter implements PrimeMoverExport
                         $ret['php_db_dump_original_table_row_counts'] = $original_table_rows_count;
                         $ret['php_db_dump_ongoing_rows_dumped'] = $count_ongoing_rows_dumped;
                         $ret['php_db_dump_left_off'] = $left_off;
+                        $ret = $this->getSystemInitialization()->maybeAutomaticBackupTimeout($ret);
                         
                         return $ret;
                     }
@@ -1480,14 +1494,14 @@ class PrimeMoverExporter implements PrimeMoverExport
      */
     protected function countAllTableRowsDb($tables = [])
     {
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $rows = 0;
         $tables_count = [];
         if (empty($tables)) {
             return $rows;
         }
         foreach ($tables as $table) {            
-            $tables_count[] = $wpdb->get_var("SELECT COUNT(*) FROM {$table}");            
+            $tables_count[] = $wpdb->get_var("SELECT COUNT(*) FROM `{$table}`");            
         }       
         return array_sum($tables_count);       
     }
@@ -1540,7 +1554,7 @@ class PrimeMoverExporter implements PrimeMoverExport
     {
         $this->getSystemFunctions()->switchToBlog($blogid_to_export);
         
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $target_prefix = $wpdb->prefix;
         $escaped_like = $wpdb->esc_like($target_prefix);
         $target_prefix = $escaped_like . '%';        
@@ -1693,12 +1707,12 @@ class PrimeMoverExporter implements PrimeMoverExport
      */
     public function zipDbDump($ret = [], $blogid_to_export = 0, $start_time = 0)
     {        
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             $ret['error'] = esc_html__('Unauthorized', 'prime-mover');
             return $ret;
         }
         list($current_func, $previous_func,  $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__); 
-        $ret = apply_filters('prime_mover_get_export_progress', $ret, $blogid_to_export);               
+        $ret = apply_filters('prime_mover_get_export_progress', $ret, $blogid_to_export);     
         
         if (isset($ret['error'])) {
             return $ret;
@@ -1848,7 +1862,7 @@ class PrimeMoverExporter implements PrimeMoverExport
      */
     public function generateLanguageFilesList($ret = [], $blogid_to_export = 0, $start_time = 0)
     {
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             $ret['error'] = esc_html__('Unauthorized', 'prime-mover');
             return $ret;
         }
@@ -1896,6 +1910,7 @@ class PrimeMoverExporter implements PrimeMoverExport
         }
         list($current_func, $previous_func,  $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__); 
         $ret = apply_filters('prime_mover_get_export_progress', $ret, $blogid_to_export);
+        
         if (isset($ret['error'])) {
             return $ret;
         }
@@ -1940,18 +1955,18 @@ class PrimeMoverExporter implements PrimeMoverExport
      */
     public function copyMediaFiles($ret = [], $blogid_to_export = 0, $start_time = 0)
     {        
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             $ret['error'] = esc_html__('Unauthorized', 'prime-mover');
             return $ret;
         }
+        
         $ret = apply_filters('prime_mover_get_export_progress', $ret, $blogid_to_export);
-        
-        $process_methods = [];
-        list($process_methods['current'], $process_methods['previous'], $process_methods['next']) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__); 
-        
-        if (isset($ret['error'])) {            
+        if (isset($ret['error'])) {
             return $ret;
         }
+        
+        $process_methods = [];
+        list($process_methods['current'], $process_methods['previous'], $process_methods['next']) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);         
         
         if ( ! isset($ret['multisite_export_options']) ) {
             $ret['error'] = esc_html__('Error ! Export options not set.', 'prime-mover');
@@ -2092,11 +2107,11 @@ class PrimeMoverExporter implements PrimeMoverExport
             return $ret;
         }
         $ret = apply_filters('prime_mover_get_export_progress', $ret, $blogid_to_export);
-        list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);
-        
         if (isset($ret['error'])) {
             return $ret;
         }
+        
+        list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);       
         $this->getSystemInitialization()->setSlowProcess();
         $tmp_folderpath = $ret['temp_folder_path'];        
         
@@ -2177,11 +2192,16 @@ class PrimeMoverExporter implements PrimeMoverExport
      */
     public function finalizingMediaArchive($ret = [], $blogid_to_export = 0, $start_time = 0)
     {        
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             $ret['error'] = esc_html__('Unauthorized', 'prime-mover');
             return $ret;
-        }
+        }        
+        
         $ret = apply_filters('prime_mover_get_export_progress', $ret, $blogid_to_export);
+        if (isset($ret['error'])) {
+            return $ret;
+        }
+        
         list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);
             
         $wprime_path = $ret['target_zip_path'];
@@ -2204,13 +2224,14 @@ class PrimeMoverExporter implements PrimeMoverExport
             $ret['error'] = esc_html__('Unauthorized', 'prime-mover');
             return $ret;
         }
-        $ret = apply_filters('prime_mover_get_export_progress', $ret, $blogid_to_export);    
-        $process_methods = [];
-        list($process_methods['current'], $process_methods['previous'], $process_methods['next']) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);    
         
-        if (isset($ret['error'])) {            
+        $ret = apply_filters('prime_mover_get_export_progress', $ret, $blogid_to_export);  
+        if (isset($ret['error'])) {
             return $ret;
-        }      
+        } 
+        
+        $process_methods = [];
+        list($process_methods['current'], $process_methods['previous'], $process_methods['next']) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);             
         
         $ret = $this->getSystemFunctions()->doMemoryLogs($ret, $process_methods['current'], 'export', $blogid_to_export);
         return apply_filters('prime_mover_save_return_export_progress', $ret, $blogid_to_export, $process_methods['next'], $process_methods['current']);               
@@ -2231,13 +2252,12 @@ class PrimeMoverExporter implements PrimeMoverExport
         }
         
         $ret = apply_filters('prime_mover_get_export_progress', $ret, $blogid_to_export);
-        $process_methods = [];
-        
-        list($process_methods['current'], $process_methods['previous'], $process_methods['next']) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__); 
-        
-        if (isset($ret['error'])) {            
+        if (isset($ret['error'])) {
             return $ret;
         }
+        
+        $process_methods = [];        
+        list($process_methods['current'], $process_methods['previous'], $process_methods['next']) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);         
  
         $this->getProgressHandlers()->updateTrackerProgress(esc_html__('Deleting temp folder', 'prime-mover'), 'export' );
         $tmp_folderpath = $ret['temp_folder_path'];
@@ -2248,6 +2268,9 @@ class PrimeMoverExporter implements PrimeMoverExport
             return $ret;
         }
         if (is_array($delete_result) && isset($delete_result['retry'])) {
+            
+            $ret = $this->getSystemInitialization()->maybeAutomaticBackupTimeout($ret);
+            
             do_action('prime_mover_log_processed_events', "Time out hits WHILE DELETING TEMP directory, retry again", $blogid_to_export, 'export', __FUNCTION__, $this, true);
             return apply_filters('prime_mover_save_return_export_progress', $ret, $blogid_to_export, $process_methods['current'], $process_methods['previous']);
         }
@@ -2271,15 +2294,17 @@ class PrimeMoverExporter implements PrimeMoverExport
      */
     public function generateDownloadUrl($ret = [], $blogid_to_export = 0, $start_time = 0)
     {        
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             $ret['error'] = esc_html__('Unauthorized', 'prime-mover');
             return $ret;
         }
         $ret = apply_filters('prime_mover_get_export_progress', $ret, $blogid_to_export);
-        list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);
-        if (isset($ret['error'])) {           
+        if (isset($ret['error'])) {
             return $ret;
         }
+        
+        list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);
+        
         $this->getSystemInitialization()->setSlowProcess();
         $export_directory_on = false;
         $this->getProgressHandlers()->updateTrackerProgress(esc_html__('Generate download URL', 'prime-mover'), 'export' );
@@ -2315,12 +2340,15 @@ class PrimeMoverExporter implements PrimeMoverExport
         $generatedFilename = $this->getSystemFunctions()->createFriendlyName($blogid_to_export, $results, $is_wprime, $ret);
         
         $ret['generated_filename'] = $generatedFilename;
-        $this->getSystemFunctions()->updateSiteOption($hash, $results, true);
-        $this->getSystemFunctions()->updateSiteOption($hash . "_filename", $generatedFilename, true);        
+        $ret['generated_archive_path'] = $results;
+        $this->getSystemFunctions()->updateSiteOption($hash, $results, true, '', true, true);
+        
+        $this->getSystemFunctions()->updateSiteOption($hash . "_filename", $generatedFilename, true, '', true, true);        
         
         do_action('prime_mover_after_generating_download_url', $results, $hash, $blogid_to_export, $export_directory_on, $ret);
         do_action('prime_mover_log_processed_events', $ret, $blogid_to_export, 'export', $current_func, $this, true);
-  
+        $ret = apply_filters('prime_mover_before_post_export_processing', $ret, $blogid_to_export);
+        
         $ret = $this->getSystemFunctions()->doMemoryLogs($ret, $current_func, 'export', $blogid_to_export); 
     
         return apply_filters('prime_mover_save_return_export_progress', $ret, $blogid_to_export, $next_func, $current_func);
@@ -2355,6 +2383,10 @@ class PrimeMoverExporter implements PrimeMoverExport
     public function doPostExportProcessing($ret = [], $blogid_to_export = 0, $start_time = 0)
     {        
         $ret = apply_filters('prime_mover_get_export_progress', $ret, $blogid_to_export);
+        if (isset($ret['error'])) {
+            return $ret;
+        }
+        
         /**
          *  @var Type $next_func Next function
          */
@@ -2373,7 +2405,7 @@ class PrimeMoverExporter implements PrimeMoverExport
             $ret = $this->getSystemFunctions()->doMemoryLogs($ret, $current_func, 'export', $blogid_to_export); 
             $this->getSystemChecks()->computePerformanceStats($blogid_to_export, $ret, 'export');
             
-            return $this->cleanUpProgressForFinalReturn($ret);
+            return $this->cleanUpProgressForFinalReturn($ret, $blogid_to_export);
         }       
     }   
     
@@ -2389,60 +2421,105 @@ class PrimeMoverExporter implements PrimeMoverExport
      */
     public function saveExportProgressData($ret = [], $blogid_to_export = 0, $next_method = '', $current_method = '')
     {
-        if ( ! $this->getSystemAuthorization()->isUserAuthorized() ) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized() ) {
             return $ret;
-        }
-        $user_id = get_current_user_id();
-        if ( ! $user_id ) {
+        }        
+        
+        $user_id = $this->getSystemInitialization()->getCurrentUserId();
+        if (!$user_id ) {
             return $ret;
         }      
-        if ( ! empty($ret['error']) ) {
+        
+        if (!empty($ret['error']) ) {
             return $ret;
         }
-        if ( ! $blogid_to_export || ! $next_method || ! $current_method ) {
+        
+        if (!$blogid_to_export || !$next_method || !$current_method ) {
             return $ret;
         }
+        
+        $auto_backup_timeout = false;
+        if (isset($ret['auto_backup_timeout']) && $this->getSystemAuthorization()->isDoingAutoBackup()) {
+            $auto_backup_timeout = true;            
+        }
+        
+        if (!$auto_backup_timeout && $this->getSystemAuthorization()->isDoingAutoBackup()) {
+            $retry_timeout = apply_filters('prime_mover_retry_timeout_seconds', PRIME_MOVER_RETRY_TIMEOUT_SECONDS, __FUNCTION__);
+            $start_time = $this->getSystemInitialization()->getStartTime();
+            if (microtime(true) - $start_time > $retry_timeout) {                
+                $auto_backup_timeout = true; 
+            }            
+        }
+        
+        if (isset($ret['auto_backup_timeout']) && $auto_backup_timeout) {
+            unset($ret['auto_backup_timeout']);
+        }
+ 
         $ret['ongoing_export'] = true;
         $ret['next_method'] = $next_method;
         $ret['current_method'] = $current_method;
 
         $meta_key = $this->getProgressHandlers()->generateTrackerId($blogid_to_export, 'export');
-        wp_cache_delete($user_id, 'user_meta' );
+        wp_cache_delete($user_id, 'user_meta' );        
+        do_action('prime_mover_update_user_meta', $user_id, $meta_key, $ret);   
         
-        do_action('prime_mover_update_user_meta', $user_id, $meta_key, $ret);         
+        if ($auto_backup_timeout) {
+            $ret = $this->getSystemInitialization()->maybeAutomaticBackupTimeout($ret);
+        }
+        
         return $ret;
     }
     
     /**
      * Return export progress data to continue processing
-     * @param array $ret
-     * @param number $blogid_to_export
-     * 
-     * @return array
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverExporter::itGetsExportProgressData()
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverExporter::itDoesNotGetProgressExportDataBlogIdNotSet()
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverExporter::itDoesNotGetProgressExportDataNotAuthorized()
+     * @param array $ret
+     * @param number $blogid_to_export
+     * @param boolean $force_autobackup_user
+     * @return array
      */
-    public function getExportProgressData($ret = [], $blogid_to_export = 0)
+    public function getExportProgressData($ret = [], $blogid_to_export = 0, $force_autobackup_user = false)
     {
-        if ( ! $this->getSystemAuthorization()->isUserAuthorized() || ! $blogid_to_export) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            $ret['error'] = esc_html__('Unauthorized', 'prime-mover');
             return $ret;
         }
-        $user_id = get_current_user_id();
-        $meta_key = $this->getProgressHandlers()->generateTrackerId($blogid_to_export, 'export');
-        wp_cache_delete($user_id, 'user_meta' );
         
-        return get_user_meta($user_id, $meta_key, true);        
+        if (!$blogid_to_export) {
+            $ret['error'] = esc_html__('Export blog ID is not set', 'prime-mover');
+            return $ret;
+        }
+        
+        if ($force_autobackup_user) {
+            $user_id = $this->getSystemFunctions()->getAutoBackupUser();
+        } else {
+            $user_id = $this->getSystemInitialization()->getCurrentUserId();
+        }
+        
+        $meta_key = $this->getProgressHandlers()->generateTrackerId($blogid_to_export, 'export', $force_autobackup_user);
+        if (!$force_autobackup_user) {
+            wp_cache_delete($user_id, 'user_meta' );
+        }        
+        
+        $progress_data = get_user_meta($user_id, $meta_key, true); 
+        if (!is_array($progress_data)) {
+            $ret['error'] = esc_html__('Export progress data is not available.', 'prime-mover');
+            return $ret;
+        }
+        
+        return $progress_data;
     }
     
     /**
      * Clean up export progress
-     * 
-     * @param array $ret
-     * @return array
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverExporter::itCleansUpProgressForFinalReturn()
+     * @param array $ret
+     * @param number $blog_id
+     * @return array
      */
-    protected function cleanUpProgressForFinalReturn($ret = [])
+    protected function cleanUpProgressForFinalReturn($ret = [],  $blog_id = 0)
     {        
         if (isset($ret['ongoing_export'])) {
             unset($ret['ongoing_export']);
@@ -2453,6 +2530,8 @@ class PrimeMoverExporter implements PrimeMoverExport
         if (isset($ret['current_method'])) {
             unset($ret['current_method']);
         }
+        
+        do_action('prime_mover_after_completing_export', $ret, $blog_id);        
         return $ret;
     }
 }

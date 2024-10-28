@@ -246,6 +246,24 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
     /** @var array */
     private $fast_hash_algos;
     
+    /** @var string */
+    private $excluded_settings_key;
+    
+    /** @var string */
+    private $autobackup_off_tracker;
+    
+    /** @var string */
+    private $settings_for_restore;
+    
+    /** @var string */
+    private $autobackup_global_user;
+    
+    /** @var string */
+    private $prime_mover_singlesite_upgraded_2;
+    
+    /** @var integer */
+    private $prime_mover_current_db_export_user;
+        
     /**
      * Constructor
      * @param PrimeMoverSystemAuthorization $system_authorization
@@ -407,8 +425,82 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
         $this->utf = [PRIME_MOVER_UNICODE_CHARSET, PRIME_MOVER_DEPRECATED_UNICODE_CHARSET, PRIME_MOVER_MODERN_UNICODE_CHARSET];
         $this->deprecated_utf8 = [PRIME_MOVER_UNICODE_CHARSET, PRIME_MOVER_DEPRECATED_UNICODE_CHARSET];  
         $this->fast_hash_algos = ['adler32', 'fnv1a32'];
+        $this->excluded_settings_key = 'prime_mover_excluded_settings_db';
+        $this->autobackup_global_user = 'prime_mover_global_autobackup_user';
+        $this->settings_for_restore = 'prime_mover_settings_for_restore';
+        $this->autobackup_off_tracker = 'prime_mover_autobackup_off_on_restore';
+        $this->prime_mover_singlesite_upgraded_2 = 'prime_mover_singlesite_upgraded_2';
+        $this->prime_mover_current_db_export_user = 0;
+    }
+    
+    /**
+     * Get Prime Mover core meta keys on export - import
+     * @return string[]
+     */
+    public function getExcludedMetaKeyOnExportImport()
+    {
+        return [
+            $this->getPrimeMoverExcludedSettingsKey(),
+            $this->getEncKeySetting(),
+            $this->getMigrationCurrentSettings(),
+            $this->getCurrentGearBoxPackagesMetaKey()            
+        ];
+    }
+    
+    /**
+     * Get current dB export user in runtime
+     * @return number
+     */
+    public function getPrimeMoverCurrentDbExportUser()
+    {
+        return $this->prime_mover_current_db_export_user;
+    }
+    
+    /**
+     * Set Prime Mover current DB export user
+     * @param number $user_id
+     */
+    public function setPrimeMoverCurrentDbExportUser($user_id = 0)
+    {
+        $this->prime_mover_current_db_export_user = $user_id;
+    }
+    
+    /**
+     * Get single site DB upgrade to version 2.0 option
+     * @return string
+     */
+    public function getSingleUpgradedtoVersion2()
+    {
+        return $this->prime_mover_singlesite_upgraded_2;
+    }
+    
+    /**
+     * Get option name for tracking settings for restoration
+     * @return string
+     */
+    public function getSettingsOptionToRestore()
+    {
+        return $this->settings_for_restore;
+    }
+    
+    /**
+     * Get autobackup off tracker
+     * @return string
+     */
+    public function getAutoBackupOffTracker()
+    {
+        return $this->autobackup_off_tracker;
     }
 
+    /**
+     * Get autobackup global user
+     * @return string
+     */
+    public function getAutoBackupGlobalUser()
+    {
+        return $this->autobackup_global_user;
+    }
+    
     /**
      * Get fast hash algos
      * @return array|string[]
@@ -910,11 +1002,12 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
      * Set processing delay
      * @param number $sleep
      * @param boolean $microsleep
+     * @param boolean $forcedelay
      * @codeCoverageIgnore
      */
-    public function setProcessingDelay($sleep = 0, $microsleep = false)
+    public function setProcessingDelay($sleep = 0, $microsleep = false, $forcedelay = false)
     {
-        if ("cli" === php_sapi_name()) {
+        if ("cli" === php_sapi_name() && false === $forcedelay) {
             return;
         }        
         $sleep = (int)$sleep;
@@ -972,15 +1065,7 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
      */
     public function getDbEncryptionKey()
     {        
-        $ret = '';
-        if ( ! defined('PRIME_MOVER_DB_ENCRYPTION_KEY') ) {
-            return $ret;
-        }
-        $key = trim(PRIME_MOVER_DB_ENCRYPTION_KEY);        
-        if (empty($key)) {            
-            return '';
-        }
-        return $key;
+        return primeMoverGetDbEncryptionKey();
     }
     
     /**
@@ -1186,7 +1271,7 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
      */
     public function getBasePrefix()
     {
-        global $wpdb;
+        $wpdb = $this->getWpdB();
         $base_prefix = $wpdb->base_prefix;
         return $base_prefix;
     }
@@ -1371,10 +1456,10 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
      */
     public function primeMoverCreateFolder()
     {
-        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized() && !wp_doing_cron()) {
             return;
         }
-        
+       
         $export_folder = $this->getMultisiteExportFolder();        
         if (false === $this->getIsSubsite() && $export_folder && wp_mkdir_p($export_folder)) {
             $this->multisite_export_folder_created	= true;                
@@ -1837,6 +1922,24 @@ Options -Indexes
         }
         $wp_filesystem->put_contents($file, $directive, FS_CHMOD_FILE);
     }
+ 
+    /**
+     * Initialize export dB Lock
+     */
+    public function initializeExportDbLock()
+    {
+        global $wp_filesystem;
+        $lock_folder = $this->getLockFilesFolder();
+        if (!$this->getSystemAuthorization()->isUserAuthorized() || !$wp_filesystem->exists($lock_folder)) {
+            return;
+        }
+        
+        $file = $lock_folder . '.db_export_lock';
+        if ($wp_filesystem->exists($file)) {
+            return;
+        }
+        $wp_filesystem->put_contents($file, '', FS_CHMOD_FILE);
+    }
     
     /**
      * Initialize troubleshooting log
@@ -1849,6 +1952,68 @@ Options -Indexes
     }
     
     /**
+     * Initialize autobackup log when user access scheduled backup page
+     */
+    public function initializeAutoBackupLog()
+    {    
+        $blog_id = $this->getBlogIdOnScheduledBackupPage();
+        if (!$blog_id) {
+            return;
+        }
+        $this->initializeLogsHelper('automaticbackup', $blog_id);
+    }
+    
+    /**
+     * Get blog ID on scheduled backup page
+     * Return 0 if not on scheduled page or blog ID is not defined
+     * @return number
+     */
+    public function getBlogIdOnScheduledBackupPage()
+    {
+        $get = $this->getUserInput('get',
+            [
+                'prime_mover_site_blog_id' => FILTER_SANITIZE_NUMBER_INT,
+                'page' => $this->getPrimeMoverSanitizeStringFilter()
+            ],
+            '', '', 0, true, true);
+            
+            if (empty($get['page'])) {
+                return 0;
+            }
+            
+            $page = $get['page'];
+            if ('migration-panel-toolbox' !== $page) {
+                return 0;
+            }
+            
+            $blog_id = 0;
+            if (!empty($get['prime_mover_site_blog_id'])) {
+                $blog_id = $get['prime_mover_site_blog_id'];
+                $blog_id = (int)$blog_id;
+            }
+            
+            if (!$blog_id) {
+                $blog_id = $this->getMainSiteBlogId();
+            }
+            
+            return $blog_id;
+    }
+    
+    /**
+     * Initialize autobackup error log when user access scheduled backup page
+     * @param string $log_file
+     */
+    public function initializeAutoBackupRuntimeErrorLog($log_file = '')
+    {
+        $blog_id = $this->getBlogIdOnScheduledBackupPage();       
+        if (!$blog_id) {
+            return;
+        }
+        
+        $this->initializeLogsHelper('autobackup_error', $blog_id, $log_file);
+    }
+    
+    /**
      * Initialize site info log
      * @tested Codexonics\PrimeMoverFramework\Tests\TestMigrationSystemInitialization::itInitializesSiteInfoLog() 
      */
@@ -1858,25 +2023,36 @@ Options -Indexes
     }
     
     /**
+     * Helper method for initializing logs
      * @tested Codexonics\PrimeMoverFramework\Tests\TestMigrationSystemInitialization::itInitializesTroubleshootingLog()
      * @tested Codexonics\PrimeMoverFramework\Tests\TestMigrationSystemInitialization::itDoesNotInitializeTroubleShootingLogNotAuthorized()
      * @param string $logtype
+     * @param number $blog_id
+     * @param string $file
      */
-    protected function initializeLogsHelper($logtype = 'migration')
+    protected function initializeLogsHelper($logtype = 'migration', $blog_id = 0, $file = '')
     {
-        global $wp_filesystem;
-        $export_folder = $this->getMultisiteExportFolderPath();
-        if (! $this->getSystemAuthorization()->isUserAuthorized() || ! $wp_filesystem->exists($export_folder)) {
+        global $wp_filesystem;        
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
-        $log_file = $this->generateTroubleShootingLogFileName($logtype);
-        $file = $export_folder . $log_file;
+        
+        if (!$file) {
+            $export_folder = $this->getMultisiteExportFolderPath();            
+            if (!$wp_filesystem->exists($export_folder)) {
+                return;
+            }
+            
+            $log_file = $this->generateTroubleShootingLogFileName($logtype, $blog_id);
+            $file = $export_folder . $log_file;
+        }
+
         $content = '';
         if ($wp_filesystem->exists($file)) {
             return;
         }
-        $wp_filesystem->put_contents($file, $content, FS_CHMOD_FILE); 
         
+        $wp_filesystem->put_contents($file, $content, FS_CHMOD_FILE);        
     }
         
     /**
@@ -1948,7 +2124,7 @@ Options -Indexes
     public function getConnectionInstance()
     {
         $connection = null;
-        global $wpdb;
+        $wpdb = $this->getWpdB();
         
         if (property_exists($wpdb, 'use_mysqli')) {
             $use_mysqli_defined	= $wpdb->__get('use_mysqli');
@@ -2201,11 +2377,11 @@ Options -Indexes
      * @tested Codexonics\PrimeMoverFramework\Tests\TestMigrationSystemInitialization::itGetsUserIpOnHttpClientIp()
      * @tested Codexonics\PrimeMoverFramework\Tests\TestMigrationSystemInitialization::itGetsUserIpOnHttpForwardIp() 
      * @tested Codexonics\PrimeMoverFramework\Tests\TestMigrationSystemInitialization::itGetsUserIpOnShell() 
+     * @param boolean $force
      */
-    public function getUserIp()
+    public function getUserIp($force = false)
     {
-        $ip = '';
-        if (defined('PRIME_MOVER_DONT_TRACK_USERIP') && PRIME_MOVER_DONT_TRACK_USERIP) {
+        if (defined('PRIME_MOVER_DONT_TRACK_USERIP') && PRIME_MOVER_DONT_TRACK_USERIP && false === $force) {
             return 'prime_mover_user_anonymous';
         }
         if (defined('PRIME_MOVER_DOING_SHELL_ARCHIVE') &&
@@ -2215,34 +2391,28 @@ Options -Indexes
             PRIME_MOVER_COPY_MEDIA_SHELL_USER_IP) {
                 return PRIME_MOVER_COPY_MEDIA_SHELL_USER_IP;
         }
-        if (! empty($_SERVER['HTTP_CLIENT_IP'])) {
-            $ip = $_SERVER['HTTP_CLIENT_IP'];
-        } elseif (! empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
-        } else {
-            $ip = $_SERVER['REMOTE_ADDR'];
-        }
         
-        if (!$ip || !is_string($ip)) {
-            return $ip;
-        }
-        $exploded = explode(",", $ip);
-        if (is_array($exploded) && !empty($exploded[0])) {
-            $ip = trim($exploded[0]);
-        }
-        
-        return $ip;
+        return primeMoverGetUserIp();
     }
     
     /**
      * Get user agent
-     * @return string
      * @tested Codexonics\PrimeMoverFramework\Tests\TestMigrationSystemInitialization::itGetsUserAgent() 
      * @tested Codexonics\PrimeMoverFramework\Tests\TestMigrationSystemInitialization::itGetsUserAgentFromShell() 
      * @tested Codexonics\PrimeMoverFramework\Tests\TestMigrationSystemInitialization::itReturnsEmptyIfUserAgentIsNotSet() 
+     * @param boolean $default
+     * @return string
      */
-    public function getUserAgent()
+    public function getUserAgent($default = false)
     {
+        if ($default) {
+            
+            $blog_info = $this->removeSchemeFromUrl(get_bloginfo('url'));
+            $user_agent = 'WordPress/' . get_bloginfo('version') . '; ' . $blog_info;
+            
+            return $user_agent;
+        }
+        
         if (defined('PRIME_MOVER_DOING_SHELL_ARCHIVE') &&
             PRIME_MOVER_DOING_SHELL_ARCHIVE &&
             "cli" === php_sapi_name() &&
@@ -2259,30 +2429,60 @@ Options -Indexes
     }
     
     /**
-     * Generate hash by user
-     * @return boolean|string
      * @tested Codexonics\PrimeMoverFramework\Tests\TestMigrationSystemInitialization::itGeneratesHashByUser() 
      * @tested Codexonics\PrimeMoverFramework\Tests\TestMigrationSystemInitialization::itReturnsFalseToGenerateHashIfUnauthorized()
+     * Generate hash by user
+     * @param boolean $lockmode
+     * @param boolean $auto_backup_mode
+     * @param number $user_id
+     * @return boolean|string
      */
-    public function generateHashByUser()
+    public function generateHashByUser($lockmode = false, $auto_backup_mode = false, $user_id = 0)
     {
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return false;
         }
-        $user_ip = $this->getUserIp();
-        if (! $user_ip) {
-            return false;
-        }
-        $user_id = get_current_user_id();
-        $browser = $this->getUserAgent();
         
-        if (defined('SECURE_AUTH_SALT') && SECURE_AUTH_SALT) {
+        $hash_algo = 'sha256';
+        if ($lockmode) {
+            $hash_algo = 'sha384';
+        }
+        
+        $hash_algos = [];
+        if ($lockmode && function_exists('hash_algos')) {
+            $hash_algos = hash_algos();
+        }
+        
+        if ($lockmode && in_array('sha3-256', $hash_algos)) {
+            $hash_algo = 'sha3-256';
+        }       
+        
+        $user_ip = $this->getUserIp();
+        if (!$user_ip) {
+            return false;
+        }
+
+        if (!$user_id) {
+            $user_id = $this->getCurrentUserId(); 
+        }
+          
+        $force_default_browser = false;
+        if ($lockmode && $this->getSystemAuthorization()->isDoingAutoBackup()) {
+            $force_default_browser = true;
+        }
+        
+        if ($auto_backup_mode) {
+            $force_default_browser = true;
+        }
+        
+        $browser = $this->getUserAgent($force_default_browser);        
+        if (defined('SECURE_AUTH_SALT') && SECURE_AUTH_SALT && false === $lockmode) {
             $string = $browser . $user_ip . $user_id . SECURE_AUTH_SALT;
         } else {
             $string = $browser . $user_ip . $user_id;
         }
         
-        return hash('sha256', $string);
+        return hash($hash_algo, $string);
     }
     
     /**
@@ -2294,19 +2494,35 @@ Options -Indexes
      * @tested Codexonics\PrimeMoverFramework\Tests\TestMigrationSystemInitialization::itDoesNotGenerateLogFileIfNotAuthorized()
      * @tested Codexonics\PrimeMoverFramework\Tests\TestMigrationSystemInitialization::itDoesNotGenerateLogFileIfHashIsFalse()
      */
-    public function generateTroubleShootingLogFileName($logtype = 'migration')
+    public function generateTroubleShootingLogFileName($logtype = 'migration', $blog_id = 0)
     {
-        if ( ! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized() && !wp_doing_cron()) {
             return false;
         }
-        $user_hash = $this->generateHashByUser();    
-        if ( ! $user_hash ) {
+        $autobackup_logs = ['autobackup_error', 'automaticbackup'];
+        $auto_backup_log = false;
+        if (in_array($logtype, $autobackup_logs, true) && $blog_id) {
+            $auto_backup_log = true;
+        }
+        
+        if ($auto_backup_log) {
+            $user_hash = hash('sha256', $this->getApiRequestKey() . $blog_id);
+        } else {
+            $user_hash = $this->generateHashByUser();
+        }
+            
+        if (!$user_hash ) {
             return false;
         }
+        
         $logfilename = '_migration.log';
         if ('siteinformation' === $logtype) {
             $logfilename = '_siteinformation.log';
-        }        
+        }  
+        if ($auto_backup_log && $blog_id) {
+            $logfilename = "_{$blog_id}_{$logtype}.log";            
+        }
+        
         return $user_hash . $logfilename;
     }
     
@@ -2328,12 +2544,13 @@ Options -Indexes
     
     /**
      * Get troubleshooting log path
-     * @param string $logtype
-     * @return string
      * @tested Codexonics\PrimeMoverFramework\Tests\TestMigrationSystemInitialization::itGetsCoreMigrationTroubleshootingLogPath() 
      * @tested Codexonics\PrimeMoverFramework\Tests\TestMigrationSystemInitialization::itGetsCustomerMigrationTroubleshootingLogPath()
+     * @param string $logtype
+     * @param number $blog_id
+     * @return string
      */
-    public function getTroubleShootingLogPath($logtype = 'migration')
+    public function getTroubleShootingLogPath($logtype = 'migration', $blog_id = 0)
     {        
         $corelogmode = false;
         if ('migration' === $logtype && $this->coreLoggingMode()) {
@@ -2343,7 +2560,7 @@ Options -Indexes
             return PRIME_MOVER_LOG_PATH;             
         }
         $export_path = $this->getMultisiteExportFolderPath();
-        $log_file = $this->generateTroubleShootingLogFileName($logtype);
+        $log_file = $this->generateTroubleShootingLogFileName($logtype, $blog_id);
 
         return $export_path . $log_file;
     }
@@ -2611,11 +2828,7 @@ Options -Indexes
      */
     public function getAuthKey()
     {
-        $auth_key = '';
-        if (defined('AUTH_KEY') && AUTH_KEY) {
-            $auth_key = AUTH_KEY;
-        }
-        return $auth_key;
+        return primeMoverGetAuthKey();
     }
     
     /**
@@ -2665,7 +2878,14 @@ Options -Indexes
      */
     public function getStartTime()
     {
-        return microtime(true);
+        global $prime_mover_plugin_manager;
+        $start_time = microtime(true);
+        if ($this->getSystemAuthorization()->isDoingAutoBackup() && is_object($prime_mover_plugin_manager) && 
+            method_exists($prime_mover_plugin_manager, 'getAutoBackupStartTime') && $prime_mover_plugin_manager->getAutoBackupStartTime()) {
+            
+            $start_time = $prime_mover_plugin_manager->getAutoBackupStartTime();            
+        }        
+        return $start_time;
     }
     
     /**
@@ -3100,7 +3320,7 @@ Options -Indexes
      */
     public function getDbCharSetUsedBySite()
     {
-        global $wpdb;
+        $wpdb = $this->getWpdB();
         if (!is_object($wpdb)) {
             return false;
         }  
@@ -3134,7 +3354,7 @@ Options -Indexes
      */
     public function getDbCollateUsedBySite()
     {
-        global $wpdb;
+        $wpdb = $this->getWpdB();
         if (!is_object($wpdb)) {
             return false;
         }
@@ -3204,7 +3424,7 @@ Options -Indexes
     public function getDefaultDbCharSet()
     {        
         $charset = PRIME_MOVER_UNICODE_CHARSET;
-        global $wpdb;
+        $wpdb = $this->getWpdB();
         
         if (PRIME_MOVER_UNICODE_CHARSET === $charset && $wpdb->has_cap(PRIME_MOVER_MODERN_UNICODE_CHARSET)) {
             $charset = PRIME_MOVER_MODERN_UNICODE_CHARSET;
@@ -3313,5 +3533,186 @@ Options -Indexes
         }
        
         return $is_administrator;
+    }
+    
+    /**
+     * Get API request key
+     * @return string
+     */
+    public function getApiRequestKey()
+    {        
+        return primeMoverGetApiRequestKey();
+    }
+    
+    /**
+     * Get current user ID
+     * Returns auto-backup user if doing autobackups
+     * Otherwise returns current user ID
+     * @return number
+     */
+    public function getCurrentUserId()
+    {
+        if (!$this->getSystemAuthorization()->isDoingAutoBackup()) {
+            return get_current_user_id();
+        }
+        
+        global $prime_mover_plugin_manager;
+        return $prime_mover_plugin_manager->getAutoBackupUser();
+    }
+    
+    /**
+     * Injects automatic backup timeout parameter
+     * @param array $ret
+     * @return array
+     */
+    public function maybeAutomaticBackupTimeout($ret = [])
+    {
+        if (!is_array($ret)) {
+            return $ret;
+        }
+        
+        if (!$this->getSystemAuthorization()->isDoingAutoBackup()) {
+            return $ret;
+        }
+       
+        $ret['auto_backup_timeout'] = true;        
+        return $ret;
+    }
+    
+    /**
+     * Get auto backup initialization meta key
+     * @param number $source_blogid
+     * @param number $user_id
+     * @return string
+     */
+    public function getAutoBackupInitMeta($source_blogid = 0, $user_id = 0)
+    {
+        $request_api_key = $this->getApiRequestKey();
+        if (!$request_api_key || !$source_blogid || !$user_id) {
+            return '';
+        }
+        
+        $string = $source_blogid . $user_id . $request_api_key;
+        $hash = hash('adler32', $string);
+        
+        return "auto_backup_prime_mover_init" . $hash;
+    }
+    
+    /**
+     * Get progress tracker meta key
+     * @param string $browser
+     * @param string $user_ip
+     * @param number $user_id
+     * @param number $blog_id
+     * @param string $mode
+     * @return string
+     */
+    public function getProgressTrackerMeta($browser = '', $user_ip = '', $user_id = 0, $blog_id = 0, $mode = '')
+    {
+        $string = $browser . $user_ip . $user_id . $blog_id . $mode;        
+        return hash('sha256', $string);
+    }
+    
+    /**
+     * Get auto backup retry meta key
+     * @param number $source_blogid
+     * @param number $user_id
+     * @return string
+     */
+    public function getAutoBackupRetryMeta($source_blogid = 0, $user_id = 0)
+    {        
+        $request_api_key = $this->getApiRequestKey();
+        if (!$request_api_key || !$source_blogid || !$user_id) {
+            return '';
+        } 
+        
+        $string = $source_blogid . $user_id . $request_api_key;
+        $hash = hash('adler32', $string);
+        
+        return "auto_backup_prime_mover_" . $hash;        
+    }
+
+    /**
+     * Get setting excluded key
+     * @return string
+     */
+    public function getPrimeMoverExcludedSettingsKey()
+    {
+        return $this->excluded_settings_key;
+    }
+
+    public function isEventViewerMenuPage($hook = '')
+    {
+        $ret = false;
+        $prime_mover_slug = $this->getPrimeMoverMenuSlug();
+        if ("{$prime_mover_slug}_page_migration-panel-backup-menu-event-viewer" === $hook) {
+            $ret = true;
+        }
+        return $ret;
+    }
+
+    /**
+     * Remove scheme from URL
+     * This includes support for hostname with port number implementation
+     * @param string $given_url
+     * @return string
+     */
+    public function removeSchemeFromUrl($given_url = '')
+    {
+        $url_parsed = parse_url($given_url);
+        $given_url_parsed = '';
+        if ((isset($url_parsed['host'])) && (!empty($url_parsed['host']))) {
+            $given_url_parsed .= $url_parsed['host'];
+        }
+        
+        if ((isset($url_parsed['port'])) && (!empty($url_parsed['port']))) {
+            $given_url_parsed .= ":";
+            $given_url_parsed .= $url_parsed['port'];
+        }
+        
+        if ((isset($url_parsed['path'])) && (!empty($url_parsed['path']))) {
+            $given_url_parsed .= $url_parsed['path'];
+        }
+        
+        return $given_url_parsed;
+    }
+    
+    /**
+     * Get autobackup WIP initialization status
+     * @return boolean
+     */
+    public function getAutoBackupWipInitializationStatus()
+    {        
+        global $prime_mover_plugin_manager;
+        return $prime_mover_plugin_manager->getAutoBackupCronInitialized();
+    }
+    
+    /**
+     * Checks if we are doing any Prime Mover process
+     * @return boolean
+     */
+    public function isDoingPrimeMoverProcess()
+    {
+        $plugin_manager = $this->getPrimeMoverPluginManagerInstance();        
+        return (is_object($plugin_manager) && method_exists($plugin_manager, 'getDoingPrimeMoverProcess') && $plugin_manager->getDoingPrimeMoverProcess()); 
+    }
+    
+    /**
+     * Get $wpdb instance usable for Prime Mover objects
+     * @return $wpdb instance
+     */
+    public function getWpdB()
+    {
+        global $wpdb;     
+        $full_debug_on = false;
+        if (defined('WP_DEBUG') && defined('WP_DEBUG_DISPLAY') && WP_DEBUG && WP_DEBUG_DISPLAY) {
+            $full_debug_on = true;            
+        }
+        
+        if ($this->isDoingPrimeMoverProcess() && $full_debug_on) {
+            $wpdb->hide_errors();
+        }
+        
+        return $wpdb;  
     }
 }

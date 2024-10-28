@@ -392,7 +392,7 @@ class PrimeMoverBuddyPressCompat
             $target_blog_id = 0;
         }        
        
-        global $wpdb;        
+        $wpdb = $this->getSystemInitialization()->getWpdB();        
         $notifications_table = $this->getBasePrefix() . $table;        
         $query = $wpdb->prepare("
                    UPDATE {$notifications_table}
@@ -2243,7 +2243,7 @@ class PrimeMoverBuddyPressCompat
      */
     protected function getBuddyPressTables()
     {
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
       
         $db_search = "SHOW TABLES LIKE %s";        
         $prefixed_tables = [];

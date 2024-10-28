@@ -507,51 +507,22 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
         if ('bottom' === $which) {
             return;    
         }
-        $this->displayMultisiteBlogIdSelectors();
+        
+        $blog_ids = $this->getSitesWithBackups();
+        $queried_id = $this->getBlogId();
+        
+        $this->displayMultisiteBlogIdSelectors($blog_ids, $queried_id);
         do_action('prime_mover_do_extra_tablenav');
     }
   
     /**
      * Display multisite blog ID selectors
      */
-    protected function displayMultisiteBlogIdSelectors()
+    protected function displayMultisiteBlogIdSelectors($blog_ids = [], $queried_id = 0)
     {
-        if ( ! is_multisite() ) {
-            return;
-        }
-        $blog_ids = $this->getSitesWithBackups();
-        $queried_id = $this->getBlogId();
-        ?>
-        <p class="prime-mover-backup-menu-site-selection"><label><span><?php esc_html_e("Select or Enter a blog ID", 'prime-mover');?></span></label>
-        <?php if ( ! $this->isSafari()) { ?>
-        <span class="myarrow">
-        <?php } ?>
-        <input class="prime-mover-site-selector js-prime-mover-site-selector" list="prime-mover-backups-datalist" size="12" value="<?php echo esc_attr($queried_id); ?>" name="prime-mover-select-blog-to-query" />
-        <?php if ( ! $this->isSafari()) { ?>
-        </span>
-        <?php } ?>
-        <datalist id ="prime-mover-backups-datalist" >
-            <?php 
-            foreach ($blog_ids as $blog_id) {
-            ?>
-                <option value="<?php echo esc_attr($blog_id);?>"><?php echo $blog_id; ?></option>  
-            <?php   
-            }
-            ?>
-        </datalist>
-        <button class="button js-prime-mover-clear-site prime-mover-clear-site" type="button"><?php esc_html_e('Clear value to select new site', 'prime-mover'); ?></button></p>
-    <?php       
+        $this->getSystemUtilities()->displayMultisiteBlogIdSelectors($blog_ids, $queried_id);
     }
-    
-    /**
-     * Check if Safari
-     * @return boolean
-     */
-    private function isSafari()
-    {
-        return (isset($_SERVER['HTTP_USER_AGENT']) && false !== stripos( $_SERVER['HTTP_USER_AGENT'], 'Safari' ) && false === stripos( $_SERVER['HTTP_USER_AGENT'], 'Chrome'));      
-    }
-    
+        
     /**
      * Get blog ID
      * @return number
@@ -677,9 +648,8 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
             }            
             $formatted[] = $backup_array;
         }
-        
-        $this->getBackupUtilities()->updateValidatedBackupsArrayInDb($formatted, $current_backup_hash, $option_name, $blog_id, $backups_hash_db);
-        
+       
+        $this->getBackupUtilities()->updateValidatedBackupsArrayInDb($formatted, $current_backup_hash, $option_name, $blog_id, $backups_hash_db);        
         do_action('prime_mover_after_packages_update', $backups, $refresh, $blog_id, $current_backup_hash);
         
         return $formatted;

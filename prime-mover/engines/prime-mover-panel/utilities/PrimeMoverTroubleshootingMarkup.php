@@ -13,7 +13,7 @@ namespace Codexonics\PrimeMoverFramework\utilities;
 
 use Codexonics\PrimeMoverFramework\classes\PrimeMover;
 use Codexonics\PrimeMoverFramework\classes\PrimeMoverSystemAuthorization;
-use Codexonics\PrimeMoverFramework\app\PrimeMoverSettings;
+use Codexonics\PrimeMoverFramework\app\PrimeMoverSettingsTemplate;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -27,22 +27,71 @@ class PrimeMoverTroubleshootingMarkup
 {
     private $prime_mover;
     private $system_authorization;
-    private $settings;
+    private $settings_template;
     private $freemius_integration;
+    private $autobackup_logs;
+    private $clear_locked_settings_identifier;
+    
     
     /**
      * Constructor
      * @param PrimeMover $PrimeMover
      * @param PrimeMoverSystemAuthorization $system_authorization
      * @param array $utilities
-     * @param PrimeMoverSettings $settings
+     * @param PrimeMoverSettingsTemplate $prime_mover_settings_templates
      */
-    public function __construct(PrimeMover $PrimeMover, PrimeMoverSystemAuthorization $system_authorization, array $utilities, PrimeMoverSettings $settings) 
+    public function __construct(PrimeMover $PrimeMover, PrimeMoverSystemAuthorization $system_authorization, array $utilities, PrimeMoverSettingsTemplate $prime_mover_settings_templates) 
     {
         $this->prime_mover = $PrimeMover;
         $this->system_authorization = $system_authorization;
-        $this->settings = $settings;
+        $this->settings_template = $prime_mover_settings_templates;
         $this->freemius_integration = $utilities['freemius_integration'];
+        $this->autobackup_logs = ['automaticbackup', 'autobackup_error'];
+        $this->clear_locked_settings_identifier = 'clear_locked_settings';
+    }
+    
+    /**
+     * Get identifier for clear locked settings
+     * @return string
+     */
+    public function getIdentifierClearLockedSettings()
+    {
+        return $this->clear_locked_settings_identifier;
+    }
+    
+    /**
+     * Get settings template
+     * @return \Codexonics\PrimeMoverFramework\app\PrimeMoverSettingsTemplate
+     */
+    public function getSettingsTemplate()
+    {
+        return $this->settings_template;
+    }
+    
+    /**
+     * GEt autobackup log type
+     * @return string[]
+     */
+    public function getAutoBackupLogType()
+    {
+        return $this->autobackup_logs;
+    }
+    
+    /**
+     * Get shutdown utilities
+     */
+    public function getShutDownUtilities()
+    {
+        return $this->getFreemiusIntegration()->getShutdownUtilities();
+    }
+    
+    /**
+     * Get exporter
+     * @return \Codexonics\PrimeMoverFramework\classes\PrimeMoverExporter
+     */
+    public function getExporter()
+    {
+        return $this->getPrimeMover()->getExporter();
     }
     
     /**
@@ -70,49 +119,96 @@ class PrimeMoverTroubleshootingMarkup
     }
     
     /**
-     * Stream download helper for troubleshooting and site info logs
+     * Stream download helper for troubleshooting, migration, site info and autobackup logs
      * @param string $download_nonce
      * @param string $download_nonce_key
      * @param string $arg_key
      * @param string $log_type
+     * @param string $blog_id
      */
     public function streamDownloadHelper($download_nonce = '', $download_nonce_key = '', $arg_key = '', $log_type = 'migration')
     {
         if (!$this->getPrimeMover()->getSystemAuthorization()->isUserAuthorized() ) {
             return;
         }
+        
         if (!$download_nonce || !$download_nonce_key || !$arg_key || !$log_type ) {
             return;
         }
-        $args = [$download_nonce => $this->getPrimeMover()->getSystemInitialization()->getPrimeMoverSanitizeStringFilter(), $arg_key => $this->getPrimeMover()->getSystemInitialization()->getPrimeMoverSanitizeStringFilter()];
+        
+        $args = [
+            $download_nonce => $this->getPrimeMover()->getSystemInitialization()->getPrimeMoverSanitizeStringFilter(), 
+            $arg_key => $this->getPrimeMover()->getSystemInitialization()->getPrimeMoverSanitizeStringFilter()            
+        ];
+        
+        $autobackup_logtypes = $this->getAutoBackupLogType();
+        if (in_array($log_type, $autobackup_logtypes)) {
+            $args['autobackup_blogid'] = FILTER_SANITIZE_NUMBER_INT;
+        }
+        
         $args = $this->getPrimeMover()->getSystemInitialization()->getUserInput('get', $args);
         if (empty($args[$download_nonce]) || empty($args[$arg_key])) {
             return;
         }
+        
+        $blog_id = 0;
+        if (!empty($args['autobackup_blogid'])) {
+            $blog_id = $args['autobackup_blogid'];
+        }
+        
         $nonce = $args[$download_nonce];
         $display_log = $args[$arg_key];
+        
         if ( ! $this->getPrimeMover()->getSystemFunctions()->primeMoverVerifyNonce($nonce, $download_nonce_key ) || 'yes' !== $display_log) {
             return;
         }
+        
         wp_raise_memory_limit('admin');
         do_action('prime_mover_validated_streams', $log_type);
-        $this->troubleShootingLogStreamer($log_type);
+        $this->troubleShootingLogStreamer($log_type, $blog_id);
     }
 
     /**
      * Troubleshooting log streamer
      * @param string $logtype
+     * @param number $blog_id
      */
-    public function troubleShootingLogStreamer($logtype = 'migration')
+    public function troubleShootingLogStreamer($logtype = 'migration', $blog_id = 0)
     {
-        if ( ! $logtype ) {
+        if (!$logtype) {
             return;
         }
-        $download_path = $this->getPrimeMover()->getSystemInitialization()->getTroubleShootingLogPath($logtype);
+
+        $desc = '';
+        $download_path = '';
+        $autobackup_logs = $this->getAutoBackupLogType();
+        
+        if ('autobackup_error' === $logtype) {
+            $download_path = $this->getShutdownUtilities()->getAutoBackupRuntimeErrorLogPath($blog_id);
+            $desc = 'error_';            
+        } else {
+            $download_path = $this->getPrimeMover()->getSystemInitialization()->getTroubleShootingLogPath($logtype, $blog_id);
+        }
+        
         $initialname = 'migration';
         if ('siteinformation' === $logtype) {
             $initialname = 'siteinformation';
         }
+        
+        $add_blog_id = false;
+        if (is_multisite()) {
+            $add_blog_id = true;
+        }
+        
+        if (in_array($logtype, $autobackup_logs) && $blog_id) {
+            $friendlyfilename = $this->getExporter()->multisiteCreateFoldername($blog_id, $blog_id, false, $add_blog_id);
+            $initialname = 'autobackup_' . $desc . $friendlyfilename . '_';
+        }
+        
+        if (!$download_path) {
+            return;
+        }
+        
         if (file_exists($download_path)) {
             $generatedFilename = $initialname . date('m-d-Y_hia') . '.log';
             header('Content-Type: text/plain');
@@ -132,7 +228,7 @@ class PrimeMoverTroubleshootingMarkup
      */
     public function getPrimeMoverSettings() 
     {
-        return $this->settings;
+        return $this->getSettingsTemplate()->getPrimeMoverSettings();
     }
 
     /**
@@ -175,7 +271,7 @@ class PrimeMoverTroubleshootingMarkup
      */
     public function renderEnableTroubleShootingLogMarkup($setting = '')
     {
-        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(esc_html__('Troubleshooting', 'prime-mover'));
+        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Troubleshooting', 'prime-mover'));
         $export_path = $this->getPrimeMover()->getSystemInitialization()->getMultisiteExportFolderPath();
     ?>
         <p class="description">
@@ -206,11 +302,49 @@ class PrimeMoverTroubleshootingMarkup
     }
  
     /**
+     * Get settings config
+     * @return \Codexonics\PrimeMoverFramework\app\PrimeMoverSettingsConfig
+     */
+    public function getSettingsConfig()
+    {
+        return $this->getSettingsTemplate()->getSettingsConfig();
+    } 
+    
+    /**
+     * Render clear locked settings callback
+     */
+    public function renderClearLockedSettingsCallBack()
+    {
+        $settings_api = $this->getSettingsConfig()->getMasterSettingsConfig();
+        $identifier = $this->getIdentifierClearLockedSettings();
+        if (!isset($settings_api[$identifier])) {
+            return;
+        }
+        
+        $button_specs = [
+            'button_wrapper' => 'p',
+            'button_classes' => 'button-secondary prime-mover-deleteall-button',
+            'button_text' => __('Restore locked settings', 'prime-mover'),
+            'disabled' => '',
+            'title' => ''
+        ];
+        
+        $config = $settings_api[$identifier];
+        $heading_text = __('Clear locks', 'prime-mover');
+        $description = sprintf(esc_html__('Clear the locked user file and return the settings to the options table. %s.', 'prime-mover'), 
+            '<strong>' . esc_html__('Please do this only when no ongoing export (including auto-backups) or import process is running and when technical support has instructed you', 'prime-mover') . '</strong>');
+        $dialog_message = esc_html__('Are you sure you want to restore locked settings?', 'prime-mover');        
+        $dialog_heading = __('Heads Up!', 'prime-mover');
+        
+        $this->getSettingsTemplate()->renderButtonFormConfirmTemplate($heading_text, $identifier, $config, $description, 1, false, $button_specs, $dialog_message, $dialog_heading);
+    }    
+    
+    /**
      * Render clear log markup
      */
     public function renderClearLogCallBack()
     {
-        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(esc_html__('Clear Log', 'prime-mover'));
+        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Clear Log', 'prime-mover'));
     ?>        
         <?php 
         $this->getPrimeMoverSettings()->getSettingsMarkup()->renderSubmitButton('prime_mover_clear_troubleshooting_settings_nonce', 'js-clear-prime-mover-troubleshooting', 
@@ -231,10 +365,8 @@ class PrimeMoverTroubleshootingMarkup
      * @return string
      */
     protected function generateDownloadLogUrl($nonce_key = '', $nonce_arg = '', $arg_key = '')
-    {
-        $nonce = $this->getSystemFunctions()->primeMoverCreateNonce($nonce_key);
-        $params = [$arg_key => 'yes', $nonce_arg => $nonce];
-        return esc_url(add_query_arg($params));
+    {        
+        return $this->getPrimeMoverSettings()->getSettingsMarkup()->generateDownloadLogUrl($nonce_key, $nonce_arg, $arg_key);
     }
     
     /**
@@ -242,7 +374,7 @@ class PrimeMoverTroubleshootingMarkup
      */
     public function renderDownloadLogMarkup()
     {
-        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(esc_html__('Download Log', 'prime-mover'));
+        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Download Log', 'prime-mover'));
     ?>
         <p class="description prime-mover-settings-paragraph">
             <a class="button-primary" 
@@ -267,7 +399,7 @@ class PrimeMoverTroubleshootingMarkup
      */
     public function renderPersistTroubleShootingMarkup($setting = '')
     {
-        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(esc_html__('Persist / HTTP API Log', 'prime-mover'));
+        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Persist / HTTP API Log', 'prime-mover'));
     ?>
         <p class="description">
             <label for="js-prime_mover_persist_log_checkbox">
@@ -301,7 +433,7 @@ class PrimeMoverTroubleshootingMarkup
      */
     public function renderJsTroubleShootingLogMarkup($setting = '')
     {
-        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(esc_html__('JavaScript Log', 'prime-mover'));
+        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('JavaScript Log', 'prime-mover'));
     ?>    
         <p class="description">
         <label for="js-prime_mover_enable_js_log_checkbox">
@@ -327,7 +459,7 @@ class PrimeMoverTroubleshootingMarkup
      */
     public function renderUploadJsTroubleShootingLogMarkup($setting = '')
     {
-        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(esc_html__('Chunk debug', 'prime-mover'));
+        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Chunk debug', 'prime-mover'));
         ?>
         <p class="description">
         <label for="js-prime_mover_enable_js_uploadlog_checkbox">
@@ -353,7 +485,7 @@ class PrimeMoverTroubleshootingMarkup
      */
     public function renderTurboModeMarkup($setting = '')
     {
-        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(esc_html__('Turbo mode', 'prime-mover'));
+        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Turbo mode', 'prime-mover'));
         ?>
         <p class="description">
         <label for="js-prime_mover_enable_js_turbomode_checkbox">

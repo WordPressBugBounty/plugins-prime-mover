@@ -93,16 +93,19 @@ class PrimeMoverSystemUtilities
         if ( ! $this->getSystemFunctions()->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
+        
+        $meta_key = $this->getSystemFunctions()->getSystemInitialization()->getCurrentGearBoxPackagesMetaKey();
         $option_name = $this->getSystemFunctions()->getSystemInitialization()->generateZipDownloadOptionName(sanitize_html_class(basename($filepath)), $blog_id);
-        $option_value = $this->getSystemFunctions()->getSiteOption($option_name, false, true, true);
+        $option_value = $this->getSystemFunctions()->getSiteOption($option_name, false, true, true, $meta_key, true, false);
         if ( ! $option_value || ! isset($option_value['hash'])) {
             return;
         }
         
         $hash = $option_value['hash'];
-        $this->getSystemFunctions()->deleteSiteOption($hash, true);
-        $this->getSystemFunctions()->deleteSiteOption($option_name, true);
-        $this->getSystemFunctions()->deleteSiteOption($hash . '_filename', true);
+        $this->getSystemFunctions()->deleteSiteOption($hash, true, '', true, true);
+        $this->getSystemFunctions()->deleteSiteOption($option_name, true, $meta_key, true, false);
+        
+        $this->getSystemFunctions()->deleteSiteOption($hash . '_filename', true, '', true, true);
     }
     
     /**
@@ -877,8 +880,8 @@ class PrimeMoverSystemUtilities
      */
     public function getThirdPartyCallBacksOnExport($ret = [], $blogid_to_export = 0)
     {
-        $this->getSystemFunctions()->switchToBlog($blogid_to_export);        
-        $thirdparty_plugins = $this->getSystemFunctions()->getBlogOption($blogid_to_export, self::THIRDPARTY_HOOKS);
+        $this->getSystemFunctions()->switchToBlog($blogid_to_export);
+        $thirdparty_plugins = $this->getSystemFunctions()->getBlogOption($blogid_to_export, self::THIRDPARTY_HOOKS, false, '', true, true);
         if (!empty($thirdparty_plugins)) {
             $ret['thirdparty_callback_plugins'] = $thirdparty_plugins;
         }
@@ -906,7 +909,8 @@ class PrimeMoverSystemUtilities
       
         $this->getSystemFunctions()->switchToBlog($blogid_to_export);
         $current_action = current_action(); 
-        $thirdparty_hooks_opt_value = $this->getSystemFunctions()->getBlogOption($blogid_to_export, self::THIRDPARTY_HOOKS);
+        
+        $thirdparty_hooks_opt_value = $this->getSystemFunctions()->getBlogOption($blogid_to_export, self::THIRDPARTY_HOOKS, false, '', true, true);
         if ($this->maybeSkipThirdPartyHooks($thirdparty_hooks_opt_value, $current_action, $plugin, $blogid_to_export)) {
             $this->getSystemFunctions()->restoreCurrentBlog();
             return;
@@ -950,9 +954,9 @@ class PrimeMoverSystemUtilities
      */
     protected function saveThirdPartyPluginSignatures($thirdparty_plugins = [], $blogid_to_export = 0)
     {        
-        $this->getSystemFunctions()->updateBlogOption($blogid_to_export, self::THIRDPARTY_HOOKS, $thirdparty_plugins, false);        
+        $this->getSystemFunctions()->updateBlogOption($blogid_to_export, self::THIRDPARTY_HOOKS, $thirdparty_plugins, false, '', true, true);        
         if (is_multisite()) {
-            $this->getSystemFunctions()->updateBlogOption($blogid_to_export, self::THIRDPARTY_NETWORKWIDE, $this->hashNetworkPlugins(), false);
+            $this->getSystemFunctions()->updateBlogOption($blogid_to_export, self::THIRDPARTY_NETWORKWIDE, $this->hashNetworkPlugins(), false, '', true, true);
         }
     }
     
@@ -962,7 +966,7 @@ class PrimeMoverSystemUtilities
      */
     protected function hashNetworkPlugins()
     {
-        $active_sitewide_plugins = $this->getSystemFunctions()->getSiteOption('active_sitewide_plugins');
+        $active_sitewide_plugins = $this->getSystemFunctions()->getSiteOption('active_sitewide_plugins', false, true, false, '', true, true);
         return sha1(maybe_serialize($active_sitewide_plugins));
     }
     
@@ -984,7 +988,7 @@ class PrimeMoverSystemUtilities
             $skip = true;
         }
         
-        if ($skip && is_multisite() && $this->hashNetworkPlugins() !== $this->getSystemFunctions()->getBlogOption($blogid_to_export, self::THIRDPARTY_NETWORKWIDE)) {
+        if ($skip && is_multisite() && $this->hashNetworkPlugins() !== $this->getSystemFunctions()->getBlogOption($blogid_to_export, self::THIRDPARTY_NETWORKWIDE, false, '', true, true)) {
             return false;
         }
         
@@ -1219,6 +1223,98 @@ class PrimeMoverSystemUtilities
         
         return false;        
     }    
+
+    /**
+     * Check if Safari
+     * @return boolean
+     */
+    private function isSafari()
+    {
+        return (isset($_SERVER['HTTP_USER_AGENT']) && false !== stripos( $_SERVER['HTTP_USER_AGENT'], 'Safari' ) && false === stripos( $_SERVER['HTTP_USER_AGENT'], 'Chrome'));
+    }
+ 
+    /**
+     * Maybe disable auto backup
+     * Returns boolean true to disable automatic backup
+     * Otherwise false
+     */
+    public function maybeDisableAutoBackup()
+    {
+        if (defined('PRIME_MOVER_DISABLE_AUTO_BACKUP') && PRIME_MOVER_DISABLE_AUTO_BACKUP) {
+            return true;
+        }
+        
+        if (false === apply_filters('prime_mover_maybe_autobackup_enabled', false)) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Display multisite blog ID selectors
+     * @param array $blog_ids
+     * @param number $queried_id
+     * @param boolean $automatic_backup_mode
+     * @param string $label
+     */
+    public function displayMultisiteBlogIdSelectors($blog_ids = [], $queried_id = 0, $automatic_backup_mode = false, $label = '')
+    {
+        if (!is_multisite() ) {
+            return;
+        }
+        $query_string = 'prime-mover-select-blog-to-query';
+        if ($automatic_backup_mode) {
+            $query_string = 'prime_mover_site_blog_id';
+        }
+        ?>
+        <p class="prime-mover-backup-menu-site-selection">
+        <label>
+            <span>
+                <?php 
+                if ($label){ 
+                    echo $label;   
+                } elseif ($automatic_backup_mode) {
+                    esc_html_e("Enter blog ID & press enter", 'prime-mover');
+                } else {
+                    esc_html_e("Select or Enter a blog ID", 'prime-mover');
+                }                
+                ?>
+            </span>
+        </label>
+        <?php
+        $size = 12;
+        if ($automatic_backup_mode) {
+            $size = 8;
+        }
+        ?>
+        <?php if ( ! $this->isSafari()) { ?>
+        <span class="myarrow">
+        <?php } ?>
+        <input class="prime-mover-site-selector js-prime-mover-site-selector" list="prime-mover-backups-datalist" size="<?php echo esc_attr($size); ?>" value="<?php echo esc_attr($queried_id); ?>" name="<?php echo esc_attr($query_string); ?>" />
+        <?php if ( ! $this->isSafari()) { ?>
+        </span>
+        <?php } ?>
+        <datalist id ="prime-mover-backups-datalist" >
+            <?php 
+            foreach ($blog_ids as $blog_id) {
+            ?>
+                <option value="<?php echo esc_attr($blog_id);?>"><?php echo $blog_id; ?></option>  
+            <?php   
+            }
+            ?>
+        </datalist>
+        <button class="button js-prime-mover-clear-site prime-mover-clear-site" type="button">
+        <?php
+        if ($automatic_backup_mode) {
+            esc_html_e('Clear value', 'prime-mover'); 
+        } else {            
+            esc_html_e('Clear value to select new site', 'prime-mover'); 
+        }        
+        ?>
+        </button></p>
+    <?php       
+    }
     
     /**
      * Checks if enc key is valid
@@ -1323,5 +1419,5 @@ class PrimeMoverSystemUtilities
         $out .= PHP_EOL;
         
         return $out;
-    }    
+    }
 }

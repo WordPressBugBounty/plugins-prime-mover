@@ -1603,7 +1603,7 @@ class PrimeMoverSystemFunctions
         //Switch to this blog
         $this->switchToBlog($blog_id);
         
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         if (isset($wpdb->prefix)) {
             $prefix = $wpdb->prefix;
         }
@@ -1836,19 +1836,23 @@ class PrimeMoverSystemFunctions
     
     /**
      * Single-site compatible getBlogOption
-     * @param number $blog_id
-     * @param string $option
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itGetsBlogOptionOnMultisite()
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itGetsBlogOptionOnSingleSite() 
-     * 
+     * @param number $blog_id
+     * @param string $option
+     * @param boolean $default
+     * @param string $meta_key
+     * @param boolean $array
+     * @param boolean $force_to_option
+     * @return mixed|boolean|NULL|array|mixed
      */
-    public function getBlogOption($blog_id = 0, $option = '')
+    public function getBlogOption($blog_id = 0, $option = '', $default = false, $meta_key = '', $array = true, $force_to_option = false)
     {
         $this->removePluginManager();
         if (is_multisite()) {
             return get_blog_option($blog_id, $option);
-        } else {
-            return get_option($option);
+        } else {            
+            return $this->getOptionFallBack($option, $default, $meta_key, $array, $force_to_option);
         }
         $this->addPluginManager();
     }
@@ -1862,8 +1866,11 @@ class PrimeMoverSystemFunctions
      * @param string $option
      * @param mixed $value
      * @param boolean $super_admin_check_only
+     * @param string $meta_key
+     * @param boolean $array
+     * @param boolean $force_to_option
      */
-    public function updateBlogOption($blog_id = 0, $option = '', $value = null, $super_admin_check_only = true)
+    public function updateBlogOption($blog_id = 0, $option = '', $value = null, $super_admin_check_only = true, $meta_key = '', $array = true, $force_to_option = false)
     {
         if (!$this->getSystemInitialization()->isAdministrator($super_admin_check_only)) {
             return;
@@ -1872,7 +1879,7 @@ class PrimeMoverSystemFunctions
         if (is_multisite()) {
             update_blog_option($blog_id, $option, $value);
         } else {
-            update_option($option, $value);
+            $this->updateOptionFallBack($option, $value, $meta_key, $array, $force_to_option);
         }
         $this->addPluginManager();
     }
@@ -1881,12 +1888,15 @@ class PrimeMoverSystemFunctions
      * Get option wrapper by disabling plugin manager
      * @param string $option
      * @param boolean $default
+     * @param string $meta_key
+     * @param boolean $array
+     * @param boolean $force_to_option
      * @return mixed|boolean|NULL|array
      */
-    public function getOption($option = '', $default = false)
+    public function getOption($option = '', $default = false, $meta_key = '', $array = true, $force_to_option = false)
     {
-        $this->removePluginManager();
-        $opt_val = get_option($option, $default);
+        $this->removePluginManager();        
+        $opt_val = $this->getOptionFallBack($option, $default, $meta_key, $array, $force_to_option);        
         $this->addPluginManager();
         
         return $opt_val;
@@ -1939,17 +1949,21 @@ class PrimeMoverSystemFunctions
         }
     }
 
+
     /**
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itGetsSiteOptionWhenMultisite()
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itGetsSiteOptionWhenSingleSite()
      * Single-site compatible get site option 
      * @param string $option
      * @param boolean $default
      * @param boolean $use_cache
      * @param boolean $force_delete_cache
-     * @return mixed
-     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itGetsSiteOptionWhenMultisite()
-     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itGetsSiteOptionWhenSingleSite() 
+     * @param string $meta_key
+     * @param boolean $array
+     * @param boolean $force_to_option
+     * @return mixed|boolean|NULL|array|mixed
      */
-    public function getSiteOption($option = '', $default = false, $use_cache = true, $force_delete_cache = false)
+    public function getSiteOption($option = '', $default = false, $use_cache = true, $force_delete_cache = false, $meta_key = '', $array = true, $force_to_option = false)
     {        
         $this->removePluginManager();
         if (is_multisite()) {
@@ -1957,22 +1971,165 @@ class PrimeMoverSystemFunctions
             return get_site_option($option, $default, $use_cache);
         } else {
             $this->maybeForceDeleteOptionCaches($option, $force_delete_cache, false);   
-            return get_option($option, $default);
+            return $this->getOptionFallBack($option, $default, $meta_key, $array, $force_to_option);
         }
         $this->addPluginManager();
     }
     
     /**
-     * Single-site compatible update site option 
-     * @param string $key
-     * @param $value
-     * @param boolean $force_delete_cache
-     * @return boolean
+     * Get option fallback for settings that don't exist during export
+     * But it exists on user meta table (backup)
+     * @param string $option
+     * @param boolean $default
+     * @param string $meta_key
+     * @param boolean $array
+     * @param boolean $force_to_option
+     * @return mixed
+     */
+    protected function getOptionFallBack($option = '', $default = false, $meta_key = '', $array = true, $force_to_option = false)
+    {
+        $opt_value = get_option($option, $default);       
+        $process_user = $this->getLockedSettingsUser();
+        if (!$process_user || $force_to_option) {
+            return $opt_value;
+        }
+
+        if (!$meta_key) {
+            $meta_key = $this->getSystemInitialization()->getPrimeMoverExcludedSettingsKey();
+        }
+        
+        $setting = get_user_meta($process_user, $meta_key, true);       
+        if ($array && is_array($setting) && isset($setting[$option])) {
+            $fallback = $setting[$option];
+            return $fallback;
+        }
+        
+        if (!$array) {
+            return $setting; 
+        }
+        
+        return $opt_value;        
+    }
+ 
+    /**
+     * Get locked settings user
+     * Returns the user in control of the settings (while DB is under processing)
+     * Otherwise returns the current logged-in user or auto-backup user (if doing automated backups)
+     * @return number|number|mixed
+     */
+    public function getLockedSettingsUser()
+    {        
+        $current_db_export_user = $this->getSystemInitialization()->getPrimeMoverCurrentDbExportUser();
+        if ($current_db_export_user) {
+            return $current_db_export_user;
+        }
+        
+        return $this->getProcessUserId();       
+    }
+    
+    /**
+     * Get process user ID
+     * Returns auto-backup user if doing autobackup otherwise fallback to
+     * current user logged-in
+     * @return number|mixed
+     */
+    public function getProcessUserId()
+    {    
+        return $this->getSystemInitialization()->getCurrentUserId();
+    }
+    
+    /**
+     * Get autobackup user helper method
+     * @return number|mixed
+     */
+    protected function getAutoBackupUserHelper()
+    {
+        $multisite = false;
+        if (is_multisite()) {
+            $multisite = true;
+        }
+        
+        $option = $this->getSystemInitialization()->getAutoBackupGlobalUser();
+        $user_id = get_site_option($option);
+        if ($user_id && false !== get_user_by('ID', $user_id) && $this->getSystemAuthorization()->canManageSite($user_id, $multisite)) {
+            $user_id = (int)$user_id;
+            
+            return $user_id;
+        }
+        
+        $useremail = get_site_option('admin_email');
+        $email_exist = email_exists($useremail);
+        if ($email_exist) {
+            $user_id = (int)$email_exist;
+            if ($this->getSystemAuthorization()->canManageSite($user_id, $multisite)) {
+                
+                return $user_id;
+            }
+        }
+        
+        $user_id = 0;
+        if ($multisite) {
+            $network_admins = get_super_admins();
+            sort($network_admins);
+            $user = null;
+            if (is_array($network_admins) && isset($network_admins[0])) {
+                $user = get_user_by('login', $network_admins[0]);
+            }
+            if (is_object($user) && isset($user->ID)) {
+                $user_id = $user->ID;
+                $user_id = (int)$user_id;
+                
+                return $user_id;
+            }
+            
+            return 0;
+        }
+        
+        $users = get_users(['role' => 'administrator',  'fields' => ['ID', 'user_login'], 'orderby' => 'user_login', 'order' => 'DESC']);
+        if (!is_array($users)) {
+            return 0;
+        }
+        
+        if (empty($users)) {
+            return 0;
+        }
+        
+        $keys = array_keys(wp_list_pluck($users, 'user_login', 'ID'));   
+        
+        return array_pop($keys);
+    }
+    
+    /**
+     * Get autobackup user
+     * @return number|mixed
+     */
+    public function getAutoBackupUser()
+    {
+        $auth = $this->getSystemInitialization()->getAuthKey();
+        $key = md5($auth);
+        $user_id = wp_cache_get($key);
+        if (false === $user_id) {
+            $user_id = $this->getAutoBackupUserHelper();
+            wp_cache_set($key, $user_id);
+        }
+        
+        return $user_id;
+    }
+    
+    /**
+     * Single-site compatible update site option
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itUpdatesSiteOptionWhenMultisite()
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itUpdatesSiteOptionWhenSingleSite()
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itDoesNotUpdatesSiteOptionWhenUnauthorized() 
+     * @param string $key
+     * @param mixed $value
+     * @param boolean $force_delete_cache
+     * @param string $meta_key
+     * @param boolean $array
+     * @param boolean $force_to_option
+     * @return boolean
      */
-    public function updateSiteOption($key = '', $value = null, $force_delete_cache = false) 
+    public function updateSiteOption($key = '', $value = null, $force_delete_cache = false, $meta_key = '', $array = true, $force_to_option = false) 
     {
         $ret = false;
         if (!$this->getSystemAuthorization()->isUserAuthorized()) {
@@ -1984,18 +2141,73 @@ class PrimeMoverSystemFunctions
             $ret = update_site_option($key, $value);
         } else {
             $this->maybeForceDeleteOptionCaches($key, $force_delete_cache, false);
-            $ret = update_option($key, $value);
+            $ret = $this->updateOptionFallBack($key, $value, $meta_key, $array, $force_to_option);
         }
+        
         $this->addPluginManager();
         return $ret;
+    }
+    
+    /**
+     * Update option fallback
+     * @param string $key
+     * @param mixed $value
+     * @param string $meta_key
+     * @param boolean $array
+     * @param boolean $force_to_option
+     * @return boolean
+     */
+    protected function updateOptionFallBack($key = '', $value = null, $meta_key = '', $array = true, $force_to_option = false)
+    {
+        if ($force_to_option) {
+            return update_option($key, $value);            
+        }
+        
+        $process_user = $this->getLockedSettingsUser();
+        $update_to_options = true; 
+        
+        if (!$meta_key) {
+            $meta_key = $this->getSystemInitialization()->getPrimeMoverExcludedSettingsKey();
+        }
+        
+        if ($process_user) {            
+            $setting = get_user_meta($process_user, $meta_key, true);
+            if ($array && is_array($setting) && isset($setting[$key])) {              
+                $update_to_options = false;
+            }
+            
+            if ($update_to_options && !$array) {
+                $update_to_options = false;
+            }
+        }
+        
+        if ($update_to_options) {            
+            return update_option($key, $value);
+            
+        } else {
+            
+            if ($array) {
+                $setting[$key] = $value;                
+            } else {
+                $setting = $value;
+            }
+            
+            do_action('prime_mover_update_user_meta', $process_user, $meta_key, $setting); 
+            
+            return true;
+        }
     }
     
     /**
      * Single-site compatible delete site option
      * @param string $key
      * @param boolean $force_delete_cache
+     * @param string $meta_key
+     * @param boolean $array
+     * @param boolean $force_to_option
+     * @return void|boolean
      */
-    public function deleteSiteOption($key = '', $force_delete_cache = false)
+    public function deleteSiteOption($key = '', $force_delete_cache = false, $meta_key = '', $array = true, $force_to_option = false)
     {
         if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return;
@@ -2007,10 +2219,58 @@ class PrimeMoverSystemFunctions
             $ret = delete_site_option($key);
         } else {
             $this->maybeForceDeleteOptionCaches($key, $force_delete_cache, false);
-            $ret = delete_option($key);
+            $ret = $this->deleteOptionFallBack($key, $meta_key, $array, $force_to_option);
         }
+        
         $this->addPluginManager();     
         return $ret;
+    }
+ 
+    /**
+     * Delete option fallback
+     * @param string $key
+     * @param string $meta_key
+     * @param boolean $array
+     * @param boolean $force_to_option
+     * @return boolean
+     */
+    protected function deleteOptionFallBack($key = '', $meta_key = '', $array = true, $force_to_option = false)
+    {
+        if ($force_to_option) { 
+            return delete_option($key);
+        }
+        
+        $process_user = $this->getLockedSettingsUser();
+        $delete_to_options = true;
+        if (!$meta_key) {
+            $meta_key = $this->getSystemInitialization()->getPrimeMoverExcludedSettingsKey();
+        }
+        
+        if ($process_user) {
+            $setting = get_user_meta($process_user, $meta_key, true);
+            if ($array && is_array($setting) && isset($setting[$key])) {
+                $delete_to_options = false;
+            }
+            
+            if ($delete_to_options && !$array) {
+                $delete_to_options = false;
+            }
+        }
+        
+        if ($delete_to_options) {            
+            return delete_option($key);
+            
+        } else {
+            if ($array) {
+                unset($setting[$key]);
+                do_action('prime_mover_update_user_meta', $process_user, $meta_key, $setting);
+                
+            } else {
+                delete_user_meta($process_user, $meta_key);
+            }           
+            
+            return true;
+        }
     }
     
     /**
@@ -2071,12 +2331,12 @@ class PrimeMoverSystemFunctions
     public function getActivatedPlugins($blogid_to_export = 0, $activated_plugins_list = [])
     {
         //Get active plugins in this site
-        $active_plugins = $this->getBlogOption($blogid_to_export, 'active_plugins');
+        $active_plugins = $this->getBlogOption($blogid_to_export, 'active_plugins', false, '', true, true);
         
         //Get all network activated plugins
         $active_sitewide_plugins = [];
         if (is_multisite()) {
-            $active_sitewide_plugins = $this->getSiteOption('active_sitewide_plugins');
+            $active_sitewide_plugins = $this->getSiteOption('active_sitewide_plugins', false, true, false, '', true, true);
         }
         
         //Loop over active plugins
@@ -2241,16 +2501,20 @@ class PrimeMoverSystemFunctions
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itLoadsAssetsProperlyOnBasicAndAdvancesettings() 
      */
     public function maybeLoadAssets(WP_Screen $current_screen)
-    {
+    {        
         $prime_mover_slug = $this->getSystemInitialization()->getPrimeMoverMenuSlug();
         $panel_identifier = "{$prime_mover_slug}_page_migration-panel-basic-settings-network";
         $advance_panel_identifier = "{$prime_mover_slug}_page_migration-panel-advance-settings-network";
-        if ( ! is_multisite() ) {
+        $scheduled_backups_identifier = "{$prime_mover_slug}_page_migration-panel-toolbox-network";
+        
+        if (!is_multisite()) {
             $panel_identifier = "{$prime_mover_slug}_page_migration-panel-basic-settings";
             $advance_panel_identifier = "{$prime_mover_slug}_page_migration-panel-advance-settings";
+            $scheduled_backups_identifier = "{$prime_mover_slug}_page_migration-panel-toolbox";
         }
-        return ( $panel_identifier === $current_screen->id ||
-            $advance_panel_identifier === $current_screen->id );
+        
+        return ($panel_identifier === $current_screen->id || $advance_panel_identifier === $current_screen->id ||
+            $scheduled_backups_identifier === $current_screen->id);
     }
     
     /**
@@ -2301,7 +2565,7 @@ class PrimeMoverSystemFunctions
      */
     public function parsedBHostForPDO()
     {
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $ret = [];
         if ( ! is_object($wpdb) ) {
             return false;
@@ -2600,7 +2864,8 @@ class PrimeMoverSystemFunctions
         if (! $blogid_to_export) {
             return basename($download_path);
         }
-        $blog_name = $this->getBlogOption($blogid_to_export, 'blogname');
+        
+        $blog_name = $this->getBlogOption($blogid_to_export, 'blogname', false, '', true, true);
         $target_blog_id = 0;
         if (is_array($ret) && isset($ret['prime_mover_export_targetid'])) {
             $target_blog_id = $ret['prime_mover_export_targetid'];
@@ -2898,7 +3163,7 @@ class PrimeMoverSystemFunctions
         if ($update && false === $key) {
             $site_ids[] = $blog_id;
         }
-        if ($update) {
+        if ($update) {            
             $this->updateSiteOption($option_name, $site_ids, true);
         }
         
@@ -2926,6 +3191,61 @@ class PrimeMoverSystemFunctions
         } else {
             return admin_url( 'admin.php?page=migration-panel-backup-menu');
         }
+    }
+ 
+    /**
+     * Get schedule backup settings URL
+     * @param number $blog_id
+     * @return string
+     */
+    public function getScheduledBackupSettingsUrl($blog_id = 0)
+    {
+        return $this->generateMenuUrl($blog_id, 'scheduledbackup');
+    }
+ 
+    /**
+     * Get event viewer URL
+     * @param number $blog_id
+     * @return string
+     */
+    public function getEventViewerUrl($blog_id = 0)
+    {        
+        return $this->generateMenuUrl($blog_id, 'eventviewer');
+    }
+    
+    /**
+     * Generate menu URL
+     * @param number $blog_id
+     * @param string $mode
+     * @return string
+     */
+    protected function generateMenuUrl($blog_id = 0, $mode = 'scheduledbackup')
+    {
+        $blog_id = (int)($blog_id);
+        $modes = [
+            'scheduledbackup' => [
+                'blog_id' => 'prime_mover_site_blog_id', 
+                'slug' => 'admin.php?page=migration-panel-toolbox'
+            ],
+            
+            'eventviewer' => [
+                'blog_id' => 'prime-mover-select-blog-to-query',
+                'slug' => 'admin.php?page=migration-panel-backup-menu-event-viewer'
+            ],
+        ];
+        
+        $blog_id_parameter = $modes[$mode]['blog_id'];
+        $slug_parameter = $modes[$mode]['slug'];       
+        
+        if (is_multisite()) {
+            if ($blog_id) {
+                return add_query_arg([$blog_id_parameter => $blog_id], network_admin_url($slug_parameter));
+            } else {
+                return network_admin_url($slug_parameter);
+            }
+        } else {
+            return admin_url($slug_parameter);
+        }        
     }
     
     /**
@@ -3309,7 +3629,9 @@ class PrimeMoverSystemFunctions
         if ( ! $path ) {
             return;
         }
-        unlink($path);
+        if ($this->nonCachedFileExists($path)) {
+            unlink($path);
+        }        
     }
     
     /**
@@ -3383,7 +3705,7 @@ class PrimeMoverSystemFunctions
      */
     public function getTablesforReplacement($blog_id = 0, $ret = [])
     {        
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $all_tables	= [];
         
         if ($this->isMultisiteMainSite($blog_id, true)) {    
@@ -3613,7 +3935,7 @@ class PrimeMoverSystemFunctions
      */
     public function getUserMetaTableName($users_table = false)
     {
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $main_site_id = 1;
         if (is_multisite()) {
             $main_site_id = $this->getSystemInitialization()->getMainSiteBlogId();
@@ -3674,22 +3996,7 @@ class PrimeMoverSystemFunctions
      */
     public function removeSchemeFromUrl($given_url = '')
     {
-        $url_parsed = parse_url($given_url);
-        $given_url_parsed = '';
-        if ((isset($url_parsed['host'])) && (!empty($url_parsed['host']))) {
-            $given_url_parsed .= $url_parsed['host'];
-        }
-
-        if ((isset($url_parsed['port'])) && (!empty($url_parsed['port']))) {
-            $given_url_parsed .= ":";
-            $given_url_parsed .= $url_parsed['port'];
-        }
-        
-        if ((isset($url_parsed['path'])) && (!empty($url_parsed['path']))) {
-            $given_url_parsed .= $url_parsed['path'];
-        }
-        
-        return $given_url_parsed;
+        return $this->getSystemInitialization()->removeSchemeFromUrl($given_url);
     }
     
     /**
@@ -3883,17 +4190,60 @@ class PrimeMoverSystemFunctions
  
     /**
      * Add nonce filters
-     * @param boolean $skip
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itAddsPrimeMoverNonceFilters()
+     * @param boolean $skip
+     * @param boolean $force
      */
-    protected function addPrimeMoverNonceFilters($skip = false)
+    protected function addPrimeMoverNonceFilters($skip = false, $force = false)
     {
+        if ($force) {
+            $this->addNonceFilters();
+            return;
+        }
+      
         if (!$this->getSystemAuthorization()->isUserAuthorized() || $skip) {
             return;
         }
         
+        $this->addNonceFilters();
+    }
+    
+    /**
+     * Nonce filters add
+     */
+    private function addNonceFilters()
+    {
         add_filter('nonce_life', [$this, 'primeMoverNonceLife'], PRIME_MOVER_LOWEST_PRIORITY, 1);
         add_filter('salt', [$this, 'primeMoverNonceSalt'], PRIME_MOVER_LOWEST_PRIORITY, 2);
+    }
+
+    /**
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itRemovesPrimeMoverNonceFilters()
+     * Remove Prime Mover nonce filters
+     * @param boolean $skip
+     * @param boolean $force
+     */
+    protected function removePrimeMoverNonceFilters($skip = false, $force = false)
+    {
+        if ($force) {
+            $this->removeNonceFilters();
+            return;
+        }
+       
+        if (!$this->getSystemAuthorization()->isUserAuthorized() || $skip) {
+            return;
+        }
+        
+        $this->removeNonceFilters();
+    }
+    
+    /**
+     * Remove nonce filters
+     */
+    private function removeNonceFilters()
+    {
+        remove_filter('nonce_life', [$this, 'primeMoverNonceLife'], PRIME_MOVER_LOWEST_PRIORITY, 1);
+        remove_filter('salt', [$this, 'primeMoverNonceSalt'], PRIME_MOVER_LOWEST_PRIORITY, 2);
     }
     
     /**
@@ -3925,80 +4275,69 @@ class PrimeMoverSystemFunctions
             $nonce_key = NONCE_KEY;
         }
         if (!$nonce_key) {
-            $nonce_key = $this->getSiteOption('nonce_key');
+            $nonce_key = $this->getSiteOption('nonce_key', false, true, false, '', true, true);
         }
         if (defined('NONCE_SALT') && NONCE_SALT) {
             $nonce_salt = NONCE_SALT;
         }
         if (!$nonce_salt) {
-            $nonce_salt = $this->getSiteOption('nonce_salt');
+            $nonce_salt = $this->getSiteOption('nonce_salt', false, true, false, '', true, true);
         }
         if ($nonce_key && $nonce_salt) {
             return $nonce_key . $nonce_salt;
         }
         return $salt;        
     }
-    
-    /**
-     * Remove Prime Mover nonce filters
-     * @param boolean $skip
-     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itRemovesPrimeMoverNonceFilters()
-     */
-    protected function removePrimeMoverNonceFilters($skip = false)
-    {
-        if (!$this->getSystemAuthorization()->isUserAuthorized() || $skip) {
-            return;
-        }
-        remove_filter('nonce_life', [$this, 'primeMoverNonceLife'], PRIME_MOVER_LOWEST_PRIORITY, 1);
-        remove_filter('salt', [$this, 'primeMoverNonceSalt'], PRIME_MOVER_LOWEST_PRIORITY, 2);
-    }
-    
+        
     /**
      * Prime Mover nonce URL
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itCreatesNonceUrl()
      * @param mixed $actionurl
      * @param mixed $action
      * @param string $name
      * @param boolean $skip
+     * @param boolean $force
      * @return string
-     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itCreatesNonceUrl()
      */
-    public function primeMoverNonceUrl($actionurl, $action = -1, $name = '_wpnonce', $skip = false)
+    public function primeMoverNonceUrl($actionurl, $action = -1, $name = '_wpnonce', $skip = false, $force = false)
     {
-        $this->addPrimeMoverNonceFilters($skip);
+        $this->addPrimeMoverNonceFilters($skip, $force);
         $nonce_url = wp_nonce_url($actionurl, $action, $name);
-        $this->removePrimeMoverNonceFilters($skip);
+        $this->removePrimeMoverNonceFilters($skip, $force);
         
         return $nonce_url;
     }
     
     /**
      * Prime Mover nonce field
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itCreatesNonceField() 
      * @param mixed $action
      * @param string $name
      * @param boolean $referer
      * @param boolean $echo
      * @param boolean $skip
-     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itCreatesNonceField() 
+     * @param boolean $force
      */
-    public function primeMoverNonceField($action = -1, $name = '_wpnonce', $referer = true, $echo = true, $skip = false)
+    public function primeMoverNonceField($action = -1, $name = '_wpnonce', $referer = true, $echo = true, $skip = false, $force = false)
     {
-        $this->addPrimeMoverNonceFilters($skip);
+        $this->addPrimeMoverNonceFilters($skip, $force);
         wp_nonce_field($action, $name, $referer, $echo);
-        $this->removePrimeMoverNonceFilters($skip);
+        $this->removePrimeMoverNonceFilters($skip, $force);
     }
     
     /**
      * Prime Mover create nonce
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itCreatesNonce()
      * @param mixed $action
      * @param boolean $skip
+     * @param boolean $force
      * @return string
-     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itCreatesNonce()
      */
-    public function primeMoverCreateNonce($action = -1, $skip = false)
+    public function primeMoverCreateNonce($action = -1, $skip = false, $force = false)
     {
-        $this->addPrimeMoverNonceFilters($skip);
+        $this->addPrimeMoverNonceFilters($skip, $force);
         $nonce_val = wp_create_nonce($action);
-        $this->removePrimeMoverNonceFilters($skip);
+        $this->removePrimeMoverNonceFilters($skip, $force);
         
         return $nonce_val;
     }
@@ -4037,17 +4376,18 @@ class PrimeMoverSystemFunctions
     
     /**
      * Prime Mover verify nonce
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itVerifiesNonce() 
      * @param string $nonce
      * @param mixed $action
      * @param boolean $skip
+     * @param boolean $force
      * @return number|false
-     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itVerifiesNonce() 
      */
-    public function primeMoverVerifyNonce($nonce = '', $action = -1, $skip = false)
+    public function primeMoverVerifyNonce($nonce = '', $action = -1, $skip = false, $force = false)
     {
-        $this->addPrimeMoverNonceFilters($skip);
+        $this->addPrimeMoverNonceFilters($skip, $force);
         $verify = wp_verify_nonce($nonce, $action);
-        $this->removePrimeMoverNonceFilters($skip);
+        $this->removePrimeMoverNonceFilters($skip, $force);
         
         return $verify;
     }
@@ -4060,11 +4400,11 @@ class PrimeMoverSystemFunctions
      * @return number|false
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itChecksAdminReferer()
      */
-    public function primeMoverCheckAdminReferer($action = -1, $query_arg = '_wpnonce', $skip = false)
+    public function primeMoverCheckAdminReferer($action = -1, $query_arg = '_wpnonce', $skip = false, $force = false)
     {
-        $this->addPrimeMoverNonceFilters($skip);
+        $this->addPrimeMoverNonceFilters($skip, $force);
         $nonce_referer_check = check_admin_referer($action, $query_arg);
-        $this->removePrimeMoverNonceFilters($skip);
+        $this->removePrimeMoverNonceFilters($skip, $force);
         
         return $nonce_referer_check;
     }
@@ -4095,7 +4435,8 @@ class PrimeMoverSystemFunctions
         if (!$blog_id) {
             return '';
         }
-        $user_id = get_current_user_id();
+        
+        $user_id = $this->getSystemInitialization()->getCurrentUserId();
         $backup_menu_url = $this->getBackupMenuUrl();
         $refresh_url = $this->primeMoverNonceUrl($backup_menu_url, 'refresh_backups_'.$user_id, 'prime_mover_refresh_backups');
         
@@ -4177,5 +4518,157 @@ class PrimeMoverSystemFunctions
     public function isLargeStreamFile($filesize = 0)
     {
         return ($filesize > $this->getSystemInitialization()->getPrimeMoverLargeFileSizeStream());
+    }
+    
+    /**
+     * Save auto-backup retry status
+     * @param array $response
+     * @param boolean $auto_backup_timeout
+     * @param number $blogid_to_export
+     * @param array $results
+     */
+    public function maybeSaveAutoBackupRetryStatus($response = [], $auto_backup_timeout = false, $blogid_to_export = 0, $results = [])
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized() || !$this->getSystemAuthorization()->isDoingAutoBackup()) {            
+            return;
+        }
+      
+        if (!is_array($response) || empty($response) || !$blogid_to_export) {
+            return;
+        }
+        
+        $user_id = $this->getSystemInitialization()->getCurrentUserId();
+        if (!$user_id ) {
+            return;
+        } 
+        
+        $meta_key = $this->getSystemInitialization()->getAutoBackupRetryMeta($blogid_to_export, $user_id);
+        wp_cache_delete($user_id, 'user_meta' );        
+             
+        $autobackup_profile = [];        
+        if ($auto_backup_timeout) {
+            $autobackup_profile = $response;            
+            $autobackup_profile['automatic_backup_timeout_event'] = true;
+        }
+        
+        if (!empty($results['multisite_export_options'])) {
+            $autobackup_profile['automatic_backup_export_options'] = $results['multisite_export_options'];
+        }
+        
+        if (!empty($results['prime_mover_encrypt_db'])) {
+            $autobackup_profile['automatic_backup_subsite_encryption_enabled'] = $results['prime_mover_encrypt_db'];
+        }
+        
+        if (!empty($results['prime_mover_dropbox_upload'])) {
+            $autobackup_profile['automatic_backup_dropbox_upload_enabled'] = $results['prime_mover_dropbox_upload'];
+        }
+        
+        if (!empty($results['prime_mover_gdrive_upload'])) {
+            $autobackup_profile['automatic_backup_gdrive_upload_enabled'] = $results['prime_mover_gdrive_upload'];
+        }       
+        
+        $autobackup_profile['automatic_backup_wip_initialized'] = true;
+        
+        do_action('prime_mover_update_user_meta', $user_id, $meta_key, $autobackup_profile);    
+        do_action('prime_mover_after_save_autobackup_status', $autobackup_profile, $blogid_to_export);        
+    }
+
+    /**
+     * Stream copy to stream wrapper
+     * @param string $from
+     * @param string $to
+     * @param string $from_mode
+     * @param string $to_mode
+     * @param boolean $return_bytes
+     * @return boolean|number|boolean
+     */
+    public function streamCopyToStream($from = '', $to = '', $from_mode = 'rb', $to_mode = 'ab', $return_bytes = false)
+    {
+        if (!$from || !$to || !$from_mode || !$to_mode) {
+            return false;
+        }
+        
+        $from = fopen($from, $from_mode);
+        $to = fopen($to, $to_mode);
+        
+        if (false === $from || false === $to) {
+            return false;
+        }
+        
+        $bytes = stream_copy_to_stream($from, $to);
+        
+        fclose($from);
+        fclose($to);
+        
+        if ($return_bytes) {
+            return $bytes;
+        }        
+    }
+    
+    /**
+     * Checks if given table exists on existing wpdb connection
+     * @param string $given
+     * @return boolean
+     */
+    public function isTableExists($given = '')
+    {
+        $wpdb = $this->getSystemInitialization()->getWpdB();
+        if (!is_object($wpdb) || !is_string($given) || !$given) {
+            return false;
+        }
+        $db_search = "SHOW TABLES LIKE %s";
+        $esc_table = $wpdb->esc_like($given);
+        $sql = $wpdb->prepare($db_search , $esc_table);
+        
+        $query_res = $wpdb->get_var($sql);
+        if (!$query_res || !is_string($query_res)) {
+            return false;
+        }
+        return (mb_strtolower($query_res) === mb_strtolower($given));
+    }
+    
+    /**
+     * Return TRUE is on scheduled backup page
+     * @return boolean
+     */
+    public function isScheduledBackupPage()
+    {
+        $scheduled_backup = ['prime-mover-pro_page_migration-panel-toolbox', 'prime-mover-pro_page_migration-panel-toolbox-network'];
+        global $current_screen;
+        if (!is_object($current_screen)) {
+            return false;
+        }
+        if (!isset($current_screen->id)) {
+            return false;
+        }
+        $load_id = $current_screen->id;
+        if (!$load_id) {
+            return false;
+        }
+        return (in_array($load_id, $scheduled_backup));
+    }
+    
+    /**
+     * Flexible map deep function that only made the adjustment on targeted keys
+     * @param mixed $value
+     * @param string $callback
+     * @param string $index
+     * @param array $target
+     * @return string|string|mixed
+     */
+    public function mapDeep($value = null, $callback = '', $index = '', $target = []) {
+        if (!$callback || empty($target)) {
+            return $value;
+        }
+        
+        if (is_array($value)) {
+            foreach ($value as $index => $item) {
+                $value[$index] = $this->mapDeep($item, $callback, $index, $target);
+            }
+        } elseif (in_array($index, $target)) {
+            $value = call_user_func($callback, $value);
+        }
+        
+        return $value;
     }
 }

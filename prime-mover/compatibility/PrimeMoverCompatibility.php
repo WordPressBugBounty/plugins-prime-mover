@@ -176,7 +176,7 @@ class PrimeMoverCompatibility
         $option = '_thirdpartyplugins_' . $process_id;
         $thirdparty_data = $ret['imported_package_footprint']['thirdparty_callback_plugins'];
         
-        $this->getSystemFunctions()->updateSiteOption($option, $thirdparty_data, true);      
+        $this->getSystemFunctions()->updateSiteOption($option, $thirdparty_data, true, '', true, true);      
     }
   
     /**
@@ -547,7 +547,8 @@ class PrimeMoverCompatibility
         if ( ! is_network_admin()) {
             return;
         }
-        if ('yes' === $this->getSystemFunctions()->getSiteOption(self::PRIMEMOVER_SETTINGS_MIGRATED, false, true, true)) {
+        
+        if ('yes' === $this->getSystemFunctions()->getSiteOption(self::PRIMEMOVER_SETTINGS_MIGRATED, false, true, true, '', true, true)) {
             return;
         }        
         $backups = $this->getBackupUtilities()->getValidatedBackupsArrayInDb($this->getSystemInitialization()->getPrimeMoverMenuBackupsOption(), true);
@@ -559,7 +560,7 @@ class PrimeMoverCompatibility
         $main_options = $this->mainPrimeMoverOptions();
         
         $this->mainOptionToSiteMetaOptionHelper($main_options);     
-        $this->getSystemFunctions()->updateSiteOption(self::PRIMEMOVER_SETTINGS_MIGRATED, 'yes', true);        
+        $this->getSystemFunctions()->updateSiteOption(self::PRIMEMOVER_SETTINGS_MIGRATED, 'yes', true, '', true, true);        
     }
     
     /**
@@ -608,10 +609,12 @@ class PrimeMoverCompatibility
             if (false === $orig_value) {
                 delete_option($option_name);
                 continue;
-            }           
-            $this->getSystemFunctions()->updateSiteOption($option_name, $orig_value, true);
+            }
+            
+            $this->getSystemFunctions()->updateSiteOption($option_name, $orig_value, true,  '', true, true);
             delete_option($option_name);
         }
+        
         $this->getSystemFunctions()->restoreCurrentBlog();   
     }
     
@@ -696,10 +699,11 @@ class PrimeMoverCompatibility
      */
     public function primeMoverGenerateFootPrintKeys($keys = [], $footprint = [])
     {
-        do_action('prime_mover_log_processed_events', "Footprint keys for validation :", 1, 'export', 'primeMoverGenerateFootPrintKeys', $this);
-        do_action('prime_mover_log_processed_events', $keys, 1, 'export', 'primeMoverGenerateFootPrintKeys', $this);
-        do_action('prime_mover_log_processed_events', "Custom log for site footprint data before check:", 1, 'export', 'primeMoverGenerateFootprintConfiguration', $this);
-        do_action('prime_mover_log_processed_events', $footprint, 1, 'export', 'primeMoverGenerateFootprintConfiguration', $this);
+        $export_blog_id = $this->getSystemInitialization()->getExportBlogID();
+        do_action('prime_mover_log_processed_events', "Footprint keys for validation :", $export_blog_id, 'export', 'primeMoverGenerateFootPrintKeys', $this);
+        do_action('prime_mover_log_processed_events', $keys, $export_blog_id, 'export', 'primeMoverGenerateFootPrintKeys', $this);
+        do_action('prime_mover_log_processed_events', "Custom log for site footprint data before check:", $export_blog_id, 'export', 'primeMoverGenerateFootprintConfiguration', $this);
+        do_action('prime_mover_log_processed_events', $footprint, $export_blog_id, 'export', 'primeMoverGenerateFootprintConfiguration', $this);
         
         return $keys;        
     }
@@ -712,9 +716,10 @@ class PrimeMoverCompatibility
      */
     public function primeMoverGenerateFootprintConfiguration($overall_valid = true, $footprint_temp = [])
     {
-        do_action('prime_mover_log_processed_events', "Footprint data validity is: $overall_valid", 1, 'export', 'primeMoverGenerateFootprintConfiguration', $this);
-        do_action('prime_mover_log_processed_events', "Custom log for site footprint data after check:", 1, 'export', 'primeMoverGenerateFootprintConfiguration', $this);
-        do_action('prime_mover_log_processed_events', $footprint_temp, 1, 'export', 'primeMoverGenerateFootprintConfiguration', $this);
+        $export_blog_id = $this->getSystemInitialization()->getExportBlogID();
+        do_action('prime_mover_log_processed_events', "Footprint data validity is: $overall_valid", $export_blog_id, 'export', 'primeMoverGenerateFootprintConfiguration', $this);
+        do_action('prime_mover_log_processed_events', "Custom log for site footprint data after check:", $export_blog_id, 'export', 'primeMoverGenerateFootprintConfiguration', $this);
+        do_action('prime_mover_log_processed_events', $footprint_temp, $export_blog_id, 'export', 'primeMoverGenerateFootprintConfiguration', $this);
         
         return $overall_valid;
     }

@@ -182,11 +182,11 @@ class PrimeMoverUsers
             return;
         }        
         
-        $current_user_id = get_current_user_id();
+        $current_user_id = $this->getSystemInitialization()->getCurrentUserId();
         $db_prefix = $this->getSystemFunctions()->getDbPrefixOfSite(1);
         $current_role_option = $db_prefix . 'user_roles';
-        $option_value = $this->getSystemFunctions()->getOption($current_role_option);
-      
+        
+        $option_value = $this->getSystemFunctions()->getOption($current_role_option, false, '', true, true);      
         do_action('prime_mover_update_user_meta', $current_user_id, $this->getSystemInitialization()->getDefaultUserRole(), $option_value); 
     }
     
@@ -214,7 +214,8 @@ class PrimeMoverUsers
             return $user_meta;
         }
         
-        list($target_cap_prefix, $target_level_prefix) = $target;   
+        list($target_cap_prefix, $target_level_prefix) = $target;  
+        $fallback_keys = $this->getSystemInitialization()->getExcludedMetaKeyOnExportImport();
         foreach(array_keys($user_meta) as $key) {
             if (!isset($user_meta[$key][0])) {
                 continue;
@@ -240,6 +241,10 @@ class PrimeMoverUsers
             if (primeMoverIsShaString($key) && is_serialized($user_meta[$key][0])) {
                 unset($user_meta[$key]);
             }  
+            
+            if (in_array($key, $fallback_keys)) {
+                unset($user_meta[$key]);
+            }
         } 
         
         return $user_meta;
@@ -258,7 +263,7 @@ class PrimeMoverUsers
             return $excluded;
         }
         
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         if ($processed_meta_key === $wpdb->base_prefix . 'capabilities' || $processed_meta_key === $wpdb->base_prefix . 'user_level') {
             $excluded[] = $processed_meta_key;
         }       
@@ -278,7 +283,7 @@ class PrimeMoverUsers
             return $all_tables;
         }
         
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $users_table = $wpdb->users;
         
         $key = array_search($users_table, $all_tables);
@@ -802,6 +807,7 @@ class PrimeMoverUsers
                 $ret['users_export_query_offset'] = $offset;       
                 $ret['users_export_leftoff'] = $left_off;
                 
+                $ret = $this->getSystemInitialization()->maybeAutomaticBackupTimeout($ret);
                 return $ret;                
             }            
         }

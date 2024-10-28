@@ -150,7 +150,7 @@ class PrimeMoverReset
         }
         $exist = $this->getPrimeMoverSettings()->getAllPrimeMoverSettings();
         if ($exist) {
-            $status = $this->getPrimeMoverSettings()->deleteAllPrimeMoverSettings();
+            $status = $this->getPrimeMoverSettings()->deleteAllPrimeMoverSettings(false, true);
         } else {
             $status = true;    
         }

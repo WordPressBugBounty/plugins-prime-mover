@@ -111,7 +111,7 @@ class PrimeMoverDownloadUtilities
      */
     public function maybeEnableCronDebug($params = [])
     {        
-        if (PRIME_MOVER_CRON_TEST_MODE && ! empty($params['url']) ) {
+        if (PRIME_MOVER_XDEBUG_DEV_MODE && ! empty($params['url']) ) {
             $cron_url = $params['url'];
             $cron_url = add_query_arg('XDEBUG_SESSION_START', 'wordpress', $cron_url);
             $params['url'] = $cron_url;
@@ -267,7 +267,8 @@ class PrimeMoverDownloadUtilities
             $option_value['include_users'] = $ret['include_users'];
         }
         
-        $this->getSystemFunctions()->updateSiteOption($option_name, $option_value, true);
+        $meta_key = $this->getSystemInitialization()->getCurrentGearBoxPackagesMetaKey();
+        $this->getSystemFunctions()->updateSiteOption($option_name, $option_value, true, $meta_key, true, false);
     }
     
     /**
@@ -335,8 +336,8 @@ class PrimeMoverDownloadUtilities
             do_action('prime_mover_log_processed_events', 'Stream download request authenticated using authorization headers', $blog_id, 'export', 'streamDownload', $this);
         }
         
-        $download_path = $this->getSystemFunctions()->getSiteOption($hash, false, true, true);
-        $download_filename = $this->getSystemFunctions()->getSiteOption($hash . "_filename", '', true, true);
+        $download_path = $this->getSystemFunctions()->getSiteOption($hash, false, true, true, '', true, true);
+        $download_filename = $this->getSystemFunctions()->getSiteOption($hash . "_filename", '', true, true, '', true, true);
         
         if ( ! $download_path ) {
             status_header(404);
@@ -703,7 +704,7 @@ class PrimeMoverDownloadUtilities
         } 
         $this->renderDownloadHelper($header_location_method, $readfile_method, $linkurl, $download_path, $offset, $blog_id, $resumable_method);        
         if ( ! $remote_url_request ) {
-            $this->getSystemFunctions()->deleteSiteOption($params['prime_mover_export_hash'] . "_filename", true);
+            $this->getSystemFunctions()->deleteSiteOption($params['prime_mover_export_hash'] . "_filename", true,  '', true, true);
             do_action('prime_mover_log_processed_events', 'Deleted download path and option', $blog_id, 'export', 'streamDownloadHelper', $this);
         }
     }

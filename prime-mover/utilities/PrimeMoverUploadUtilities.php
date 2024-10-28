@@ -417,8 +417,8 @@ class PrimeMoverUploadUtilities
     {
         $process_id = $this->getProgressHandlers()->generateTrackerId($blog_id, 'import');
         $assembly_option = '_assembly_' . $process_id;
-        
-        return $this->getSystemFunctions()->getSiteOption($assembly_option, false, true, true);
+               
+        return $this->getSystemFunctions()->getSiteOption($assembly_option, false, true, true, '', true, true);
     }
   
     /**
@@ -432,7 +432,7 @@ class PrimeMoverUploadUtilities
         $process_id = $this->getProgressHandlers()->generateTrackerId($blog_id, 'import');
         $assembled_option = '_assembled_' . $process_id;
         
-        return $this->getSystemFunctions()->getSiteOption($assembled_option, false, true, true);
+        return $this->getSystemFunctions()->getSiteOption($assembled_option, false, true, true, '', true, true);
     }
     
     /**
@@ -454,7 +454,7 @@ class PrimeMoverUploadUtilities
         $process_id = $this->getProgressHandlers()->generateTrackerId($blog_id, 'import');
         $uploadtracker_option = '_upload_progress_' . $process_id;        
         
-        $last_progress = $this->getSystemFunctions()->getSiteOption($uploadtracker_option, false, true, true);
+        $last_progress = $this->getSystemFunctions()->getSiteOption($uploadtracker_option, false, true, true, '', true, true);
         if (is_array($last_progress)) {            
             $progress = $last_progress;
         }         
@@ -464,7 +464,7 @@ class PrimeMoverUploadUtilities
         }        
         
         $progress_counted = count($progress);
-        $last_progress = $this->getSystemFunctions()->updateSiteOption($uploadtracker_option, $progress, true); 
+        $last_progress = $this->getSystemFunctions()->updateSiteOption($uploadtracker_option, $progress, true,  '', true, true); 
 
         return $progress_counted;        
     }
@@ -733,7 +733,7 @@ class PrimeMoverUploadUtilities
     protected function markPackageAsUnderAssembly($process_id = '')
     {        
         $assembly_option = '_assembly_' . $process_id;
-        $this->getSystemFunctions()->updateSiteOption($assembly_option, 'yes', true); 
+        $this->getSystemFunctions()->updateSiteOption($assembly_option, 'yes', true, '', true, true); 
     }
     
     /**
@@ -743,7 +743,7 @@ class PrimeMoverUploadUtilities
     protected function markPackageAsAssembled($process_id = '')
     {
         $assembled_option = '_assembled_' . $process_id;
-        $this->getSystemFunctions()->updateSiteOption($assembled_option, 'yes', true); 
+        $this->getSystemFunctions()->updateSiteOption($assembled_option, 'yes', true, '', true, true); 
     }
     
     /**

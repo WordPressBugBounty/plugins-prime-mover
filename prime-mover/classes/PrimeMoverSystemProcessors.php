@@ -757,9 +757,9 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
         }
         $import_id = $this->getSystemInitialization()->getImportId();
         $response['process_id'] = $import_id;
-
         $option = 'import_' . $import_id;
-        $this->getSystemFunctions()->updateSiteOption($option, $response);
+        
+        $this->getSystemFunctions()->updateSiteOption($option, $response, false, '', true, true);
         if ($status) {
             $this->getProgressHandlers()->updateTrackerProgress($status);
         }
@@ -780,7 +780,7 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
     public function primeMoverExportProcessor()
     {
         $start_time = $this->getSystemInitialization()->getStartTime();
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
         $all_clear = false;
@@ -820,6 +820,15 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
             $errors[] = esc_html__('Export nonce and other POST parameters not set.', 'prime-mover');
         }
 
+        if (true === $all_clear) { 
+            $autobackup_wip_initialization = $this->getSystemInitialization()->getAutoBackupWipInitializationStatus();
+            $error_string = apply_filters('prime_mover_maybe_bailout_autobackup', false, $blogid_to_export, $autobackup_wip_initialization);
+            if ($error_string) {
+                $all_clear = false;
+                $errors[] = $error_string;
+            }            
+        }
+        
         if (true === $all_clear) {
             $export_options_array = [];
             $this->getSystemInitialization()->setExportBlogID($blogid_to_export);
@@ -849,16 +858,28 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
                 $error_message = $results['error'];
                 $response['export_not_successful'] = esc_js($error_message);
                 do_action('prime_mover_log_processed_events', 'Export result error found:' . $error_message, $blogid_to_export, 'export', 'primeMoverExportProcessor', $this);
+                
                 return $this->returnFatalRunTimeErrors($results);
             } elseif (isset($results['ongoing_export']) && isset($results['next_method']) && isset($results['current_method'])) {
+                
+                $auto_backup_timeout = false;
+                if ($this->getSystemAuthorization()->isDoingAutoBackup() && isset($results['auto_backup_timeout'])) {
+                    $response['auto_backup_timeout'] = $results['auto_backup_timeout'];
+                    $auto_backup_timeout = true;
+                }                
+                
                 $response['ongoing_export'] = $results['ongoing_export'];
                 $response['next_method'] = $results['next_method'];
                 $response['current_method'] = $results['current_method'];
                 if (! empty($results['temp_folder_path'])) {
                     $response['temp_folder_path'] = $results['temp_folder_path'];
                 }
-                $response['process_id'] = $this->getSystemInitialization()->getExportId();
-                return wp_send_json($response);
+                
+                $response['process_id'] = $this->getSystemInitialization()->getExportId();       
+                $this->getSystemFunctions()->maybeSaveAutoBackupRetryStatus($response, $auto_backup_timeout, $blogid_to_export, $results);               
+                
+                return wp_send_json($response);               
+                
             } elseif (isset($results['multisite_export_location']) && 'export_directory' === $results['multisite_export_location']) {
                 $stop_tracking = true;
                 do_action('prime_mover_log_processed_events', 'Export location defined', $blogid_to_export, 'export', 'primeMoverExportProcessor', $this);
@@ -889,17 +910,29 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
             if ($stop_tracking) {
                 $this->logStopTracking($blogid_to_export, $results);
                 $this->saveCompletedExportResponse($blogid_to_export, $response);
+            }            
+            
+            if ($stop_tracking && $this->getSystemAuthorization()->isDoingAutoBackup()) {
+                $response['auto_backup_stoptracking'] = true; 
+                return wp_send_json($response);
             }
+            
         } else {
-            if (! empty($errors)) {
+            if (!empty($errors)) {
                 $errors = print_r($errors, true);
             } else {
                 $errors = esc_html__('An unknown error has occured', 'prime-mover');
             }
+            
             do_action('prime_mover_shutdown_actions', [
                 'type' => 1,
                 'message' => $errors
             ]);
+            
+            if ($this->getSystemAuthorization()->isDoingAutoBackup()) {
+                return wp_send_json($errors);
+            }
+            
         }
         wp_die();
     }
@@ -931,10 +964,15 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
         if (empty($ret['error'])) {
             return;
         }
-        global $wpdb;
+        $wpdb = $this->getSystemInitialization()->getWpdB();
         $wpdb->query("UNLOCK TABLES;");
         $validation_error = print_r($ret['error'], true);
         do_action( 'prime_mover_shutdown_actions', ['type' => 1, 'message' => $validation_error] );
+        
+        if ($this->getSystemAuthorization()->isDoingAutoBackup()) {
+            return wp_send_json($validation_error);
+        }
+        
         wp_die();
     }
     /**
@@ -979,7 +1017,7 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
         $response['process_id'] = $export_id;
 
         $option = 'export_' . $export_id;
-        $this->getSystemFunctions()->updateSiteOption($option, $response);
+        $this->getSystemFunctions()->updateSiteOption($option, $response,  false, '', true, true);
         if ($status) {
             $this->getProgressHandlers()->updateTrackerProgress($status, 'export');
         }

@@ -65,15 +65,77 @@ class PrimeMoverSystemAuthorization
         if ($authorized) {
             $this->prime_mover_user_id = $user->ID;
         }
-        return $authorized;
+        
+        if (!$authorized && true === $this->isDoingAutoBackup()) {
+            $authorized = true;
+        }
+        
+        return $this->isReallyAuthorized($authorized);
     }
+ 
+    /**
+     * Complete authorization checks including doing an automatic backup process
+     * @param boolean $authorized
+     * @return string|boolean
+     */
+    final protected function isReallyAuthorized($authorized = false)
+    {
+        if (!$this->isDoingAutoBackup()) {
+            return $authorized;
+        }
+        
+        if (!$authorized) {
+            return $authorized;
+        }
+        
+        global $prime_mover_plugin_manager;
+        if (!$prime_mover_plugin_manager->getAutoBackupIdentity()) {
+            return false;
+        }
+        
+        $auto_backup_identity = $prime_mover_plugin_manager->getAutoBackupIdentity();
+        $request_api_key = primeMoverGetApiRequestKey();
+        if (!$request_api_key || !$auto_backup_identity) {
+            return false;
+        }
+                
+        $decrypted = primeMoverOpenSSLDecrypt($auto_backup_identity, $request_api_key, true);
+        if (!$decrypted) {
+            return false;
+        }
+        
+        if (false === filter_var($decrypted, FILTER_VALIDATE_INT, ["options" => ["min_range"=> 1]])) {
+            return false;
+        }
+        
+        $decrypted = (int)$decrypted;
+        if ($decrypted < time() - PRIME_MOVER_CRON_AUTOBACKUP_EXPIRATION) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Checks if doing auto backup
+     * @return boolean
+     */
+    final public function isDoingAutoBackup()
+    {
+        global $prime_mover_plugin_manager;
+        if (is_object($prime_mover_plugin_manager) && is_a($prime_mover_plugin_manager, PRIME_MOVER_MUST_PLUGIN_MANAGER_CLASS) && 
+            method_exists($prime_mover_plugin_manager, 'doingAutoBackup')) {
+            return $prime_mover_plugin_manager->doingAutoBackup();
+        }
+        return false;
+    }    
     
     /**
      * Check if currently logged-in can manage network
      * @param number $user_id
      * @return boolean
      */
-    final protected function canManageSite($user_id = 0, $multisite = true) 
+    final public function canManageSite($user_id = 0, $multisite = true) 
     {
         if ( ! $user_id ) {
             return false;

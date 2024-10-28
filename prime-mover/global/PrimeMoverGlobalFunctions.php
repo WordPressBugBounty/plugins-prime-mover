@@ -87,9 +87,15 @@ if ( !function_exists( 'primeMoverIsShaString' ) ) {
             return false;
         }
         $lengths = [
+            128 => 32,
+            160 => 40,
             256 => 64,
+            384 => 96,
             512 => 128,
         ];
+        if ( !isset( $lengths[$mode] ) ) {
+            return false;
+        }
         $length = $lengths[$mode];
         return (bool) preg_match( '/^[0-9a-f]{' . $length . '}$/i', $string );
     }
@@ -477,6 +483,147 @@ if ( !function_exists( 'primeMoverAutoDeactivatePlugin' ) ) {
             $plugin_basename = plugin_basename( PRIME_MOVER_MAINPLUGIN_FILE );
             deactivate_plugins( $plugin_basename );
         }
+    }
+
+}
+if ( !function_exists( 'primeMoverGetUserIp' ) ) {
+    function primeMoverGetUserIp() {
+        if ( !empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
+            $ip = $_SERVER['HTTP_CLIENT_IP'];
+        } elseif ( !empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+            $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+        } else {
+            $ip = $_SERVER['REMOTE_ADDR'];
+        }
+        if ( !$ip || !is_string( $ip ) ) {
+            return $ip;
+        }
+        $exploded = explode( ",", $ip );
+        if ( is_array( $exploded ) && !empty( $exploded[0] ) ) {
+            $ip = trim( $exploded[0] );
+        }
+        return $ip;
+    }
+
+}
+if ( !function_exists( 'primeMoverGetAuthKey' ) ) {
+    function primeMoverGetAuthKey() {
+        $auth_key = '';
+        if ( defined( 'AUTH_KEY' ) && AUTH_KEY ) {
+            $auth_key = AUTH_KEY;
+        }
+        return $auth_key;
+    }
+
+}
+if ( !function_exists( 'primeMoverGetDbEncryptionKey' ) ) {
+    function primeMoverGetDbEncryptionKey() {
+        $ret = '';
+        if ( !defined( 'PRIME_MOVER_DB_ENCRYPTION_KEY' ) ) {
+            return $ret;
+        }
+        $key = trim( PRIME_MOVER_DB_ENCRYPTION_KEY );
+        if ( empty( $key ) ) {
+            return '';
+        }
+        return $key;
+    }
+
+}
+if ( !function_exists( 'primeMoverGetApiRequestKey' ) ) {
+    function primeMoverGetApiRequestKey() {
+        $auth_key = primeMoverGetAuthKey();
+        $enc_key = primeMoverGetDbEncryptionKey();
+        if ( !$auth_key || !$enc_key ) {
+            return '';
+        }
+        return hash_hmac( 'sha512', $enc_key, $auth_key );
+    }
+
+}
+if ( !function_exists( 'primeMoverOpenSSLEncrypt' ) ) {
+    function primeMoverOpenSSLEncrypt(  $plaintext = '', $key = ''  ) {
+        $cipher_method = PRIME_MOVER_OPENSSL_CIPHER;
+        $ivlen = openssl_cipher_iv_length( $cipher_method );
+        $iv = openssl_random_pseudo_bytes( $ivlen );
+        $ciphertext_raw = openssl_encrypt(
+            $plaintext,
+            $cipher_method,
+            $key,
+            OPENSSL_RAW_DATA,
+            $iv
+        );
+        $hmac = hash_hmac(
+            'sha256',
+            $ciphertext_raw,
+            $key,
+            true
+        );
+        return base64_encode( $iv . $hmac . $ciphertext_raw );
+    }
+
+}
+if ( !function_exists( 'primeMoverOpenSSLDecrypt' ) ) {
+    function primeMoverOpenSSLDecrypt(  $ciphertext = '', $key = '', $return_null_on_false = false  ) {
+        if ( !$ciphertext || !$key ) {
+            if ( $return_null_on_false ) {
+                return null;
+            } else {
+                return $ciphertext;
+            }
+        }
+        $cipher_method = PRIME_MOVER_OPENSSL_CIPHER;
+        $c = base64_decode( $ciphertext );
+        $ivlen = openssl_cipher_iv_length( $cipher_method );
+        $iv = substr( $c, 0, $ivlen );
+        $sha2len = 32;
+        $hmac = substr( $c, $ivlen, $sha2len );
+        $ciphertext_raw = substr( $c, $ivlen + $sha2len );
+        $original_plaintext = @openssl_decrypt(
+            $ciphertext_raw,
+            $cipher_method,
+            $key,
+            OPENSSL_RAW_DATA,
+            $iv
+        );
+        if ( false === $original_plaintext && $return_null_on_false ) {
+            return null;
+        }
+        $calcmac = hash_hmac(
+            'sha256',
+            $ciphertext_raw,
+            $key,
+            true
+        );
+        if ( !is_string( $hmac ) || !is_string( $calcmac ) ) {
+            return $ciphertext;
+        }
+        if ( hash_equals( $hmac, $calcmac ) ) {
+            return $original_plaintext;
+        }
+        return $ciphertext;
+    }
+
+}
+if ( !function_exists( 'primeMoverRestoreAdminCaps' ) ) {
+    function primeMoverRestoreAdminCaps() {
+        return [
+            'update_core',
+            'update_plugins',
+            'update_themes',
+            'install_plugins',
+            'install_themes',
+            'delete_themes',
+            'delete_plugins',
+            'edit_plugins',
+            'edit_themes',
+            'edit_files',
+            'edit_users',
+            'promote_users',
+            'create_users',
+            'delete_users',
+            'unfiltered_html'
+        ];
     }
 
 }

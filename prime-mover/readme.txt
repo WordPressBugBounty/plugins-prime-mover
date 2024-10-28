@@ -1,11 +1,11 @@
-=== Migrate WordPress Website & Backups - Prime Mover ===
+=== Prime Mover - Migrate WordPress Website & Backups ===
 Contributors: codexonics, freemius
 Donate link: https://codexonics.com
 Tags: migrate wordpress, multisite migration, clone, backup
 Requires at least: 4.9.8
-Tested up to: 6.6
+Tested up to: 6.7
 Requires PHP: 5.6
-Stable tag: 1.9.9
+Stable tag: 2.0.0
 License: GPLv3 or later
 License URI: https://codexonics.com
 
@@ -34,6 +34,7 @@ https://youtu.be/QAVVXcoQU8g
 
 = PRO Features =
 
+*   Scheduled backups: Automatic backup support for multisite and single-site.
 *   Save tons of time during migration with the direct site to site package transfer.
 *   Move the backup location outside WordPress public directory for better security.
 *   Migrate or backup WordPress multisite main site.
@@ -103,6 +104,22 @@ Update now to get all the latest bug fixes, improvements and features!
 
 == Changelog ==
 
+= 2.0.0 =
+
+* Feature: Support for automated and scheduled backups.
+* Compatibility: Tested for WordPress 6.7 compatibility.
+* Fixed: Updated Freemius SDK library to latest version 2.9.0.
+* Fixed: Google Drive API session is not global when already connected.
+* Fixed: Issues with parallel exports.
+* Fixed: Runtime error when restoring database to unsupported collation type.
+* Fixed: Helpful errors when Prime Mover has issues writing to an archive.
+* Fixed: Runtime errors associated with database tables names containing allowed special characters.
+* Fixed: Runtime error on export if site uses database names with allowed special characters on it.
+* Fixed: Normalize paths for packages for Windows server.
+* Fixed: Missing administrator capabilities when migrating from multisite to single-site.
+* Fixed: Broken migration if site uses relative wp-content URLs.
+* Fixed: Runtime error during migration if site enables WP_DEBUG_DISPLAY + WP_DEBUG mode to true.
+
 = 1.9.9 =
 
 * Fixed: Incompatibility issues with database servers using ANSI_QUOTE SQL mode.
@@ -119,13 +136,5 @@ Update now to get all the latest bug fixes, improvements and features!
 * Fixed: Limit readme tags as per guidelines.
 * Fixed: Compatibility issues with newer version of BuddyBoss plugin.
 * Fixed: Edge case issue of missing BuddyPress avatar / member images in uploads directory.
-
-= 1.9.7 =
-
-* Fixed: Fatal error in user import retry process using PHP 8.2.15.
-* Fixed: Auto-adjust user_id columns in database to correct values during import.
-* Fixed: Added settings filter 'prime_mover_custom_user_id_col' to adjust non-default user id columns.
-* Fixed: Infinite loop in third party processor during import process retry.
-* Compatibility: Tested for WordPress 6.5 release.
 
 See the previous changelogs in changelog.txt.
