@@ -557,13 +557,14 @@ class PrimeMoverUserQueries
      * @param string $table
      * @param object $wpdb
      * @param boolean $non_user_adjustment
+     * @param boolean $set_foreign_key_checks
      * @return array
      */
     private function bailOutAndReturnRetArray($ret = [], $leftoff_identifier = '', $update_variable = '', $last_processor = false, 
-        $handle_unique_constraint = '', $table = '', $wpdb = null, $non_user_adjustment = false)
+        $handle_unique_constraint = '', $table = '', $wpdb = null, $non_user_adjustment = false, $set_foreign_key_checks = false)
     {       
         $ret = $this->cleanUpRetArrayAfterCustomerIdProcessing($ret, $leftoff_identifier, $update_variable, $last_processor,
-            $handle_unique_constraint, $table, $wpdb, $non_user_adjustment);
+            $handle_unique_constraint, $table, $wpdb, $non_user_adjustment, $set_foreign_key_checks);
         
         $this->getSystemFunctions()->restoreCurrentBlog();
         
@@ -598,8 +599,9 @@ class PrimeMoverUserQueries
         }
         
         $wpdb->flush();
+        $set_foreign_key_checks = false;
         if ($handle_unique_constraint) {
-            $this->dropIndexesConstraint($table, $wpdb, $handle_unique_constraint);
+            $set_foreign_key_checks = $this->dropIndexesConstraint($table, $wpdb, $handle_unique_constraint);
         }
         
         $table_exists = false;
@@ -641,7 +643,7 @@ class PrimeMoverUserQueries
             if (empty($results)) {
                 break;
             } else {
-                $ret = $this->updateCustomerIds($results, $user_equivalence, $ret, $update_variable, $column_strings, $table, $leftoff_identifier, $non_user_adjustment, $filter_clause);
+                $ret = $this->updateCustomerIds($results, $user_equivalence, $ret, $update_variable, $column_strings, $table, $leftoff_identifier, $non_user_adjustment, $filter_clause, $set_foreign_key_checks);
             }
             
             $query = $this->seekCustomersToUpdateQuery($ret, $leftoff_identifier, $table, $primary_index, $column_strings, $non_user_adjustment, $filter_clause);
@@ -655,22 +657,26 @@ class PrimeMoverUserQueries
             }
         }
         
-        return $this->bailOutAndReturnRetArray($ret, $leftoff_identifier, $update_variable, $last_processor, $handle_unique_constraint, $table, $wpdb, $non_user_adjustment);
+        return $this->bailOutAndReturnRetArray($ret, $leftoff_identifier, $update_variable, $last_processor, $handle_unique_constraint, $table, $wpdb, $non_user_adjustment, $set_foreign_key_checks);
     }
     
     /**
-     * Drop indexes constraint
-     * Must be done on switched tables
+     * Drop indexes constraint or disable foreign key checks
      * @param string $table
      * @param wpdb $wpdb
      * @param string $index
+     * @return boolean
      */
     protected function dropIndexesConstraint($table = '', wpdb $wpdb = null, $index = '')
     {           
         if (1 === $this->indexExists($table, $wpdb, $index)) {
             $tbl = "{$wpdb->prefix}{$table}";
             $wpdb->query("ALTER TABLE `{$tbl}` DROP INDEX {$index}");
-        }        
+            return false;
+        } else {
+            $wpdb->query("SET FOREIGN_KEY_CHECKS=0");
+            return true;
+        }
     }
 
     /**
@@ -682,7 +688,7 @@ class PrimeMoverUserQueries
      */
     protected function indexExists($table = '', wpdb $wpdb = null, $index = '')
     {
-        $tbl = "{$wpdb->prefix}{$table}";
+        $tbl = "{$wpdb->prefix}{$table}";        
         $res = $wpdb->query($wpdb->prepare("SHOW KEYS FROM `{$tbl}` WHERE Key_name=%s", $index));
         return $res;
     }
@@ -780,10 +786,11 @@ class PrimeMoverUserQueries
      * @param string $leftoff_identifier
      * @param boolean $non_user_adjustment
      * @param array $filter_clause
+     * @param boolean $set_foreign_key_checks
      * @return array
      */
     protected function updateCustomerIds($results = [], $user_equivalence = null, $ret = [], $update_variable = '', $column_strings = '',
-        $table = '', $leftoff_identifier = '', $non_user_adjustment = false, $filter_clause = [])
+        $table = '', $leftoff_identifier = '', $non_user_adjustment = false, $filter_clause = [], $set_foreign_key_checks = false)
     {
         if (empty($results)) {
             return;
@@ -858,7 +865,7 @@ class PrimeMoverUserQueries
                     continue;
                 }
                
-                $primary_index_id = $this->updateCustomerUserIdBySQL($primary_index_id, $migrated_user_id, $table, $primary_index, $user_id_column, '', $processing_serialized);                
+                $primary_index_id = $this->updateCustomerUserIdBySQL($primary_index_id, $migrated_user_id, $table, $primary_index, $user_id_column, '', $processing_serialized, $set_foreign_key_checks, $user_id);                
             }   
             
             if (!is_wp_error($primary_index_id) || !$primary_index_id) {
@@ -894,9 +901,12 @@ class PrimeMoverUserQueries
      * @param string $user_id_column
      * @param string $query
      * @param boolean $is_serialized
+     * @param boolean $set_foreign_key_checks
+     * @param number $user_id
      * @return \WP_Error|number
      */
-    public function updateCustomerUserIdBySQL($primary_index_id = 0, $migrated_user_id = 0, $table = '', $primary_index = '', $user_id_column = '', $query = '', $is_serialized = false)
+    public function updateCustomerUserIdBySQL($primary_index_id = 0, $migrated_user_id = 0, $table = '', $primary_index = '', $user_id_column = '', 
+        $query = '', $is_serialized = false, $set_foreign_key_checks = false, $user_id = 0)
     {
         
         $wpdb = $this->getSystemInitialization()->getWpdB();
@@ -911,13 +921,23 @@ class PrimeMoverUserQueries
             
         } 
         
-        if (!$query) {            
-            $query = $wpdb->prepare("
+        if (!$query) {
+            if ($set_foreign_key_checks && $user_id) {
+                $query = $wpdb->prepare("
+                   UPDATE `{$tbl}`
+                   SET {$user_id_column} = %d
+                   WHERE {$primary_index} = %d AND {$user_id_column} = %d",
+                   $migrated_user_id, $primary_index_id, $user_id
+                ); 
+            } else {
+                $query = $wpdb->prepare("
                    UPDATE `{$tbl}`
                    SET {$user_id_column} = %d
                    WHERE {$primary_index} = %d",
                    $migrated_user_id, $primary_index_id
-            ); 
+                ); 
+            }
+            
         }        
         
         $res = $wpdb->query($query);
@@ -938,10 +958,11 @@ class PrimeMoverUserQueries
      * @param string $table
      * @param wpdb $wpdb
      * @param boolean $non_user_adjustment
+     * @param boolean $set_foreign_key_checks
      * @return array
      */
     protected function cleanUpRetArrayAfterCustomerIdProcessing($ret = [], $leftoff_identifier = '', $update_variable = '',
-        $last_processor = false, $handle_unique_constraint = '', $table = '', wpdb $wpdb = null, $non_user_adjustment = false)
+        $last_processor = false, $handle_unique_constraint = '', $table = '', wpdb $wpdb = null, $non_user_adjustment = false, $set_foreign_key_checks = false)
     {
         if (isset($ret[$leftoff_identifier])) {
             unset($ret[$leftoff_identifier]);
@@ -964,7 +985,7 @@ class PrimeMoverUserQueries
         }
         
         if ($handle_unique_constraint) {
-            $this->enForceIndexesConstraint($table, $wpdb, $handle_unique_constraint);
+            $this->enForceIndexesConstraint($table, $wpdb, $handle_unique_constraint, $set_foreign_key_checks);
         }
         
         return $ret;
@@ -987,10 +1008,13 @@ class PrimeMoverUserQueries
      * @param string $table
      * @param wpdb $wpdb
      * @param string $index
+     * @param boolean $set_foreign_key_checks
      */
-    protected function enForceIndexesConstraint($table = '', wpdb $wpdb = null, $index = '')
+    protected function enForceIndexesConstraint($table = '', wpdb $wpdb = null, $index = '', $set_foreign_key_checks = false)
     {
-        if (0 === $this->indexExists($table, $wpdb, $index)) {
+        if ($set_foreign_key_checks) {
+            $wpdb->query("SET FOREIGN_KEY_CHECKS=1");
+        } else if (0 === $this->indexExists($table, $wpdb, $index)) {
             $tbl = "{$wpdb->prefix}{$table}";
             $wpdb->query("ALTER TABLE `{$tbl}` ADD CONSTRAINT {$index} UNIQUE ({$index})");
         }        

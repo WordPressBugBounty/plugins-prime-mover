@@ -110,7 +110,7 @@ class PrimeMoverAutoUserAdjustment
                 continue;
             }
             
-            list($table, $primary_index, $column) = $this->getRequiredParametersToHook($v);
+            list($table, $primary_index, $column, $unique) = $this->getRequiredParametersToHook($v);
             if (!$table || !$primary_index || !$column) {
                 continue;
             }                       
@@ -120,7 +120,7 @@ class PrimeMoverAutoUserAdjustment
                 continue;
             }
             
-            add_filter('prime_mover_do_process_thirdparty_data', function($ret = [], $blogid_to_import = 0, $start_time = 0) use ($i, $table, $column, $primary_index, $func_signature) {                
+            add_filter('prime_mover_do_process_thirdparty_data', function($ret = [], $blogid_to_import = 0, $start_time = 0) use ($i, $table, $column, $primary_index, $func_signature, $unique) {                
                 if ($this->userDoesNotNeedAdjustment($ret, $blogid_to_import)) {
                     return $ret;
                 }               
@@ -143,7 +143,10 @@ class PrimeMoverAutoUserAdjustment
                 
                 $last_processor = apply_filters('prime_mover_is_thirdparty_lastprocessor', false, $this,  $func_signature, $ret, $blogid_to_import, $auto_user_adj_args);
                 $handle_unique_constraint = '';
-                  
+                if ('yes' === $unique) {
+                    $handle_unique_constraint = $column;
+                }
+                
                 if (in_array($table, $this->getTableForceBlogIdOne())) {
                     $blogid_to_import = 1;
                 }
@@ -167,21 +170,28 @@ class PrimeMoverAutoUserAdjustment
         $table = '';
         $primary_key = '';
         $column = '';
+        $unique = 'no';
         
         foreach($v as $k => $params) {
             $table = $k;
             if (!is_array($params)) {
                 continue;
             }
+            
             if (isset($params['primary'])) {
                 $primary_key = $params['primary'];
             }
+            
             if (isset($params['column'])) {
                 $column = $params['column'];
             }
+            
+            if (isset($params['unique'])) {
+                $unique = $params['unique'];
+            }
         }
         
-        return [$table, $primary_key, $column];
+        return [$table, $primary_key, $column, $unique];
     }
     
     /**

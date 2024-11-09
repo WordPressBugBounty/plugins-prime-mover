@@ -189,6 +189,49 @@ class PrimeMoverFreemiusCompat
         $freemius->add_action('connect/after_message', [$this, 'filterActionButtons']);
         $freemius->add_filter('connect-message_on-premium', [$this, 'filterUpgradeMessage']);
         $freemius->add_action('after_premium_version_activation', [$this, 'removeVerifiedMeta']);
+        
+        $freemius->add_filter('pricing/show_annual_in_monthly', '__return_false');
+        $freemius->add_filter('freemius_pricing_js_path', [$this, 'setCustomPricingPath'], 10, 1);
+    }
+    
+    /**
+     * Set Freemius custom pricing path
+     * @param string $path
+     * @return string
+     */
+    public function setCustomPricingPath($path = '')
+    {
+        if (!defined('PRIME_MOVER_MAINDIR') || !defined('WP_PLUGIN_DIR')) {
+            return $path;
+        }
+        
+        $slug = '/freemius-pricing/freemius-pricing.js';
+        if (PRIME_MOVER_PRICING_PAGE_DEVELOPMENT_MODE) {
+            $slug = '/pricing-page/dist/freemius-pricing.js';
+        }        
+        
+        $maindir = PRIME_MOVER_MAINDIR;
+        $plugindir = WP_PLUGIN_DIR;
+        
+        if (!is_string($maindir) || !is_string($plugindir)) {
+            return $path;
+        }
+        
+        $maindir = trim($maindir);
+        $plugindir = trim($plugindir);
+        
+        if (!$maindir || !$plugindir) {
+            return $path;
+        }
+        
+        $basename = basename($maindir);
+        $pricing_js = untrailingslashit($plugindir) . '/' . $basename . $slug;
+        $pricing_js = wp_normalize_path($pricing_js);
+        if ($this->getPrimeMover()->getSystemFunctions()->nonCachedFileExists($pricing_js)) {
+            return $pricing_js;
+        }
+        
+        return $path;
     }
     
     /**

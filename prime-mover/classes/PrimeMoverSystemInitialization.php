@@ -3119,17 +3119,22 @@ Options -Indexes
     
     /**
      * Get upgrade URL
-     * @return string
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itGetsUpgradeUrlInMultisite()
-     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itGetsUpgradeUrlInSingleSite()
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itGetsUpgradeUrlInSingleSite() 
+     * @param boolean $trial
+     * @return string
      */
-    public function getUpgradeUrl()
+    public function getUpgradeUrl($trial = false)
     {
+        $upgrade_path = 'admin.php?page=migration-panel-settings-pricing';
+        if ($trial) {
+            $upgrade_path = $upgrade_path . '&trial=true';
+        }
         if (is_multisite()) {
-            return network_admin_url( 'admin.php?page=migration-panel-settings-pricing');
+            return network_admin_url($upgrade_path);
             
         } else {
-            return admin_url( 'admin.php?page=migration-panel-settings-pricing');
+            return admin_url($upgrade_path);
         }
     }
     
@@ -3695,6 +3700,19 @@ Options -Indexes
     {
         $plugin_manager = $this->getPrimeMoverPluginManagerInstance();        
         return (is_object($plugin_manager) && method_exists($plugin_manager, 'getDoingPrimeMoverProcess') && $plugin_manager->getDoingPrimeMoverProcess()); 
+    }
+    
+    /**
+     * Get Prime Mover plugin URL
+     * @return string|boolean
+     */
+    public function getPrimeMoverPluginUrl()
+    {
+        if (function_exists('plugins_url')) {
+            return plugins_url('', PRIME_MOVER_MAINPLUGIN_FILE);
+        } 
+        
+        return '';        
     }
     
     /**

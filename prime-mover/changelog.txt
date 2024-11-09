@@ -2,6 +2,14 @@
 
 **This is a list detailing changes for all Prime Mover releases.**
 
+= 1.9.8 =
+
+* Fixed: Bug on missing entries on user equivalence data during import.
+* Fixed: Memory limit error on import when max post author ID is an extremely large number.
+* Fixed: Limit readme tags as per guidelines.
+* Fixed: Compatibility issues with newer version of BuddyBoss plugin.
+* Fixed: Edge case issue of missing BuddyPress avatar / member images in uploads directory.
+
 = 1.9.7 =
 
 * Fixed: Fatal error in user import retry process using PHP 8.2.15.

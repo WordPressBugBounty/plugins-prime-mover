@@ -463,11 +463,28 @@ class PrimeMoverBackupMenus
                 'restore_package_text' => esc_js(__( 'Restore package', 'prime-mover' )),
                 'copy_restore_url' => esc_js(__('Copy restore URL', 'prime-mover')),
                 'upgradetoprotext' => '<i class="dashicons dashicons-cart prime-mover-cart-dashicon"></i>' . esc_js(__('Upgrade to PRO', 'prime-mover')),
-                'backup_menu_url' => esc_url($backup_menu_url)
+                'backup_menu_url' => esc_url($backup_menu_url),
+                'freetrial_pricing_page' => esc_url($this->getSystemInitialization()->getUpgradeUrl(true)),
+                'prime_mover_logo' => esc_url($this->getPluginsLogo())
             ])
         );
     }
 
+    /**
+     * Get plugins logo as defined in Freemius
+     * @return string
+     */
+    public function getPluginsLogo()
+    {
+        $plugins_url = $this->getSystemInitialization()->getPrimeMoverPluginUrl();
+        if (!$plugins_url) {
+            return '';    
+        }
+        
+        $logo = $plugins_url . '/freemius/assets/img/prime-mover.jpg';        
+        return $logo;
+    }
+    
     /**
      * Get create export URL
      * @param number $blog_id

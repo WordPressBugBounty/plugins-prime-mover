@@ -5,7 +5,7 @@ Tags: migrate wordpress, multisite migration, clone, backup
 Requires at least: 4.9.8
 Tested up to: 6.7
 Requires PHP: 5.6
-Stable tag: 2.0.0
+Stable tag: 2.0.1
 License: GPLv3 or later
 License URI: https://codexonics.com
 
@@ -104,6 +104,13 @@ Update now to get all the latest bug fixes, improvements and features!
 
 == Changelog ==
 
+= 2.0.1 =
+
+* Fixed: Unable to restore tables due to duplicate foreign key index.
+* Fixed: Show upgrade prices in annual for clarity.
+* Fixed: Broken logo icon in upgrade page.
+* Fixed: Support for auto-adjusting user ID columns primary keys on restore.
+
 = 2.0.0 =
 
 * Feature: Support for automated and scheduled backups.
@@ -128,13 +135,5 @@ Update now to get all the latest bug fixes, improvements and features!
 * Fixed: Updated Freemius SDK to version 2.7.2.
 * Fixed: Uncaught Exception: Unable to locate placement anchor.
 * Fixed: Added PHP 8.3 as the latest supported PHP version.
-
-= 1.9.8 =
-
-* Fixed: Bug on missing entries on user equivalence data during import.
-* Fixed: Memory limit error on import when max post author ID is an extremely large number.
-* Fixed: Limit readme tags as per guidelines.
-* Fixed: Compatibility issues with newer version of BuddyBoss plugin.
-* Fixed: Edge case issue of missing BuddyPress avatar / member images in uploads directory.
 
 See the previous changelogs in changelog.txt.

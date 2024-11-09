@@ -488,6 +488,7 @@ class PrimeMoverDatabaseUtilities
         }
         
         $constraints = [];
+        $count = 1;
         foreach ($cons_k as $cons) {
             
             $constraint = trim($array[$cons], "`");
@@ -496,6 +497,7 @@ class PrimeMoverDatabaseUtilities
                 $constraint = substr($constraint, 0, strpos($constraint, $prefix));
             }
             
+            $prefix = "{$prefix}" . $count;
             $identifier = $constraint . $prefix . $random;
             $char_len = strlen($identifier);
             if ($char_len >= 64) {
@@ -504,6 +506,7 @@ class PrimeMoverDatabaseUtilities
             
             $rplc = "CONSTRAINT `{$identifier}`";
             $constraints[$srch] = $rplc;
+            $count++;
         }
         
         return $constraints;
@@ -888,7 +891,7 @@ class PrimeMoverDatabaseUtilities
         }       
         
         $primary_key = (string) $primary_key;        
-        $user_columns = ['user_id', $primary_key];
+        $user_fields = ['user_id'];
         
         $custom = [];
         if (isset($columns_user_adj_setting[$table])) {
@@ -897,11 +900,14 @@ class PrimeMoverDatabaseUtilities
         
         if (is_array($custom)) {
             foreach ($custom as $user_col) {
-                if (!in_array($user_col, $user_columns)) {
-                    $user_columns[] = (string) $user_col;
+                if (!in_array($user_col, $user_fields)) {
+                    $user_fields[] = (string) $user_col;
                 }
             }
         }
+        
+        $user_columns = $user_fields;
+        $user_columns[] = $primary_key;
         
         $user_columns = esc_sql($user_columns);
         $user_columns_in_string = "'" . implode("','", $user_columns) . "'";
@@ -918,7 +924,7 @@ class PrimeMoverDatabaseUtilities
             return [];
         }
        
-        return $this->processCustomUserIdColumns($res, $table, $source_blog_id, $ret);        
+        return $this->processCustomUserIdColumns($res, $table, $source_blog_id, $ret, $user_fields);        
     }   
     
     /**
@@ -927,8 +933,10 @@ class PrimeMoverDatabaseUtilities
      * @param string $table
      * @param number $source_blog_id
      * @param array $ret
+     * @param array $user_fields
+     * @return array $return
      */
-    protected function processCustomUserIdColumns($res = [], $table = '', $source_blog_id = 0, $ret = [])
+    protected function processCustomUserIdColumns($res = [], $table = '', $source_blog_id = 0, $ret = [], $user_fields = [])
     {        
         $prefixless_table = $this->getPrefixLessTable($table, $source_blog_id, $ret);        
         $validated = [];
@@ -945,28 +953,37 @@ class PrimeMoverDatabaseUtilities
                 $is_numeric = true;
             }
             
-            if ($is_numeric && !empty($columns['Field'])) {
-                if (!empty($columns['Key']) && 'PRI' === $columns['Key']) {
-                    $validated['primary_key'] = $columns['Field'];
-                } else {
-                    $validated[] = $columns['Field'];
-                }                
-            }
+            if (!$is_numeric || !isset($columns['Field']) || !isset($columns['Key'])) {
+                continue;
+            }            
+           
+            $field_name = $columns['Field'];                
+            if (!empty($columns['Key']) && 'PRI' === $columns['Key'] && !in_array($field_name, $user_fields)) {
+                $validated['primary_key'] = $columns['Field'];
+            } else {
+                
+                $unique = 'no';
+                if ('PRI' === $columns['Key']) {
+                    $unique = 'yes';
+                }
+                
+                $validated[$field_name] = $unique;
+            }                         
         }
         
         if (empty($validated) || empty($validated['primary_key'])) {
             return [];
-        }
+        }        
         
         $pk = $validated['primary_key'];
-        foreach ($validated as $k => $valid_col) {
-            if ('primary_key' !== $k) {
-                $return[] = [$prefixless_table => [
-                                'primary' =>$pk,
-                                'column' => $valid_col
-                                ]
-                            ];
-            }
+        unset($validated['primary_key']);
+        
+        foreach ($validated as $k => $v) {            
+            $return[] = [$prefixless_table => [
+                'primary' =>$pk,
+                'column' => $k,
+                'unique' => $v
+            ]];            
         }
         
         return $return;       
