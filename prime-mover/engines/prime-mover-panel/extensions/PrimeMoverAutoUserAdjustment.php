@@ -12,6 +12,8 @@ namespace Codexonics\PrimeMoverFramework\extensions;
  */
 
 use Codexonics\PrimeMoverFramework\classes\PrimeMover;
+use Codexonics\PrimeMoverFramework\utilities\PrimeMoverAutoBackupSetting;
+use wpdb;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -27,18 +29,31 @@ class PrimeMoverAutoUserAdjustment
     
     private $prime_mover;
     private $force_blogid_one;
+    private $autobackup_setting;
     
     /**
-     * Construct
+     * Constructor
      * @param PrimeMover $prime_mover
+     * @param PrimeMoverAutoBackupSetting $autobackup_setting
      * @param array $utilities
      */
-    public function __construct(PrimeMover $prime_mover, $utilities = [])
+    public function __construct(PrimeMover $prime_mover, PrimeMoverAutoBackupSetting $autobackup_setting, $utilities = [])
     {
         $this->prime_mover = $prime_mover;
         $this->force_blogid_one = [
             'bb_user_reactions'
         ];
+        
+        $this->autobackup_setting = $autobackup_setting;
+    }
+    
+    /**
+     * Get autobackup setting
+     * @return \Codexonics\PrimeMoverFramework\utilities\PrimeMoverAutoBackupSetting
+     */
+    public function getAutoBackupSetting()
+    {
+        return $this->autobackup_setting;
     }
     
     /**
@@ -83,8 +98,252 @@ class PrimeMoverAutoUserAdjustment
     public function initHooks()
     {      
         add_filter('prime_mover_filter_export_footprint', [$this, 'maybeAddAutoUserAdjustMentExportFootPrint'], 500, 3);       
-        add_action('prime_mover_before_thirdparty_data_processing', [$this, 'maybeAddAutoUserAdjustmentHooks'], 0, 2);        
+        add_action('prime_mover_before_thirdparty_data_processing', [$this, 'maybeAddAutoUserAdjustmentHooks'], 0, 2);  
+        
+        add_action('wp_ajax_prime_mover_save_non_user_adjustment', [$this,'saveNonUserIdColAutoAdjustment']);         
+        add_filter('prime_mover_custom_user_id_col', [$this, 'injectCustomUserIDAdjustment'], 10, 2);
     }   
+  
+    /**
+     * Inject csutom user ID adjustment settings during export
+     * @param array $return
+     * @param number $blog_id
+     * @return array
+     */
+    public function injectCustomUserIDAdjustment($return = [], $blog_id = 0)
+    {
+        if (!$blog_id) {
+            return $return;
+        }
+
+        $setting = $this->getAutoBackupSetting()->getPrimeMoverSettings()->getSetting('non_user_column_id_adjustment', false, '', false, $blog_id, true);
+        if (!$setting || !is_array($setting) || empty($setting)) {
+            return $return;
+        }
+        
+        return $setting;
+    }
+    
+    /**
+     * Parse get blog ID and posted value
+     * @param mixed $non_user_id_col
+     * @return array
+     */
+    protected function getBlogIDAndValue($non_user_id_col = null)
+    {
+        $blog_id = 0;
+        if (is_array($non_user_id_col)) {
+            $blog_id = key($non_user_id_col);
+        }
+        
+        if ($blog_id && isset($non_user_id_col[$blog_id])) {
+            $value = $non_user_id_col[$blog_id];
+        }
+        
+        if (is_string($value)) {
+            $value = preg_split('/\r\n|\r|\n/', $value);
+        }
+        
+        $value = array_filter($value);        
+        return [$blog_id, $value];
+    }
+    
+    /**
+     * Save non-user ID column auto adjustment
+     * This applies to both single-site and multisites
+     */
+    public function saveNonUserIdColAutoAdjustment()
+    {
+        $response = [];
+        $settings_key = 'non_user_column_id_adjustment';
+        
+        $non_user_id_col = $this->getAutoBackupSetting()->getPrimeMoverSettings()->prepareSettings($response, 'non_user_column_id_adjustment',
+            'prime_mover_save_non_user_column_adjustment_nonce', false, FILTER_DEFAULT); 
+        
+        list($blog_id, $value) = $this->getBlogIDAndValue($non_user_id_col);       
+        if (empty($value)) {
+            $this->getAutoBackupSetting()->getPrimeMoverSettings()->saveSetting($settings_key, [], false, $blog_id, true);
+            $message = esc_html__('Saving non-user column ID succeeds.', 'prime-mover');
+            $this->bailOutMessage($response, false, $message, true);           
+        }
+        
+        if (!is_array($value)) {
+            $this->bailOutMessage($response);
+        }
+        
+        $validated = $this->processTableLevelValidation($blog_id, $value, $response);        
+        $this->getAutoBackupSetting()->getPrimeMoverSettings()->saveSetting($settings_key, $validated, false, $blog_id, true);
+        $message = esc_html__('Saving non-user column ID succeeds.', 'prime-mover');
+        $this->bailOutMessage($response, false, $message, true);
+    }
+    
+    /**
+     * Parse table name and columns
+     * @param wpdb $wpdb
+     * @param string $entry
+     * @param array $response
+     * @return array
+     */
+    protected function parseTableNameAndColumns(wpdb $wpdb, $entry = '', $response = [])
+    {
+        $pieces = [];
+        if ($entry) {
+            $pieces = explode(":", $entry);
+        }
+        
+        if (2 !== count($pieces)) {
+            $this->bailOutMessage($response);
+        }
+        
+        if (!isset($pieces[0])) {
+            $this->bailOutMessage($response);
+        }
+        
+        $table = $pieces[0];
+        $table = trim($table);
+        $table_exists = false;
+        
+        $sql = $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table));
+        if ($wpdb->get_var($sql)) {
+            $table_exists = true;
+        }
+        
+        if (!$table_exists) {
+            $message = sprintf(esc_html__('%s: The settings have not been saved. The database table name %s does not exist. Please ensure that the table name is correct.', 'prime-mover'),
+                '<strong>' . esc_html__('Error', 'prime-mover') . '</strong>',
+                "<code>{$table}</code>");
+            $this->bailOutMessage($response, true, $message, false);
+        }
+        
+        if (!isset($pieces[1])) {
+            $this->bailOutMessage($response, true);
+        }
+        
+        $col = $pieces[1];
+        if (!$col) {
+            $this->bailOutMessage($response, true);
+        }
+        
+        return [$table, $col];
+    }
+    
+    /**
+     * Process table level validation
+     * @param number $blog_id
+     * @param array $value
+     * @param array $response
+     * @return array|string[][]|array[]
+     */
+    protected function processTableLevelValidation($blog_id = 0, $value = [], $response = [])
+    {
+        $this->getPrimeMover()->getSystemFunctions()->switchToBlog($blog_id);
+        $wpdb = $this->getSystemInitialization()->getWpdB();
+        $validated = [];
+        foreach ($value as $entry) {            
+            list($table, $col) = $this->parseTableNameAndColumns($wpdb, $entry, $response);
+            $col_pieces = explode(",", $col);
+            $col_pieces = array_map('trim', $col_pieces);
+            $user_columns = esc_sql($col_pieces);
+            $user_columns_in_string = "'" . implode("','", $user_columns) . "'";
+            
+            $sql = "SHOW COLUMNS FROM `{$table}` WHERE Field IN ($user_columns_in_string)";
+            $res = $wpdb->get_results($sql, ARRAY_A);
+            $column_label = esc_html__('column', 'prime-mover');
+            if (count($col_pieces) > 1) {
+                $column_label = esc_html__('columns', 'prime-mover');
+            }
+            
+            if (!is_array($res) || empty($res)) {
+                $message = sprintf(esc_html__('%s: The settings have not been saved. The %s %s do not exist in the %s database table. Please ensure that the targeted column names are correct and it exists.', 'prime-mover'),
+                    "<strong>" . esc_html__('Error', 'prime-mover') . '</strong>',
+                    "<code>{$user_columns_in_string}</code>",
+                    $column_label,
+                    "<code>{$table}</code>");
+                    $this->bailOutMessage($response, true, $message, false);
+            }
+            
+            $fields = wp_list_pluck($res, 'Type', 'Field');
+            if (!is_array($fields)) {
+                $this->bailOutMessage($response, true);
+            }
+            
+            list($invalid, $validated) = $this->validateColumnsData($table, $fields, $col_pieces, $validated);
+            if (!empty($invalid)) {
+                $html_error = sprintf(esc_html__('%s: Settings not saved because of the following errors:', 'prime-mover'), '<strong>' . esc_html__('Error', 'prime-mover') . '</strong>');
+                $html_error .= '<ol>';
+                
+                foreach ($invalid as $error) {
+                    $html_error .= '<li>' . $error . '</li>';
+                }
+                $html_error .= '</ol>';                
+                $this->bailOutMessage($response, true, $html_error, false);
+            }
+        }
+        
+        $this->getPrimeMover()->getSystemFunctions()->restoreCurrentBlog();
+        return $validated;
+    }
+    
+    /**
+     * Validate column data
+     * @param string $table
+     * @param array $fields
+     * @param array $col_pieces
+     * @param array $validated
+     * @return array
+     */
+    protected function validateColumnsData($table = '', $fields = [], $col_pieces = [], $validated = [])
+    {
+        $invalid = [];
+        $validated[$table] = [];
+        $existing_col = array_keys($fields);
+        foreach ($col_pieces as $given) {
+            $field_type = '';
+            if (isset($fields[$given])) {
+                $field_type = $fields[$given];
+            }
+            
+            if (!in_array($given, $existing_col)) {
+                $invalid[] = sprintf(esc_html__('The %s column does not exist in %s database table. Targeted columns should exist in database table.', 'prime-mover'), "<code>{$given}</code>", "<code>{$table}</code>");
+                continue;
+            }
+            
+            if (!$field_type || !$this->getPrimeMover()->getSystemFunctions()->isNumericKey($field_type, $this->getSystemInitialization()->getIntTypes(), false)) {
+                $invalid[] = sprintf(esc_html__('The %s column in %s database table is not using integer type. Please verify if this is the correct column name.', 'prime-mover'), "<code>{$given}</code>", "<code>{$table}</code>");
+                continue;
+            }
+            
+            if ('user_id' === $given) {
+                $invalid[] = sprintf(esc_html__('The %s column in %s database table is already handled automatically - no need to add this in settings.', 'prime-mover'), "<code>{$given}</code>", "<code>{$table}</code>");
+                continue;
+            }
+            
+            $validated[$table][] = $given;
+        }
+        
+        return [$invalid, $validated];
+    }
+    
+    /**
+     * Bail out message
+     * @param array $response
+     * @param boolean $restore_blog
+     * @param string $message
+     * @param boolean $status
+     */
+    protected function bailOutMessage($response = [], $restore_blog = false, $message = '', $status = false)
+    {
+        if (!$message) {
+            $message = sprintf(esc_html__('%s: Settings not saved - the settings format is incorrect. It must use the %s format, and the table and column must exist in the database.', 'prime-mover'),
+                '<strong>' . esc_html__('Error', 'prime-mover') . '</strong>',
+                '<code>TABLENAME : COLUMN_NAME</code>');
+        }
+        
+        $this->getAutoBackupSetting()->getPrimeMoverSettings()->returnToAjaxResponse($response, ['status' => $status, 'message' => $message]);        
+        if ($restore_blog) {
+            $this->getPrimeMover()->getSystemFunctions()->restoreCurrentBlog();
+        }
+    }
     
     /**
      * Maybe add auto user adjustment hooks

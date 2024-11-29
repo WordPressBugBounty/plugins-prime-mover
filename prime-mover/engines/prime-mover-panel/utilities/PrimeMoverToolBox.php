@@ -145,6 +145,81 @@ class PrimeMoverToolBox
         add_action('prime_mover_scheduled_backup_settings_per_site', [$this, 'outputClearAutoBackupInit'], 70, 1);
         
         add_filter('prime_mover_filter_error_output', [$this, 'appendCustomScheduleToLog'], 51, 1);
+        add_action('prime_mover_scheduled_backup_settings_per_site', [$this, 'outputSiteUtilitiesHeading'], 71, 1);
+        add_action('prime_mover_scheduled_backup_settings_per_site', [$this, 'outputNonUserIdAdjustment'], 75, 1);
+    }
+
+    /**
+     * Output non-user ID adjustment setting
+     */
+    public function outputNonUserIdAdjustment($blog_id = 0)
+    {
+        $settings_api = $this->getAutoBackupSetting()->getSettingsConfig()->getMasterSettingsConfig();
+        $identifier = 'non_user_id_adjustment';
+        
+        if (!isset($settings_api[$identifier])) {
+            return;
+        }
+        
+        $button_specs = [
+            'button_wrapper' => 'div',
+            'button_classes' => 'button-primary',
+            'button_text' => '',
+            'disabled' => '',
+            'title' => ''
+        ];
+        
+        
+        $config = $settings_api[$identifier];
+        $heading_text = __('Non-user_id column auto-adjustment', 'prime-mover');        
+        $setting = $this->getPrimeMoverSettingsTemplate()->getPrimeMoverSettings()->getSetting('non_user_column_id_adjustment', false, '', false, $blog_id, true);
+        $setting = $this->convertNonUserIdToTextAreaDataFormat($setting);
+        $placeholder = "wp_custom_table_example : custom_user_column_name";
+        
+        $description = sprintf(esc_html__('Only the %s database table column is auto-adjusted by default during export and import. If you have a non-user_id column, please define it here to be auto-adjusted on restore. 
+Please enter one row per database table using the format %s. Please %s to learn more about this feature.', 'prime-mover'), 
+            '<code>user_id</code>', "<code>{$placeholder}</code>",
+            '<a target="_blank" class="prime-mover-external-link" href="' . CODEXONICS_NON_USER_ID_ADJUSTMENT_TUTORIAL . '">' . esc_html__('please check out this tutorial', 'prime-mover') . '</a>'                
+        );
+        $this->getPrimeMoverSettingsTemplate()->renderTextAreaFormTemplate($heading_text, $identifier, $config, $setting, $placeholder, $description, $button_specs, false, $blog_id);
+    }
+    
+    /**
+     * Convert non user ID settings to text area data format
+     * @param array $setting
+     * @return string
+     */
+    protected function convertNonUserIdToTextAreaDataFormat($setting = [])
+    {
+        $ret = '';
+        if (!is_array($setting)) {
+            return $ret;
+        }
+        
+        foreach($setting as $table_name => $column_array) {
+            $col_string = '';
+            if (is_array($column_array)) {
+                $col_string = implode(",", $column_array);
+            }
+            
+            if ($col_string) {
+                $ret .= $table_name . ':' . $col_string . PHP_EOL; 
+            }                       
+        }
+        
+        return $ret;
+
+    }
+    /**
+     * Add headings
+     */
+    public function outputSiteUtilitiesHeading()
+    {
+        ?>
+        <hr/>
+            <h2 class="prime_mover_toolbox_headings">*** <?php echo esc_html__('Export-Import Utilities', 'prime-mover'); ?> ***</h2>
+        <hr/> 
+    <?php 
     }
     
     /**

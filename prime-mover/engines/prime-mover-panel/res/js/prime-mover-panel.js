@@ -228,6 +228,10 @@
 	                        var value = $(activeSelectors.data_selector).val();  
 	                    }
 	                    
+						if ('text_area_data' === activeSelectors.datatype) {							
+							 var value = $.trim($(activeSelectors.data_selector).val());					
+						}
+
 	                    if ('checkbox' === activeSelectors.datatype) {
 		                    var value = false;
 		                    if ($(activeSelectors.data_selector).is(":checked")) {
@@ -246,8 +250,7 @@
 	                    	}		                    
 	                    }
 	                    
-	                    if ('select' === activeSelectors.datatype) {
-	                    	var select_selected = '';	                    	
+	                    if ('select' === activeSelectors.datatype) {	                    	
 	                        value = $(activeSelectors.data_selector).val();
 	                    			                    
 	                    }

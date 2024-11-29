@@ -815,12 +815,20 @@ class PrimeMoverSystemFunctions
     
     /**
      * Parse data type
-     * @param array $colType
+     * @param mixed $colType
+     * @param boolean $array
      * @return string
      */
-    public function parseDataType($colType = [])
+    public function parseDataType($colType = null, $array = true)
     {
-        $colParts = explode(" ", $colType['Type']);
+        $entry = '';
+        if ($array) {
+            $entry = $colType['Type'];
+        } else {
+            $entry = $colType;
+        }
+        
+        $colParts = explode(" ", $entry);
         if ($fparen = strpos($colParts[0], "(")) {
             $datatype = substr($colParts[0], 0, $fparen);
         } else {
@@ -831,13 +839,14 @@ class PrimeMoverSystemFunctions
     
     /**
      * Checks if table column is numeric in nature
-     * @param array $colType
+     * @param mixed $colType
      * @param array $numbertypes
+     * @param boolean $array
      * @return boolean
      */
-    public function isNumericKey($colType = [], $numbertypes = [])
+    public function isNumericKey($colType = null, $numbertypes = [], $array = true)
     {
-        $datatype = $this->parseDataType($colType);
+        $datatype = $this->parseDataType($colType, $array);
         return (in_array($datatype, $numbertypes));
     }
     

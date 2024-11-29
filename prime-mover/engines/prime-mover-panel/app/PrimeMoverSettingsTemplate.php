@@ -451,5 +451,44 @@ class PrimeMoverSettingsTemplate
 			<p><?php echo $dialog_message; ?></p>	      	  	
         </div>
     <?php
-    }  
+    }
+    
+    /**
+     * Renders text area form template
+     * @param string $heading_text
+     * @param string $identifier
+     * @param array $config
+     * @param string $setting
+     * @param string $placeholder
+     * @param string $description
+     * @param array $button_specs
+     * @param boolean $pro
+     * @param number $blog_id
+     */
+    public function renderTextAreaFormTemplate($heading_text = '', $identifier = '', $config = [], $setting = '', $placeholder = '', $description = '', $button_specs = [], $pro = false, $blog_id = 0)
+    {
+        if (!$this->getPrimeMover()->getSystemAuthorization()->isUserAuthorized()) {
+            return;
+        }
+        ?>
+        <table class="form-table">
+        <tbody>
+        <tr>
+            <th scope="row">                
+                <?php $this->renderLabelHeading($identifier, $heading_text, $config); ?>
+            </th>
+            <td>
+
+            <textarea class="large-text" placeholder="<?php echo esc_attr($placeholder)?>" name="pm_<?php echo esc_attr($config['ajax_key']); ?>" 
+            id="<?php echo esc_attr($this->outputElementIdentifier($config, 'data_selector')); ?>" rows="5" cols="45"><?php echo esc_textarea($setting);?></textarea>
+                
+            <div class="prime-mover-setting-description">
+            <p class="description prime-mover-settings-paragraph">
+            <?php 
+               echo $description;
+            ?>
+            </p>
+         <?php 
+        $this->renderTemplateEnd($button_specs, $config, $pro, $blog_id);   
+    }    
 }

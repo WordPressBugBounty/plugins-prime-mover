@@ -2,6 +2,15 @@
 
 **This is a list detailing changes for all Prime Mover releases.**
 
+= 1.9.9 =
+
+* Fixed: Incompatibility issues with database servers using ANSI_QUOTE SQL mode.
+* Fixed: Unable to rename tables, please check that your database is not empty or these tables exists.
+* Fixed: Removed support for sites that have empty database prefix set.
+* Fixed: Updated Freemius SDK to version 2.7.2.
+* Fixed: Uncaught Exception: Unable to locate placement anchor.
+* Fixed: Added PHP 8.3 as the latest supported PHP version.
+
 = 1.9.8 =
 
 * Fixed: Bug on missing entries on user equivalence data during import.

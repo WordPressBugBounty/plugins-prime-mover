@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PRIME_MOVER_VERSION', '2.0.1');
+define('PRIME_MOVER_VERSION', '2.0.2');
 define('PRIME_MOVER_PLUGIN_CODENAME', 'Prime Mover');
 define('PRIME_MOVER_PRO_PLUGIN_CODENAME', 'Prime Mover PRO');
 define('PRIME_MOVER_BACKUP_MARKUP_VERSION', '1.2.0');
@@ -69,6 +69,10 @@ if (!defined('CODEXONICS_PACKAGE_MANAGER_RESTORE_GUIDE')) {
 
 if (!defined('CODEXONICS_CORRUPT_WPRIME_DOC')) {
     define('CODEXONICS_CORRUPT_WPRIME_DOC', 'https://codexonics.com/prime_mover/prime-mover/corrupted-wprime-packages-troubleshooting/');
+}
+
+if (!defined('CODEXONICS_NON_USER_ID_ADJUSTMENT_TUTORIAL')) {
+    define('CODEXONICS_NON_USER_ID_ADJUSTMENT_TUTORIAL', 'https://codexonics.com/prime_mover/prime-mover/custom-user-adjustment-usage-feature/');
 }
 
 if (!defined('CODEXONICS_CUSTOM_CONSTANTS_MU_PLUGINS')) {

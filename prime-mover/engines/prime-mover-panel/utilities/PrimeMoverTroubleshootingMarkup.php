@@ -31,6 +31,7 @@ class PrimeMoverTroubleshootingMarkup
     private $freemius_integration;
     private $autobackup_logs;
     private $clear_locked_settings_identifier;
+    private $utilities;
     
     
     /**
@@ -48,6 +49,26 @@ class PrimeMoverTroubleshootingMarkup
         $this->freemius_integration = $utilities['freemius_integration'];
         $this->autobackup_logs = ['automaticbackup', 'autobackup_error'];
         $this->clear_locked_settings_identifier = 'clear_locked_settings';
+        $this->utilities = $utilities;
+    }
+    
+    /**
+     * Get utilities
+     * @return array
+     */
+    public function getUtilities()
+    {
+        return $this->utilities;
+    }
+    
+    /**
+     * Get config utilities
+     * Returns config utilities object
+     */
+    public function getConfigUtilities()
+    {
+        $utilities = $this->getUtilities();
+        return $utilities['config_utilities'];
     }
     
     /**
@@ -485,11 +506,18 @@ class PrimeMoverTroubleshootingMarkup
      */
     public function renderTurboModeMarkup($setting = '')
     {
+        $default = $this->getConfigUtilities()->getTurboModeDefaultConfig();
+        if ($default) {
+            $default = 'true';    
+        } else {
+            $default = 'false';    
+        }
+        
         $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Turbo mode', 'prime-mover'));
-        ?>
+        ?>       
         <p class="description">
         <label for="js-prime_mover_enable_js_turbomode_checkbox">
-            <input type="checkbox" <?php checked( $this->getPrimeMoverSettings()->getSetting($setting), 'true' ); ?> id="js-prime_mover_enable_js_turbomode_checkbox" autocomplete="off" 
+            <input type="checkbox" <?php checked( $this->getPrimeMoverSettings()->getSetting($setting, false, $default), 'true' ); ?> id="js-prime_mover_enable_js_turbomode_checkbox" autocomplete="off" 
             name="prime_mover_enable_js_turbomode" 
             class="prime_mover_js_turbomode_checkbox" value="yes"> 
             <?php esc_html_e('Enable turbo mode', 'prime-mover');?>

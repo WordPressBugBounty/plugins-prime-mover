@@ -68,6 +68,16 @@ class PrimeMoverTroubleshooting
     }
     
     /**
+     * Get config utilities
+     * Returns config utilities object
+     */
+    public function getConfigUtilities()
+    {
+        $utilities = $this->getUtilities();
+        return $utilities['config_utilities'];
+    }
+    
+    /**
      * Get utilities
      * @return string|array
      */
@@ -526,14 +536,19 @@ class PrimeMoverTroubleshooting
      */
     public function maybeEnableTurboModeSetting($enable = false)
     {
+        $default = $this->getConfigUtilities()->getTurboModeDefaultConfig();
         $setting = $this->getPrimeMoverSettings()->getSetting(self::ENABLE_TURBO_MODE);
         if (!$setting ) {
-            return false;
+            return $default;
         }
+        
         if ('true' === $this->getPrimeMoverSettings()->getSetting(self::ENABLE_TURBO_MODE)) {
-            return true;
+            return true;            
+        } elseif ('false' === $this->getPrimeMoverSettings()->getSetting(self::ENABLE_TURBO_MODE)) {
+            return false;
+        } else {
+            return $default;
         }
-        return false;
     }
     
     /**

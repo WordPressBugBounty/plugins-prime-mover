@@ -5,7 +5,7 @@ Tags: migrate wordpress, multisite migration, clone, backup
 Requires at least: 4.9.8
 Tested up to: 6.7
 Requires PHP: 5.6
-Stable tag: 2.0.1
+Stable tag: 2.0.2
 License: GPLv3 or later
 License URI: https://codexonics.com
 
@@ -104,6 +104,12 @@ Update now to get all the latest bug fixes, improvements and features!
 
 == Changelog ==
 
+= 2.0.2 =
+
+* Fixed: Slow export and restore on capable servers.
+* Usability: Turn on turbo mode by default.
+* Feature: Allow users to adjust non 'user_id' columns containing user IDs during export and restore.
+
 = 2.0.1 =
 
 * Fixed: Unable to restore tables due to duplicate foreign key index.
@@ -126,14 +132,5 @@ Update now to get all the latest bug fixes, improvements and features!
 * Fixed: Missing administrator capabilities when migrating from multisite to single-site.
 * Fixed: Broken migration if site uses relative wp-content URLs.
 * Fixed: Runtime error during migration if site enables WP_DEBUG_DISPLAY + WP_DEBUG mode to true.
-
-= 1.9.9 =
-
-* Fixed: Incompatibility issues with database servers using ANSI_QUOTE SQL mode.
-* Fixed: Unable to rename tables, please check that your database is not empty or these tables exists.
-* Fixed: Removed support for sites that have empty database prefix set.
-* Fixed: Updated Freemius SDK to version 2.7.2.
-* Fixed: Uncaught Exception: Unable to locate placement anchor.
-* Fixed: Added PHP 8.3 as the latest supported PHP version.
 
 See the previous changelogs in changelog.txt.

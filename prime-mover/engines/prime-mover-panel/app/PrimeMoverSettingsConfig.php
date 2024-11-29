@@ -345,6 +345,25 @@ class PrimeMoverSettingsConfig
                 "show_as_required" => false,
                 "documentation" => ''
             ],
+            'non_user_id_adjustment' =>
+            [
+                "button_selector" => "#js-save-prime-mover-non-user-id-adjustment",
+                "spinner_selector" => ".js-save-prime-mover-non-user-id-adjustment-spinner",
+                "data_selector" => "#js-prime_mover_non_user_adjustment_textarea",
+                "ajax_action" => "prime_mover_save_non_user_adjustment",
+                "ajax_key" => "non_user_column_id_adjustment",
+                "datatype" => "text_area_data",
+                "dialog" => false,
+                "encrypted" => false,
+                "nonce" => "prime_mover_save_non_user_column_adjustment_nonce",
+                "description" => __('Non-user_id column auto-adjustment', 'prime-mover'),
+                "on_status" => __('saved', 'prime-mover'),
+                "off_status" => __('off', 'prime-mover'),
+                "purpose" => __('This is the non user_id column adjustment on a per site basis.', 'prime-mover'),
+                "validation_id" => 'settings_textarea_validation',
+                "show_as_required" => false,
+                "documentation" => ''
+            ],
             
         ];
         

@@ -715,4 +715,49 @@ class PrimeMoverConfigUtilities
 
        return '';       
     }
+    
+    
+    /**
+     * Get turbo mode default config
+     * @return boolean
+     */
+    public function getTurboModeDefaultConfig()
+    {
+        $input_server = $this->getSystemInitialization()->getUserInput(
+            'server',
+            [
+                'SERVER_SOFTWARE' => $this->getSystemInitialization()->getPrimeMoverSanitizeStringFilter(),
+                'HTTP_CF_RAY' => $this->getSystemInitialization()->getPrimeMoverSanitizeStringFilter()
+            ],
+            '', 
+            '',
+            0,
+            true,
+            true
+            );
+        
+        if (!is_array($input_server)) {
+            return true;
+        }
+         
+        if (!empty($input_server['HTTP_CF_RAY'])) {
+            return false;
+        }
+        
+        $server = '';
+        if (!empty($input_server['SERVER_SOFTWARE'])) {
+            $server = $input_server['SERVER_SOFTWARE'];
+        }
+        
+        if (!$server) {
+            return true;
+        }
+        
+        $server = strtolower($server);
+        if (false !== strpos($server, 'flywheel')) {
+            return false;
+        }       
+        
+        return true;
+    }  
 }

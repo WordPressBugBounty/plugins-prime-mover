@@ -42,7 +42,7 @@ if ( defined( 'PRIME_MOVER_PANEL_PLUGINPATH' ) ) {
     return;
 }
 define( 'PRIME_MOVER_PANEL_PLUGINPATH', plugin_dir_path( __FILE__ ) );
-define( 'PRIME_MOVER_PANEL_VERSION', '2.0.1' );
+define( 'PRIME_MOVER_PANEL_VERSION', '2.0.2' );
 define( 'PRIME_MOVER_PANEL_MAINPLUGIN_FILE', __FILE__ );
 define( 'PRIME_MOVER_PANEL_PLUGINBASENAME', plugin_basename( PRIME_MOVER_PANEL_MAINPLUGIN_FILE ) );
 if ( !defined( 'PRIME_MOVER_DROPBOX_UPLOAD_CHUNK' ) ) {
@@ -203,7 +203,7 @@ function loadPrimeMoverControlPanel(  PrimeMover $prime_mover, array $utilities 
     $relevanssi_compat->initHooks();
     $edd_compat = new PrimeMoverEDDCompat($prime_mover, $utilities);
     $edd_compat->initHooks();
-    $auto_user_adj = new PrimeMoverAutoUserAdjustment($prime_mover, $utilities);
+    $auto_user_adj = new PrimeMoverAutoUserAdjustment($prime_mover, $autobackup_setting, $utilities);
     $auto_user_adj->initHooks();
     do_action( 'prime_mover_panel_loaded', $panel_resources );
 }

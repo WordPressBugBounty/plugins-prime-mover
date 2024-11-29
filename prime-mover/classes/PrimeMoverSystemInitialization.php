@@ -263,6 +263,9 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
     
     /** @var integer */
     private $prime_mover_current_db_export_user;
+    
+    /** @var array */
+    private $int_types;
         
     /**
      * Constructor
@@ -431,6 +434,24 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
         $this->autobackup_off_tracker = 'prime_mover_autobackup_off_on_restore';
         $this->prime_mover_singlesite_upgraded_2 = 'prime_mover_singlesite_upgraded_2';
         $this->prime_mover_current_db_export_user = 0;
+        
+        $this->int_types = [
+            'tinyint',
+            'smallint',
+            'mediumint',
+            'int',
+            'integer',
+            'bigint'
+        ];
+    }
+
+    /**
+     * Get int types
+     * @return string[]
+     */
+    public function getIntTypes()
+    {
+        return $this->int_types;
     }
     
     /**

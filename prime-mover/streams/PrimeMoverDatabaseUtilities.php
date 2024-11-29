@@ -35,7 +35,6 @@ class PrimeMoverDatabaseUtilities
     private $openssl_utilities;
     private $db_encryption_key;
     private $maybe_enc;
-    private $int_types;
     private $user_adj_columns;
     private $table_specific_collations;
     
@@ -52,17 +51,7 @@ class PrimeMoverDatabaseUtilities
         $this->random_prefix = '';
         $this->openssl_utilities = $utilities['openssl_utilities'];
         $this->db_encryption_key = '';
-        $this->maybe_enc = false;
-        
-        $this->int_types = [
-            'tinyint',
-            'smallint',
-            'mediumint',
-            'int',
-            'integer',
-            'bigint'
-        ];
-        
+        $this->maybe_enc = false;        
         $this->user_adj_columns = [];
         $this->table_specific_collations = [];
     }
@@ -109,7 +98,7 @@ class PrimeMoverDatabaseUtilities
      */
     public function getIntTypes()
     {
-        return $this->int_types;
+        return $this->getSystemInitialization()->getIntTypes();
     }
     
     /**
