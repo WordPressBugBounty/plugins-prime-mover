@@ -5,7 +5,7 @@ Tags: migrate wordpress, multisite migration, clone, backup
 Requires at least: 4.9.8
 Tested up to: 6.7
 Requires PHP: 5.6
-Stable tag: 2.0.2
+Stable tag: 2.0.3
 License: GPLv3 or later
 License URI: https://codexonics.com
 
@@ -79,7 +79,7 @@ https://youtu.be/QAVVXcoQU8g
 * No messing with complicated migration settings, the free version has built-in settings. Only choose a few options to export and migrate, that's it. 
 * You can save, download, delete, and migrate packages using the management page.
 * No need to worry about PHP configuration and server settings. Compatible with most default PHP server settings even in limited shared hosting. 
-* Prime Mover works with modern PHP versions 5.6 to 8.3+ (Google Drive feature requires at least PHP 7.4).
+* Prime Mover works with modern PHP versions 5.6 to 8.4+ (Google Drive feature requires at least PHP 7.4).
 * The code is following PHP-fig coding standards (standard PHP coding guidelines).
 * The free version supports backup and restoration of non-UTF8 sites. However, you need the PRO version to migrate non-UTF8 to the UTF8 (utf8mb4) database charset and vice versa.
 * You don't need to worry about setting up users or changing user passwords after migration. It does not overwrite existing site users after migration.
@@ -104,6 +104,14 @@ Update now to get all the latest bug fixes, improvements and features!
 
 == Changelog ==
 
+= 2.0.3 =
+
+* Fixed: Preserve user IDs from the source site to the target site if possible.
+* Fixed: Runtime error on database / dB + media restore only, with a difference due to double-quoting table names.
+* Usability: Warn installation of mismatched user administrators and sites with existing content. 
+* Tested: Compatibility with the latest PHP 8.4.
+* Fixed: Updated Freemius SDK to version 2.10.1.
+
 = 2.0.2 =
 
 * Fixed: Slow export and restore on capable servers.
@@ -116,21 +124,5 @@ Update now to get all the latest bug fixes, improvements and features!
 * Fixed: Show upgrade prices in annual for clarity.
 * Fixed: Broken logo icon in upgrade page.
 * Fixed: Support for auto-adjusting user ID columns primary keys on restore.
-
-= 2.0.0 =
-
-* Feature: Support for automated and scheduled backups.
-* Compatibility: Tested for WordPress 6.7 compatibility.
-* Fixed: Updated Freemius SDK library to latest version 2.9.0.
-* Fixed: Google Drive API session is not global when already connected.
-* Fixed: Issues with parallel exports.
-* Fixed: Runtime error when restoring database to unsupported collation type.
-* Fixed: Helpful errors when Prime Mover has issues writing to an archive.
-* Fixed: Runtime errors associated with database tables names containing allowed special characters.
-* Fixed: Runtime error on export if site uses database names with allowed special characters on it.
-* Fixed: Normalize paths for packages for Windows server.
-* Fixed: Missing administrator capabilities when migrating from multisite to single-site.
-* Fixed: Broken migration if site uses relative wp-content URLs.
-* Fixed: Runtime error during migration if site enables WP_DEBUG_DISPLAY + WP_DEBUG mode to true.
 
 See the previous changelogs in changelog.txt.

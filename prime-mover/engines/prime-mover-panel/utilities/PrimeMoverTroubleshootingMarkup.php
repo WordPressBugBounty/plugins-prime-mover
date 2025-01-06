@@ -31,6 +31,7 @@ class PrimeMoverTroubleshootingMarkup
     private $freemius_integration;
     private $autobackup_logs;
     private $clear_locked_settings_identifier;
+    private $disable_user_diff;
     private $utilities;
     
     
@@ -49,6 +50,7 @@ class PrimeMoverTroubleshootingMarkup
         $this->freemius_integration = $utilities['freemius_integration'];
         $this->autobackup_logs = ['automaticbackup', 'autobackup_error'];
         $this->clear_locked_settings_identifier = 'clear_locked_settings';
+        $this->disable_user_diff = 'disable_user_diff';
         $this->utilities = $utilities;
     }
     
@@ -69,6 +71,15 @@ class PrimeMoverTroubleshootingMarkup
     {
         $utilities = $this->getUtilities();
         return $utilities['config_utilities'];
+    }
+    
+    /**
+     * Get identifier for user diff setting
+     * @return string
+     */
+    public function getIdentifierDisableUserDiff()
+    {
+        return $this->disable_user_diff;
     }
     
     /**
@@ -330,6 +341,34 @@ class PrimeMoverTroubleshootingMarkup
     {
         return $this->getSettingsTemplate()->getSettingsConfig();
     } 
+    
+    /**
+     * Render disable user diff setting
+     */
+    public function renderDisableUserDiffMarkup()
+    {
+        $settings_api = $this->getSettingsConfig()->getMasterSettingsConfig();
+        $identifier = $this->getIdentifierDisableUserDiff();
+        if (!isset($settings_api[$identifier])) {
+            return;
+        }
+        
+        $button_specs = [
+            'button_wrapper' => 'div',
+            'button_classes' => 'button-primary',
+            'button_text' => '',
+            'disabled' => '',
+            'title' => ''
+        ];
+        
+        $config = $settings_api[$identifier];
+        $label = __('User diff check', 'prime-mover');
+        $enable_label = __('Disable user diff check', 'prime-mover');        
+        $sprintf = sprintf(esc_html__('By default, user diff check is enabled, so you will be reminded to reset your site before you restore it. You can turn it off here if you do not need to use this feature. Please %s to know about using this feature.', 'prime-mover'),
+            '<a target="_blank" class="prime-mover-external-link" href="' . CODEXONICS_USER_DIFF_FAQ . '">' . esc_html__('read this FAQ', 'prime-mover') . '</a>');
+        $this->getSettingsTemplate()->renderCheckBoxFormTemplate($label, $identifier, $config, 'true', $enable_label, $sprintf, 0, false, $button_specs);
+    }
+    
     
     /**
      * Render clear locked settings callback

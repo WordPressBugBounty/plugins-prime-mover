@@ -261,6 +261,78 @@ class PrimeMoverUserUtilities
     }    
    
     /**
+     * Get user export file
+     * @param array $ret
+     * @return boolean|boolean|boolean[]|string[]
+     */
+    protected function getUserExportFile($ret = [])
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return false;
+        }
+        
+        if (empty($ret['unzipped_directory'])) {
+            return false;
+        }
+        
+        $users_export_file = $this->getUserFunctions()->getUsersExportFilePath($ret['unzipped_directory']);
+        if (!$users_export_file ) {
+            return false;
+        }
+        
+        return $users_export_file;
+    }
+    
+    /**
+     * Get package first user
+     * @param array $ret
+     * @return boolean|array
+     */
+    public function getPackageFirstUser($ret = [])
+    {  
+        $users_export_file = $this->getUserExportFile($ret);
+        if (!$users_export_file ) {            
+            return false;
+        }
+        
+        list($users_json, $decrypt) = $users_export_file;
+        $handle = fopen($users_json, 'rb'); 
+        if (!$handle) {
+            return false;
+        }
+ 
+        $first_user_id = 0;
+        $first_user_email = '';
+        
+        while(!feof($handle)){
+            $line = fgets($handle);
+            if (false === $line) {
+                break;
+            }
+            
+            if ($decrypt) {
+                $line = apply_filters('prime_mover_decrypt_data', $line);
+            }  
+            
+            $user_array = json_decode($line, true);
+            if (!isset($user_array['ID']) || !isset($user_array['user_email'])) {
+                break;
+            }
+            
+            $first_user_id = $user_array['ID'];
+            $first_user_email = $user_array['user_email'];
+            
+            break;
+        }
+        
+        if (!$first_user_id || !$first_user_email) {
+            return false;
+        }
+        
+        return [$first_user_id, $first_user_email];        
+    }
+    
+    /**
      * Process user import
      * @param array $ret
      * @param number $blog_id
@@ -271,18 +343,13 @@ class PrimeMoverUserUtilities
     {
         global $wp_filesystem;
         
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return $ret;
         }
        
-        $this->getSystemFunctions()->switchToBlog($blog_id);
-        if (empty($ret['unzipped_directory'])) {
-            $this->getSystemFunctions()->restoreCurrentBlog();
-            return $ret;
-        }
-        
-        $users_export_file = $this->getUserFunctions()->getUsersExportFilePath($ret['unzipped_directory']);
-        if ( ! $users_export_file ) {
+        $this->getSystemFunctions()->switchToBlog($blog_id);        
+        $users_export_file = $this->getUserExportFile($ret);
+        if (!$users_export_file ) {
             $this->getSystemFunctions()->restoreCurrentBlog();
             return $ret;
         }
@@ -550,7 +617,7 @@ class PrimeMoverUserUtilities
             $this->getUserFunctions()->restoreOriginalPass($original_pass, $ret);
             
             do_action('prime_mover_log_processed_events', $user_email . " user email is new, inserting..", $import_blog_id, 'import', __FUNCTION__, $this, false, true);
-            $user_id_updated  = wp_insert_user($user_array);
+            $user_id_updated  = $this->getUserFunctions()->getUserQueries()->insertUser($user_array, $source_user_id);
             $this->getUserFunctions()->removeOriginalPass();
         }
         

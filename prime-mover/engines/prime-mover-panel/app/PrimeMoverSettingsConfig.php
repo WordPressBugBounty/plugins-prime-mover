@@ -303,6 +303,7 @@ class PrimeMoverSettingsConfig
                 "show_as_required" => false,
                 "documentation" => ''
             ],
+            
             'clear_autobackup_init_meta' =>
             [                
                 "button_selector" => "#js-clear-autobackup_init_meta",
@@ -324,6 +325,7 @@ class PrimeMoverSettingsConfig
                 "show_as_required" => false,
                 "documentation" => ''
             ],
+            
             'clear_locked_settings' =>
             [                
                 "button_selector" => "#js-clear-prime-mover-locked-settings",
@@ -345,6 +347,7 @@ class PrimeMoverSettingsConfig
                 "show_as_required" => false,
                 "documentation" => ''
             ],
+            
             'non_user_id_adjustment' =>
             [
                 "button_selector" => "#js-save-prime-mover-non-user-id-adjustment",
@@ -361,6 +364,26 @@ class PrimeMoverSettingsConfig
                 "off_status" => __('off', 'prime-mover'),
                 "purpose" => __('This is the non user_id column adjustment on a per site basis.', 'prime-mover'),
                 "validation_id" => 'settings_textarea_validation',
+                "show_as_required" => false,
+                "documentation" => ''
+            ],
+            
+            'disable_user_diff' =>
+            [
+                "button_selector" => '#js-save-prime-mover-disable-user-diff',
+                "spinner_selector" => '.js-save-prime-mover-disable-user-diff-spinner',
+                "data_selector" => '#js-prime_mover_disable_user_diff_checkbox',
+                "ajax_action" => 'prime_mover_save_disable_user_diff_settings',
+                "ajax_key" => 'disable_user_diff',
+                "datatype" => "checkbox",
+                "dialog" => false,
+                "encrypted" => false,
+                "nonce" => "prime_mover_save_disable_user_diff_settings_nonce",
+                "description" => __('User diff', 'prime-mover'),
+                "on_status" => __('enabled', 'prime-mover'),
+                "off_status" => __('off', 'prime-mover'),
+                "purpose" => __('This is a global setting for enabling/disabling user diff feature.', 'prime-mover'),
+                "validation_id" => 'settings_checkbox_validation',
                 "show_as_required" => false,
                 "documentation" => ''
             ],

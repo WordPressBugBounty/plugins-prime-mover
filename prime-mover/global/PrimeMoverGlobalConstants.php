@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PRIME_MOVER_VERSION', '2.0.2');
+define('PRIME_MOVER_VERSION', '2.0.3');
 define('PRIME_MOVER_PLUGIN_CODENAME', 'Prime Mover');
 define('PRIME_MOVER_PRO_PLUGIN_CODENAME', 'Prime Mover PRO');
 define('PRIME_MOVER_BACKUP_MARKUP_VERSION', '1.2.0');
@@ -73,6 +73,10 @@ if (!defined('CODEXONICS_CORRUPT_WPRIME_DOC')) {
 
 if (!defined('CODEXONICS_NON_USER_ID_ADJUSTMENT_TUTORIAL')) {
     define('CODEXONICS_NON_USER_ID_ADJUSTMENT_TUTORIAL', 'https://codexonics.com/prime_mover/prime-mover/custom-user-adjustment-usage-feature/');
+}
+
+if (!defined('CODEXONICS_USER_DIFF_FAQ')) {
+    define('CODEXONICS_USER_DIFF_FAQ', 'https://codexonics.com/prime_mover/prime-mover/faq-user-difference-detection-feature/');
 }
 
 if (!defined('CODEXONICS_CUSTOM_CONSTANTS_MU_PLUGINS')) {
@@ -197,6 +201,10 @@ if (!defined('PRIME_MOVER_PRICING_PAGE') ) {
 
 if (!defined('PRIME_MOVER_GET_BLOGID_TUTORIAL') ) {
     define('PRIME_MOVER_GET_BLOGID_TUTORIAL', 'https://codexonics.com/prime_mover/prime-mover/how-to-get-multisite-target-blog-id/');
+}
+
+if (!defined('PRIME_MOVER_RESETDB_TUTORIAL') ) {
+    define('PRIME_MOVER_RESETDB_TUTORIAL', 'https://codexonics.com/prime_mover/prime-mover/how-to-create-fresh-wordpress-install-with-specific-administrator-email/');
 }
 
 if (!defined('PRIME_MOVER_CLI_TIMEOUT_SECONDS') ) {
@@ -357,6 +365,10 @@ if (!defined('PRIME_MOVER_CRON_AUTOBACKUP_EXPIRATION')) {
 
 if (!defined('PRIME_MOVER_PRICING_PAGE_DEVELOPMENT_MODE')) {
     define('PRIME_MOVER_PRICING_PAGE_DEVELOPMENT_MODE', false);
+}
+
+if (!defined('PRIME_MOVER_FORCE_NATIVE_USER_INSERT')) {
+    define('PRIME_MOVER_FORCE_NATIVE_USER_INSERT', false);
 }
 
 if (!defined('PRIME_MOVER_MUST_PLUGIN_MANAGER_CLASS')) {

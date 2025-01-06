@@ -1189,9 +1189,60 @@ class PrimeMoverSystemFunctions
                 }
             }
         }
+ 
+        /**
+         * Deal with user differences last
+         */
+        if ((isset($diff['users'])) && (! empty($diff['users']))) {
+            $blank_site = true;
+            if (isset($diff['users']['blank_site'])) {
+                $blank_site = $diff['users']['blank_site'];
+            }
+            
+            $userheading = esc_html__('Site differences', 'prime-mover');
+            if ($blank_site) {
+                $userheading = esc_html__('User differences', 'prime-mover');
+            }
+            
+            $msg .= '<h3 class="prime_mover_diff_header">' . $userheading . ' :' . '</h3>';            
+            if ($blank_site) {
+                $msg .= esc_html__('Prime Mover detected a mismatch between the source and initial target site administrators.', 'prime-mover');
+            } else {
+                $msg .= esc_html__('Prime Mover detected that the target site has existing content and users.', 'prime-mover');
+            }
+            
+            $msg .= PHP_EOL;
+            $msg .= PHP_EOL;
+            $msg .= esc_html__('For best restoration results, the following is recommended:', 'prime-mover');
+            $msg .= '<ol>';
+            $msg .= '<li>' . sprintf(esc_html__('Start with a %s', 'prime-mover'), '<a class="prime-mover-external-link" target="_blank" href="' . PRIME_MOVER_RESETDB_TUTORIAL . '">' . esc_html__('fresh WordPress install', 'prime-mover') . '</a>.') . '</li>';
+            
+            $recommended_email = '';
+            if (!empty($diff['users']['recommended_email'])) {
+                $recommended_email = $diff['users']['recommended_email'];
+            }
+            
+            if ($recommended_email) {
+                $msg .= '<li>' . sprintf(esc_html__('Set %s as its administrator.', 'prime-mover'), '<strong>' . $recommended_email . '</strong>') . '</li>';
+            } else {
+                $msg .= '<li>' . sprintf(esc_html__('Use a %s email, and do not use %s to avoid user restoration conflicts', 'prime-mover'), '<em>' . 
+                    esc_html__('different administrator email', 'prime-mover') . '</em>', '<strong>' . $recommended_email . '</strong>') . '</li>';
+            }
+            
+            $msg .= '</ol>';
+            $msg .= sprintf(esc_html__('To do this, you must cancel this import by clicking the "%s" button and re-install WordPress in a fresh state. Please %s about this feature.', 'prime-mover'), 
+                '<strong>' . esc_html__('No', 'prime-mover') . '</strong>',
+                '<a class="prime-mover-external-link" target="_blank" href="' . CODEXONICS_USER_DIFF_FAQ . '">' . esc_html__('read the FAQ', 'prime-mover') . '</a>');
+            $msg .= PHP_EOL;
+            $msg .= PHP_EOL;
+            $msg .= esc_html__('Otherwise, you can ignore this warning and proceed with the rest of the import.', 'prime-mover');  
+            $msg .= PHP_EOL;
+        }
+        
         $msg .= PHP_EOL;
-        $msg .= esc_html__('Are you sure you want to proceed with the import?', 'prime-mover') . PHP_EOL;
+        $msg .= esc_html__('Do you want to proceed with the import?', 'prime-mover') . PHP_EOL;
         $msg = wpautop($msg);
+        
         return $msg;
     }
     
@@ -3761,8 +3812,9 @@ class PrimeMoverSystemFunctions
         if ( ! $input_data ) {
             return false;
         }
-        $input_data	= stripslashes(html_entity_decode($input_data));
-        $input_data	= str_replace('\\', '/', $input_data);
+        
+        $input_data	= html_entity_decode($input_data, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML401);
+        
         json_decode($input_data);
         return (json_last_error() == JSON_ERROR_NONE);   
     }

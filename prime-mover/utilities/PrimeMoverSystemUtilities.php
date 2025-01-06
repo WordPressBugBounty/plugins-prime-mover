@@ -31,6 +31,7 @@ if (! defined('ABSPATH')) {
 class PrimeMoverSystemUtilities
 {
     private $system_functions;
+    private $scope_id_adjustments;
 
     const HOOK_NAME = 'prime_mover_do_process_thirdparty_data';
     const THIRDPARTY_HOOKS = 'prime_mover_thirdparty_data_hooks';
@@ -43,6 +44,16 @@ class PrimeMoverSystemUtilities
     public function __construct(PrimeMoverSystemFunctions $system_functions)
     {
         $this->system_functions = $system_functions;
+        $this->scope_id_adjustments = ['blogs' => 'blog_id', 'users' => 'ID'];
+    }
+    
+    /**
+     * Get scope ID adjustments
+     * @return string|string[]
+     */
+    public function getScopeIDAdjustments()
+    {
+        return $this->scope_id_adjustments;
     }
     
     /**
@@ -1419,5 +1430,189 @@ class PrimeMoverSystemUtilities
         $out .= PHP_EOL;
         
         return $out;
+    }
+    
+    /**
+     * Get system authorization
+     * @return \Codexonics\PrimeMoverFramework\classes\PrimeMoverSystemAuthorization
+     */
+    public function getSystemAuthorization()
+    {
+        return $this->getSystemFunctions()->getSystemAuthorization();
+    }
+    
+    /**
+     * @compatible 5.6
+     * Filter passed ID to target ID when conditions are meet
+     * @param string $query
+     * @param string $property
+     * @param string $column
+     * @param number $target_id
+     * @return string
+     */
+    public function filterIdToTargetInQuery($query = '', $property = 'blogs', $column = 'blog_id', $target_id = 0)
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return $query;
+        }        
+        
+        $valid = false;
+        $scoped_adjustments = $this->getScopeIDAdjustments();
+        if ($query && $column && $property && isset($scoped_adjustments[$property]) && $scoped_adjustments[$property] === $column) {
+            $valid = true;
+        }
+        
+        if ($this->isInsertQueryForFiltering($query, $property) && $valid) {
+            if (!$target_id && 'blogs' === $property && 'blog_id' === $column && $this->validateChangeBlogIdRequest()) {
+                $target_id = $this->validateChangeBlogIdRequest();
+            }
+            
+            $target_id = (int)$target_id;
+            if (!$target_id) {
+                return $query;    
+            }
+            
+            $dissected_query_array = $this->dissectQuery($query);            
+            if (!is_array($dissected_query_array) || empty($dissected_query_array)) {
+                return $query;
+            }
+            
+            $replaceables = [];
+            foreach ($dissected_query_array as $k => $v) {
+                if (strpos($v, "(") !== false) {
+                    $replaceables[] = $k;
+                }
+            }
+            
+            $count = count($replaceables);
+            if (2 !== $count) {
+                return $query;
+            }
+            
+            foreach ($replaceables as $key_count => $key_to_update) {
+                if (0 === $key_count && isset($dissected_query_array[$key_to_update])) {                    
+                    $value_to_update = $dissected_query_array[$key_to_update];
+                    $id_field_injected = str_replace("(", "(`{$column}`,", $value_to_update);
+                    $dissected_query_array[$key_to_update] = $id_field_injected;
+                } elseif (1 === $key_count && isset($dissected_query_array[ $key_to_update ])) {                    
+                    $value_to_update = $dissected_query_array[$key_to_update];
+                    $id_value_injected = str_replace("(", "($target_id,", $value_to_update);
+                    $dissected_query_array[$key_to_update] = $id_value_injected;
+                }
+            }
+            
+            $query = implode(" ", $dissected_query_array);
+        }
+        
+        return $query;
+    }
+ 
+    /**
+     * Validate change blog ID request
+     * @return number
+     * @compatible 5.6
+     */
+    protected function validateChangeBlogIdRequest()
+    {
+        $valid = 0;
+        $post = $this->getPostedRequest();
+        if (! $post) {
+            return $valid;
+        }
+        
+        if (! isset($post['add-site'])) {
+            return $valid;
+        }
+        
+        if (! isset($post['prime_mover_changeblogid_nonce'])  ||
+            ! isset($post['prime_mover_target_blog_id'])) {
+                return $valid;
+            }
+            $nonce = $post['prime_mover_changeblogid_nonce'];
+            $blog_id = (int) $post['prime_mover_target_blog_id'];
+
+            if (! $this->getSystemFunctions()->primeMoverVerifyNonce($nonce, 'prime_mover_changeblogid_nonce') || ! $blog_id) {
+                return $valid;
+            }
+
+            $blogdetails = get_blog_details($blog_id);
+            if (! $blogdetails) {                
+                $valid = $blog_id;
+            }
+            
+            return $valid;
+    }
+    
+    /**
+     * Get posted request
+     * @return mixed
+     * @compatible 5.6
+     */
+    protected function getPostedRequest()
+    {
+        $args = [
+            'prime_mover_changeblogid_nonce' => $this->getSystemInitialization()->getPrimeMoverSanitizeStringFilter(),
+            'prime_mover_target_blog_id' => FILTER_SANITIZE_NUMBER_INT,
+            'add-site' => $this->getSystemInitialization()->getPrimeMoverSanitizeStringFilter()
+        ];
+        
+        return $this->getSystemInitialization()->getUserInput('post', $args, 'create_new_blog_id', '', 0, true, true);
+    }
+    
+    /**
+     * Analyze if the query is an INSERT statement to be filtered
+     * @param string $query
+     * @param string $property
+     * @return boolean
+     * @compatible 5.6
+     */
+    protected function isInsertQueryForFiltering($query = '', $property = 'blogs')
+    {
+        $ret = false;
+        $dissected_query_array = $this->dissectQuery($query);
+        if (! isset($dissected_query_array[0])) {
+            return $ret;
+        }
+        $test = strtolower($dissected_query_array[0]);
+        if ('insert' !== $test) {
+            return $ret;
+        }
+        $into_key = (int) array_search(strtolower('INTO'), array_map('strtolower', $dissected_query_array));
+        if (! $into_key) {
+            return $ret;
+        }
+        
+        $wpdb = $this->getSystemInitialization()->getWpdB();
+        if (!isset($wpdb->{$property})) {
+            return $ret;
+        }
+        
+        $table = $wpdb->{$property};
+        $table_key = $into_key + 1;
+        if (!isset($dissected_query_array[$table_key])) {
+            return $ret;
+        }
+        $given = $dissected_query_array[ $table_key ];
+        $given = str_replace(['`', "'", '"'], ['','',''], $given);
+        if (strpos($table, $given) !== false) {
+            $ret = true;
+        }
+        
+        return $ret;
+    }
+    
+    /**
+     * Dissect query
+     * @param string $query
+     * @return array
+     * @compatible 5.6
+     */
+    protected function dissectQuery($query = '')
+    {
+        $dissected_query_array = [];
+        if (!empty($query)) {
+            $dissected_query_array = explode(" ", $query);
+        }
+        return $dissected_query_array;
     }
 }

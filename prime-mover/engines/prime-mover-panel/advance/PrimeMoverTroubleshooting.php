@@ -39,6 +39,7 @@ class PrimeMoverTroubleshooting
     const ENABLE_JS_LOG = 'enable_js_troubleshooting';
     const ENABLE_UPLOAD_JS_LOG = 'enable_js_upload_troubleshooting';
     const ENABLE_TURBO_MODE = 'enable_turbo_mode';
+    const DISABLE_USER_DIFF_CHECK = 'disable_user_diff';
     
     /**
      * Constructor
@@ -149,6 +150,7 @@ class PrimeMoverTroubleshooting
         add_action('prime_mover_render_troubleshooting_markup', [$this, 'renderUploadJsTroubleShootingLogMarkup'], 15);
         add_action('prime_mover_render_troubleshooting_markup', [$this, 'renderTurboModeMarkup'], 16);
         add_action('prime_mover_render_troubleshooting_markup', [$this, 'renderClearLockedSettingsCallBack'], 17);
+        add_action('prime_mover_render_troubleshooting_markup', [$this, 'renderDisableUserDiffMarkup'], 18);
         
         add_filter('prime_mover_enable_turbo_mode_setting', [$this, 'maybeEnableTurboModeSetting'], 10, 1);
         add_filter('prime_mover_enable_upload_js_debug', [$this, 'maybeEnableJsUploadErrorAnalysis'], 10, 1);
@@ -161,6 +163,7 @@ class PrimeMoverTroubleshooting
         
         add_filter('prime_mover_control_panel_js_object', [$this, 'addSettingsToJs'], 10, 1);
         add_filter('prime_mover_register_setting', [$this, 'registerSetting'], 10, 1);
+        add_action('wp_ajax_prime_mover_save_disable_user_diff_settings', [$this,'saveDisableUserDiffSetting']);
         
         add_action('prime_mover_before_doing_export', [$this, 'maybeLog']);
         add_action('prime_mover_before_doing_import', [$this, 'maybeLog']);
@@ -173,8 +176,29 @@ class PrimeMoverTroubleshooting
         add_action('wp_ajax_prime_mover_clear_runtime_error_log', [$this,'clearRuntimeErrorLog']);
         add_action('wp_ajax_prime_mover_clear_autobackup_init_meta', [$this,'clearAutoBackupInitKey']);
         add_action('wp_ajax_prime_mover_clear_locked_settings', [$this,'clearLockedSettings']);
+        
+        add_filter('prime_mover_maybe_bailout_user_diff_check', [$this, 'maybeBailOutUserSiteDiff'], 10, 1);
     }
 
+    /**
+     * Maybe bail out user site diff
+     * @param boolean $bailout
+     * @return string|boolean
+     */
+    public function maybeBailOutUserSiteDiff($bailout = false)
+    {
+        $setting = $this->getPrimeMoverSettings()->getSetting(self::DISABLE_USER_DIFF_CHECK);
+        if (!$setting || is_multisite()) {
+            return $bailout;
+        }
+        
+        if ('true' === $setting) {
+            return true;
+        } 
+        
+        return $bailout;           
+    }
+    
     /**
      * Clear auto backup init key
      */
@@ -596,12 +620,24 @@ class PrimeMoverTroubleshooting
      * Save enable js troubleshooting setting
      */
     public function saveEnableJsTroubleShootingSetting()
-    {        
+    {
         $success = [ 'true' => esc_html__('JavaScript troubleshooting enabled.', 'prime-mover'), 'false' => esc_html__('JavaScript troubleshooting disabled.', 'prime-mover') ];
         $error = esc_html__('JavaScript troubleshooting update failed', 'prime-mover');
         
         $this->getPrimeMoverSettings()->saveHelper(self::ENABLE_JS_LOG,  'prime_mover_save_js_console_setting_nonce', false,
             $this->getPrimeMover()->getSystemInitialization()->getPrimeMoverSanitizeStringFilter(), self::ENABLE_JS_LOG, false, $success, $error, 'checkbox', 'settings_checkbox_validation');
+    }
+    
+    /**
+     * Save disable user diff setting
+     */
+    public function saveDisableUserDiffSetting()
+    {        
+        $success = [ 'true' => esc_html__('User diff check disabled.', 'prime-mover'), 'false' => esc_html__('User diff check enabled.', 'prime-mover') ];
+        $error = esc_html__('User diff setting update failed', 'prime-mover');
+        
+        $this->getPrimeMoverSettings()->saveHelper(self::DISABLE_USER_DIFF_CHECK,  'prime_mover_save_disable_user_diff_settings_nonce', false,
+            $this->getPrimeMover()->getSystemInitialization()->getPrimeMoverSanitizeStringFilter(), self::DISABLE_USER_DIFF_CHECK, false, $success, $error, 'checkbox', 'settings_checkbox_validation');
     }
     
     /**
@@ -696,6 +732,18 @@ class PrimeMoverTroubleshooting
         }
         
         $this->getTroubleShootingMarkup()->renderClearLockedSettingsCallBack();
+    }
+ 
+    /**
+     * Render disable user diff setting
+     */
+    public function renderDisableUserDiffMarkup()
+    {
+        if (is_multisite()) {
+            return;
+        }
+        
+        $this->getTroubleShootingMarkup()->renderDisableUserDiffMarkup();
     }
     
     /**

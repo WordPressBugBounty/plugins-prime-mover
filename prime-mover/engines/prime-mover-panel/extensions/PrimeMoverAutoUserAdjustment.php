@@ -182,9 +182,10 @@ class PrimeMoverAutoUserAdjustment
      * @param wpdb $wpdb
      * @param string $entry
      * @param array $response
-     * @return array
+     * @param number $blog_id
+     * @return string[]|mixed[]
      */
-    protected function parseTableNameAndColumns(wpdb $wpdb, $entry = '', $response = [])
+    protected function parseTableNameAndColumns(wpdb $wpdb, $entry = '', $response = [], $blog_id = 0)
     {
         $pieces = [];
         if ($entry) {
@@ -215,6 +216,15 @@ class PrimeMoverAutoUserAdjustment
             $this->bailOutMessage($response, true, $message, false);
         }
         
+        if (!$this->isTableBelongsToThisSite($blog_id, $table)) {
+            $message = sprintf(esc_html__('%s: The settings have not been saved. The database table name %s does not belong to %s of this multisite.', 'prime-mover'),
+                '<strong>' . esc_html__('Error', 'prime-mover') . '</strong>',
+                "<code>{$table}</code>",
+                '<strong>' . esc_html__('blog ID: ', 'prime-mover') . $blog_id . '</strong>'
+            );
+            $this->bailOutMessage($response, true, $message, false);
+        }
+        
         if (!isset($pieces[1])) {
             $this->bailOutMessage($response, true);
         }
@@ -225,6 +235,22 @@ class PrimeMoverAutoUserAdjustment
         }
         
         return [$table, $col];
+    }
+    
+    /**
+     * Check if given table belongs to a given site in multisite
+     * @param number $blog_id
+     * @param string $given_table
+     * @return boolean
+     */
+    protected function isTableBelongsToThisSite($blog_id = 0, $given_table = '')
+    {
+        if (!is_multisite()) {
+            return true;
+        }
+        
+        $tables = $this->getPrimeMover()->getSystemFunctions()->getTablesforReplacement($blog_id);        
+        return in_array($given_table, $tables);        
     }
     
     /**
@@ -240,7 +266,7 @@ class PrimeMoverAutoUserAdjustment
         $wpdb = $this->getSystemInitialization()->getWpdB();
         $validated = [];
         foreach ($value as $entry) {            
-            list($table, $col) = $this->parseTableNameAndColumns($wpdb, $entry, $response);
+            list($table, $col) = $this->parseTableNameAndColumns($wpdb, $entry, $response, $blog_id);
             $col_pieces = explode(",", $col);
             $col_pieces = array_map('trim', $col_pieces);
             $user_columns = esc_sql($col_pieces);

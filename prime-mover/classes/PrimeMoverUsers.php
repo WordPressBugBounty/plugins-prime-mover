@@ -131,8 +131,127 @@ class PrimeMoverUsers
         
         add_action('prime_mover_before_db_processing', [$this, 'backupOriginalUserRole'], 99);
         add_filter('prime_mover_validate_thirdpartyuser_processing', [$this, 'maybeRequisitesNotMeetForAdjustment'], 10, 3);
-        add_filter('prime_mover_process_userid_adjustment_db', [$this, 'dBCustomerUserIdsHelper'], 10, 13);      
+        add_filter('prime_mover_process_userid_adjustment_db', [$this, 'dBCustomerUserIdsHelper'], 10, 13); 
+        
+        add_filter('prime_mover_filter_config_after_diff_check', [ $this, 'handleUserDifferences'], 99, 1);
     }   
+    
+    /**
+     * Handle user differences
+     * @param array $import_data
+     * @return array
+     */
+    public function handleUserDifferences(array $import_data)
+    {
+        $bailout = apply_filters('prime_mover_maybe_bailout_user_diff_check', false, $import_data);
+        if ($bailout) {
+            return $import_data;
+        }
+        
+        if (!function_exists('wp_is_large_user_count')) {
+            return $import_data;
+        }
+        
+        $do_user_diff_check = !wp_is_large_user_count();
+        if (!$do_user_diff_check || is_multisite()) {
+            return $import_data;
+        }
+        
+        $package_first_user = $this->getUserUtilities()->getPackageFirstUser($import_data);
+        if (!is_array($package_first_user)) {
+            return $import_data;
+        }
+        
+        $diff_array = [];
+        list($package_user_id, $package_user_email) = $package_first_user;
+        $package_user_id = (int)$package_user_id;
+        if (!$package_user_id || !is_string($package_user_email)) {
+            return $import_data;
+        }
+        
+        $package_user_email = trim($package_user_email);
+        if (!$package_user_email) {
+            return $import_data;
+        }
+        
+        $current_user = wp_get_current_user();
+        if (!isset($current_user->ID) || !isset($current_user->user_email)) {
+            return $import_data;
+        }
+        
+        $current_user_email = $current_user->user_email;
+        $current_user_id = $current_user->ID;
+        $current_user_id = (int)$current_user_id;
+        if (!$current_user_id) {
+            return $import_data;
+        }
+        
+        $same_email = false;
+        $same_user_id = false;
+        
+        if ($current_user_email === $package_user_email) {
+            $same_email = true;
+        }
+        
+        if ($current_user_id === $package_user_id) {
+            $same_user_id = true;
+        }
+        
+        $users_of_blog = count_users();   
+        if (!isset($users_of_blog['total_users'])) {
+            return $import_data;
+        }
+        
+        $total = $users_of_blog['total_users'];
+        $total = (int)$total;
+        
+        if ($same_email && $same_user_id && 1 === $total) {
+            return $import_data;
+        }
+        
+        if (!$same_email && 1 === $current_user_id && $package_user_id > 1 && 1 === $total) {
+            return $import_data;
+        } 
+        
+        if ($same_email) {
+            if ($same_user_id && $total > 1) {
+                $diff_array = $this->returnUserDiff($package_user_email, false);
+            } elseif (1 === $package_user_id) {
+                $diff_array = $this->returnUserDiff($package_user_email, true);
+            } else {
+                $diff_array = $this->returnUserDiff('', true);
+            }           
+        }
+        
+        if (!$same_email) {
+            if (1 === $package_user_id) {
+                $diff_array = $this->returnUserDiff($package_user_email, true);
+            } else {
+                $diff_array = $this->returnUserDiff($current_user_email, true);
+            }
+        }
+        
+        if (!empty($diff_array)) {   
+            $import_data['diff']['users'] = $diff_array;
+        }        
+        
+        return $import_data;
+    }
+    
+    /**
+     * Return user diff
+     * @param string $email
+     * @param boolean $blank_site
+     * @return array
+     */
+    protected function returnUserDiff($email = '', $blank_site = true)
+    {
+        $diff_array = [];
+        $diff_array['recommended_email'] = $email;
+        $diff_array['blank_site'] = $blank_site;
+        
+        return $diff_array;
+    }
     
     /**
      * Check requisites for user third party adjustment

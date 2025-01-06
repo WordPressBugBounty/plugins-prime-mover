@@ -2,6 +2,22 @@
 
 **This is a list detailing changes for all Prime Mover releases.**
 
+= 2.0.0 =
+
+* Feature: Support for automated and scheduled backups.
+* Compatibility: Tested for WordPress 6.7 compatibility.
+* Fixed: Updated Freemius SDK library to latest version 2.9.0.
+* Fixed: Google Drive API session is not global when already connected.
+* Fixed: Issues with parallel exports.
+* Fixed: Runtime error when restoring database to unsupported collation type.
+* Fixed: Helpful errors when Prime Mover has issues writing to an archive.
+* Fixed: Runtime errors associated with database tables names containing allowed special characters.
+* Fixed: Runtime error on export if site uses database names with allowed special characters on it.
+* Fixed: Normalize paths for packages for Windows server.
+* Fixed: Missing administrator capabilities when migrating from multisite to single-site.
+* Fixed: Broken migration if site uses relative wp-content URLs.
+* Fixed: Runtime error during migration if site enables WP_DEBUG_DISPLAY + WP_DEBUG mode to true.
+
 = 1.9.9 =
 
 * Fixed: Incompatibility issues with database servers using ANSI_QUOTE SQL mode.

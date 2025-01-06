@@ -15,6 +15,7 @@ use Codexonics\PrimeMoverFramework\cli\PrimeMoverCLIArchive;
 use WP_User_Query;
 use wpdb;
 use WP_Error;
+use WP_User;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -28,6 +29,7 @@ if (! defined('ABSPATH')) {
 class PrimeMoverUserQueries
 {         
     private $cli_archiver;
+    private $user_id;
     
     const PRIME_MOVER_USER_TAXONOMY_OPTION = 'prime_mover_user_taxonomy';
    
@@ -37,7 +39,26 @@ class PrimeMoverUserQueries
      */
     public function __construct(PrimeMoverCLIArchive $cli_archiver)
     {
-        $this->cli_archiver = $cli_archiver;        
+        $this->cli_archiver = $cli_archiver;
+        $this->user_id = 0;
+    }
+    
+    /**
+     * Set user ID
+     * @param number $user_id
+     */
+    public function setUserId($user_id = 0)
+    {
+        $this->user_id = $user_id;
+    }
+    
+    /**
+     * Get user ID
+     * @return string|number
+     */
+    public function getUserId()
+    {
+        return $this->user_id;
     }
     
     /**
@@ -1066,5 +1087,66 @@ class PrimeMoverUserQueries
         }
         
         return false;
+    }
+    
+    /**
+     * Insert user to database
+     * @param array $userdata
+     * @param number $source_user_id
+     * @return number|WP_Error
+     */
+    public function insertUser($userdata = [], $source_user_id = 0)
+    {        
+        $filter_enable = true;
+        if ($this->userIdExists($source_user_id)) {
+            $filter_enable = false;
+        }        
+        
+        if ($filter_enable && defined('PRIME_MOVER_FORCE_NATIVE_USER_INSERT') && true === PRIME_MOVER_FORCE_NATIVE_USER_INSERT) {
+            $filter_enable = false;
+        }
+        
+        if ($filter_enable) {
+            $this->setUserId($source_user_id);
+            add_filter('query', [$this, 'maybePreserveUserId'], 0, 1);
+        }      
+        
+        $user_id_updated = wp_insert_user($userdata);
+        
+        if ($filter_enable) {            
+            remove_filter('query', [$this, 'maybePreserveUserId'], 0, 1);
+            $this->setUserId(0);
+        }
+        
+        return $user_id_updated;
+    }
+    
+    /**
+     * Checks if user ID exists in database
+     * @param number $id
+     * @return WP_User|boolean
+     */
+    public function userIdExists($id = 0)
+    {
+        return get_user_by('ID', $id);
+    }
+    
+    /**
+     * Maybe preserve user IDs
+     * @param string $query
+     * @return string
+     */
+    public function maybePreserveUserId($query = '')
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return $query;
+        }
+        
+        $target_user_id = $this->getUserId();
+        if (!$target_user_id) {
+            return $query;
+        }
+        
+        return $this->getSystemUtilities()->filterIdToTargetInQuery($query, 'users', 'ID', $target_user_id);
     }
 }
