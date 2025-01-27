@@ -42,7 +42,7 @@ if ( defined( 'PRIME_MOVER_PANEL_PLUGINPATH' ) ) {
     return;
 }
 define( 'PRIME_MOVER_PANEL_PLUGINPATH', plugin_dir_path( __FILE__ ) );
-define( 'PRIME_MOVER_PANEL_VERSION', '2.0.3' );
+define( 'PRIME_MOVER_PANEL_VERSION', '2.0.4' );
 define( 'PRIME_MOVER_PANEL_MAINPLUGIN_FILE', __FILE__ );
 define( 'PRIME_MOVER_PANEL_PLUGINBASENAME', plugin_basename( PRIME_MOVER_PANEL_MAINPLUGIN_FILE ) );
 if ( !defined( 'PRIME_MOVER_DROPBOX_UPLOAD_CHUNK' ) ) {

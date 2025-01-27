@@ -5,7 +5,7 @@ Tags: migrate wordpress, multisite migration, clone, backup
 Requires at least: 4.9.8
 Tested up to: 6.7
 Requires PHP: 5.6
-Stable tag: 2.0.3
+Stable tag: 2.0.4
 License: GPLv3 or later
 License URI: https://codexonics.com
 
@@ -15,16 +15,16 @@ The simplest all-around WordPress migration tool/backup plugin. These support mu
 
 = Easily Transfer WordPress Site to New Host/Server/Domain =
 
-*   Move single-site installation to another single site server.
+*   Move single-site installation to another single-site server.
 *   Move WP single-site to existing multisite sub-site.
-*   Migrate subsite to another multisite sub-site.
+*   Migrate the subsite to another multisite subsite.
 *   Migrate multisite sub-site to single-site.
 *   Migrate within WordPress admin.
 *   WordPress backup and restore packages within single-site or multisite.
 *   Backup WordPress subsite (in multisite).
-*   You can backup the WordPress database within admin before testing something and restore it with one click.
+*   You can back up the WordPress database within admin before testing something and restoring it with one click.
 *   Cross-platform compatible (Nginx / Apache / Litespeed / Microsoft IIS / Localhost).
-*   Clone single site and restore it to any server.
+*   Clone a single site and restore it to any server.
 *   Clone subsite in multisite and restore it as single-site or multisite.
 *   Supports legacy multisites.
 *   Debug package.
@@ -35,21 +35,21 @@ https://youtu.be/QAVVXcoQU8g
 = PRO Features =
 
 *   Scheduled backups: Automatic backup support for multisite and single-site.
-*   Save tons of time during migration with the direct site to site package transfer.
-*   Move the backup location outside WordPress public directory for better security.
+*   Save time during migration with the direct site-to-site package transfer.
+*   Move the backup location outside the WordPress public directory for better security.
 *   Migrate or backup WordPress multisite main site.
 *   Encrypt WordPress database in backups for maximum data privacy.
-*   Encrypt WordPress upload files inside backup for better security.
+*   Encrypt the WordPress media directory inside the backup for better security.
 *   Encrypt plugin and theme files inside the backup/package for protection.
 *   Export and restore the backup package from Dropbox.
 *   Save and restore packages from and to Google Drive.
-*   Exclude plugins from the backup (or network activated plugins if multisite).
+*   Exclude plugins from the backup (or network-activated plugins if multisite).
 *   Exclude upload directory files from the backup to reduce the package size.
 *   Create a new multisite subsite with a specific blog ID.
-*   Disable network maintenance in multisite so only affected subsite is in maintenance mode.
+*   Disable network maintenance in multisite so only the affected subsite is in maintenance mode.
 *   Configure migration parameters to optimize and tweak backup/migration packages.
 *   It includes all complete restoration options at your own choice and convenience.
-*   Full access to settings screen to manage all basic and plugin advanced configurations.
+*   Full access to the settings screen to manage all basic and plugin advanced configurations.
 *   Migrate non-UTF8 database charset to standard UTF8 database charset (utf8mb4).
 *   Migrate UTF8 database charset (utf8mb4) to non-UTF8 database charset (edge case scenario).
 
@@ -61,30 +61,30 @@ https://youtu.be/QAVVXcoQU8g
 
 1. Upload to the `/wp-content/plugins/` directory
 2. Activate the plugin through the 'Plugins' menu in WordPress
-3. Optionally, opt in to security & feature updates notification including non-sensitive diagnostic tracking with freemius.com. If you skip this, that's okay! Prime Mover will still work just fine.
+3. Optionally, opt-in to security and feature update notifications, including non-sensitive diagnostic tracking, with freemius.com. If you skip this, that's okay! Prime Mover will still work just fine.
 4. You should see the Prime Mover Control Panel. Click "Go to Migration Tools" to start migrating sites.
 
 == Frequently Asked Questions ==
 
 = What makes Prime Mover unique to other existing migration and backup plugins? =
-	
-* The free version has no restriction on package size, number of websites or mode of migration (single-site or multisite will work). (Note: Exporting/Restoring a multisite main site is a PRO feature)
-* The free version supports WordPress multisite migration on any number of subsites except that exporting/restoring the multisite main site is a PRO feature.
-* It can backup WordPress multisite sub-sites or migrate multisite.
-* No need to delete your WordPress installation, create/delete the database, and all other technical stuff. It will save you a lot of time.
-* This is not hosting-dependent. Prime Mover is designed to work with any hosting companies you want to work with.
-* The free version has full multisite migration functionality. This feature is usually missing in most migration plugins free version.
-* Full versatility - migrating from your localhost, dev site, or from a live site to another live site.
-* You will be doing the entire migration inside the WordPress admin. Anyone with administrator access can do it. There is no need to hire a freelancer to do the job - saves you money.
-* No messing with complicated migration settings, the free version has built-in settings. Only choose a few options to export and migrate, that's it. 
-* You can save, download, delete, and migrate packages using the management page.
-* No need to worry about PHP configuration and server settings. Compatible with most default PHP server settings even in limited shared hosting. 
-* Prime Mover works with modern PHP versions 5.6 to 8.4+ (Google Drive feature requires at least PHP 7.4).
-* The code is following PHP-fig coding standards (standard PHP coding guidelines).
-* The free version supports backup and restoration of non-UTF8 sites. However, you need the PRO version to migrate non-UTF8 to the UTF8 (utf8mb4) database charset and vice versa.
-* You don't need to worry about setting up users or changing user passwords after migration. It does not overwrite existing site users after migration.
 
-For more common questions, please read the [plugin FAQ listed in the developer site](https://codexonics.com/prime_mover/prime-mover/faq/).
+* The free version has no restrictions on package size, number of websites, or migration mode (single-site or multisite will work). (Note: Exporting/Restoring a multisite main site is a PRO feature)
+* The free version supports WordPress multisite migration on any number of subsites, except that exporting/restoring the multisite main site is a PRO feature.
+* It can back up WordPress multisite sub-sites or migrate multisite.
+* No need to delete your WordPress installation, create/delete the database, and all other technical stuff. It will save you a lot of time.
+* This is not hosting-dependent. Prime Mover is designed to work with any hosting company you choose.
+* The free version has full multisite migration functionality, usually missing in most migration plugins' free versions.
+* Full versatility—migrate from your local host dev site or from a live site to another live site.
+* The entire migration will be done inside the WordPress admin. Anyone with administrator access can do it. Hiring a freelancer to do the job is unnecessary and will save you money.
+* You won't have to mess with complicated migration settings; the free version has built-in settings. You can choose only a few options to export and migrate—that's it.
+* You can save, download, delete, and migrate packages using the management page.
+* No need to worry about PHP configuration and server settings. Compatible with most default PHP server settings, even in limited shared hosting.
+* Prime Mover works with modern PHP versions 5.6 to 8.4+ (Google Drive feature requires at least PHP 7.4).
+* The code follows PHP-fig coding standards (standard PHP coding guidelines).
+* The free version supports backup and restoration of non-UTF8 sites. However, you need the PRO version to migrate non-UTF8 to the UTF8 (utf8mb4) database charset and vice versa.
+* After migration, you don't need to worry about setting up users or changing passwords. It does not overwrite existing site users.
+
+For more common questions, please read the [plugin FAQ listed on the developer site](https://codexonics.com/prime_mover/prime-mover/faq/).
 
 == Screenshots ==
 
@@ -95,14 +95,19 @@ For more common questions, please read the [plugin FAQ listed in the developer s
 5. Restore package via browser upload
 6. Single-site package manager
 7. Prime Mover network control panel
-8. Export and restore package from Network Sites
+8. Export and restore packages from Network Sites
 9. Multisite network package manager
 
 == Upgrade Notice ==
 
-Update now to get all the latest bug fixes, improvements and features!
+Update now to get all the latest bug fixes, improvements, and features!
 
 == Changelog ==
+
+= 2.0.4 =
+
+* Fixed: Data was missing on import due to a large extended insert in the database restore.
+* Updated Freemius SDK to the latest version.
 
 = 2.0.3 =
 
@@ -117,12 +122,5 @@ Update now to get all the latest bug fixes, improvements and features!
 * Fixed: Slow export and restore on capable servers.
 * Usability: Turn on turbo mode by default.
 * Feature: Allow users to adjust non 'user_id' columns containing user IDs during export and restore.
-
-= 2.0.1 =
-
-* Fixed: Unable to restore tables due to duplicate foreign key index.
-* Fixed: Show upgrade prices in annual for clarity.
-* Fixed: Broken logo icon in upgrade page.
-* Fixed: Support for auto-adjusting user ID columns primary keys on restore.
 
 See the previous changelogs in changelog.txt.

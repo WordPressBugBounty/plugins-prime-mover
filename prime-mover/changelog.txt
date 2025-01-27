@@ -2,6 +2,13 @@
 
 **This is a list detailing changes for all Prime Mover releases.**
 
+= 2.0.1 =
+
+* Fixed: Unable to restore tables due to duplicate foreign key index.
+* Fixed: Show upgrade prices in annual for clarity.
+* Fixed: Broken logo icon in upgrade page.
+* Fixed: Support for auto-adjusting user ID columns primary keys on restore.
+
 = 2.0.0 =
 
 * Feature: Support for automated and scheduled backups.

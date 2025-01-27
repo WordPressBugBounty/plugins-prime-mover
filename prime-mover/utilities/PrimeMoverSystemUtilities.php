@@ -18,6 +18,8 @@ use ReflectionFunction;
 use ReflectionException;
 use wpdb;
 use Closure;
+use mysqli;
+use mysqli_result;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -1614,5 +1616,95 @@ class PrimeMoverSystemUtilities
             $dissected_query_array = explode(" ", $query);
         }
         return $dissected_query_array;
+    }
+    
+    /**
+     * Execute SQL query on dB restore
+     * @param string $query
+     * @param array $ret
+     * @param number $q
+     * @param boolean $is_retry
+     * @return boolean|number
+     */
+    public function executeRestoreQuery($query = '', $ret = [], $q = 0, $is_retry = false)
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return false;
+        }        
+        $wpdb = $this->getSystemInitialization()->getWpdB();
+        if (!$query) {
+            $wpdb->insert_id = 0;
+            return false;
+        }
+        
+        $wpdb->flush();        
+        $connection_instance = $this->getSystemInitialization()->getConnectionInstance();
+        $wpdb->last_query = $query;        
+        if (!empty($connection_instance)) {
+            mysqli_query($connection_instance, apply_filters('prime_mover_filter_sql_query', $query, $ret, $q, $wpdb, $is_retry));
+        }        
+        
+        $mysql_errno = 0;        
+        if ($connection_instance instanceof mysqli) {
+            $mysql_errno = mysqli_errno($connection_instance);
+        } else {            
+            $mysql_errno = 2006;
+        }        
+        if (empty($connection_instance) || 2006 === $mysql_errno) {
+            if ($wpdb->check_connection()) {
+                mysqli_query($connection_instance, apply_filters('prime_mover_filter_sql_query', $query, $ret, $q, $wpdb, $is_retry));
+            } else {
+                $wpdb->insert_id = 0;
+                return false;
+            }
+        }        
+        if ($connection_instance instanceof mysqli ) {
+            $wpdb->last_error = mysqli_error($connection_instance);
+        } else {
+            $wpdb->last_error = __('Unable to retrieve the error message from MySQL', 'prime-mover');
+        }
+        
+        if ($wpdb->last_error) {
+            if ($wpdb->insert_id && preg_match( '/^\s*(insert|replace)\s/i', $query ) ) {
+                $wpdb->insert_id = 0;
+            }            
+            $wpdb->print_error();
+            return false;
+        } 
+        return $this->returnRestoreSQLQueryResult($wpdb, $query, $connection_instance);
+    }
+    
+    /**
+     * Return query result
+     * @param wpdb $wpdb
+     * @param string $query
+     * @param mixed $connection_instance
+     * @return number|mysqli_result|boolean|NULL
+     */
+    protected function returnRestoreSQLQueryResult(wpdb $wpdb = null, $query = '', $connection_instance = null)
+    {
+        if (preg_match('/^\s*(create|alter|truncate|drop)\s/i', $query)) {
+            $return_val = $wpdb->result;
+        } elseif (preg_match('/^\s*(insert|delete|update|replace)\s/i', $query)) {
+            $wpdb->rows_affected = mysqli_affected_rows($connection_instance);
+            if (preg_match('/^\s*(insert|replace)\s/i', $query)) {
+                $wpdb->insert_id = mysqli_insert_id($connection_instance);
+            }
+            
+            $return_val = $wpdb->rows_affected;
+        } else {
+            $num_rows = 0;
+            if ($wpdb->result instanceof mysqli_result) {
+                while ($row = mysqli_fetch_object($wpdb->result)) {
+                    $wpdb->last_result[$num_rows] = $row;
+                    ++$num_rows;
+                }
+            }
+            
+            $wpdb->num_rows = $num_rows;
+            $return_val     = $num_rows;
+        }
+        
+        return $return_val;        
     }
 }

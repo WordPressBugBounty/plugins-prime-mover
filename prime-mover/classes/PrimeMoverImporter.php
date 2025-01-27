@@ -1816,7 +1816,7 @@ class PrimeMoverImporter implements PrimeMoverImport
                     }
                 }
                 
-                $wpdb->query(apply_filters('prime_mover_filter_sql_query', $templine, $ret, $q, $wpdb, $is_retry));
+                $this->getSystemUtilities()->executeRestoreQuery($templine, $ret, $q, $is_retry);                
                 $templine = '';
                 $q++;
                 $executed = true;                
