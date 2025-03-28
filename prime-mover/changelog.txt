@@ -2,6 +2,12 @@
 
 **This is a list detailing changes for all Prime Mover releases.**
 
+= 2.0.2 =
+
+* Fixed: Slow export and restore on capable servers.
+* Usability: Turn on turbo mode by default.
+* Feature: Allow users to adjust non 'user_id' columns containing user IDs during export and restore.
+
 = 2.0.1 =
 
 * Fixed: Unable to restore tables due to duplicate foreign key index.

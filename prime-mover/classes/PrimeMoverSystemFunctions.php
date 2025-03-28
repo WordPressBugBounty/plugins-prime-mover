@@ -4027,7 +4027,17 @@ class PrimeMoverSystemFunctions
         }
     
         $abspath = trailingslashit($abspath);        
-        return str_replace( '\\', '/', $abspath);
+        $ret = str_replace( '\\', '/', $abspath);
+        $bedrock = '';
+        if ($this->isBedrockEnvironment()) {
+            $bedrock = dirname($ret);
+        }
+        
+        if ($bedrock && $this->fileExists(wp_normalize_path(trailingslashit($bedrock) . 'app'))) {
+            return trailingslashit($bedrock);
+        }
+        
+        return $ret;
     }
     
     /**
@@ -4707,6 +4717,20 @@ class PrimeMoverSystemFunctions
             return false;
         }
         return (in_array($load_id, $scheduled_backup));
+    }
+    
+    /**
+     * Check if processing site is using WordPress Bedrock environment
+     * @return boolean
+     */
+    public function isBedrockEnvironment()
+    {
+        $mu_plugins = get_mu_plugins();
+        if (!is_array($mu_plugins)) {
+            return false;
+        }
+      
+        return (isset($mu_plugins['bedrock-autoloader.php']));        
     }
     
     /**

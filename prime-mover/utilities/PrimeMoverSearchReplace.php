@@ -53,6 +53,8 @@ if (! defined('ABSPATH')) {
 final class PrimeMoverSearchReplace extends DupxUpdateEngine
 {   
     private static $left_off;
+    private static $relative_replaceables = [];
+    private static $internal_domain = [];
     private static $num_types = [      
         'bit',
         'tinyint',
@@ -111,6 +113,24 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
     }
     
     /**
+     * Get relative replaceables hash
+     * @return array
+     */
+    private static function getRelativeReplaceablesHash()
+    {
+        return self::$relative_replaceables;
+    }
+    
+    /**
+     * Get internal domain if set
+     * @return array
+     */
+    private static function getInternalDomain()
+    {
+        return self::$internal_domain;
+    }
+    
+    /**
      * Log search replace header
      * @param array $ret
      * @param PrimeMoverImporter $importer
@@ -124,7 +144,7 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
         } else {
             $ret['srch_rplc_original_tables_count'] = count($tables);
             self::logSearchReplaceHeader($importer, $ret, $list, $tables, "Search replace doing process the first time, ret: ");
-        }
+        }       
     }
     
     /**
@@ -319,7 +339,13 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
      * @return string[]
      */
     private static function processColumns($columns, $row, $is_unkeyed, $dbh, $list = [], $serial_err = 0, $upd_sql = [], $where_sql = [], $upd = false)
-    {
+    {        
+        $has_relative = false;
+        $relative_replaceables_hash = self::getRelativeReplaceablesHash();
+        if (!empty($relative_replaceables_hash)) {
+            $has_relative = true;
+        }
+        
         try {
             foreach ($columns as $column => $primary_key) {
                 $edited_data = $data_to_fix = $row[$column];
@@ -350,7 +376,20 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
                     }
                     
                     foreach ($list as $item) {
-                        $edited_data = self::recursiveUnserializeReplace($item['search'], $item['replace'], $edited_data);
+                        $is_processing_relative = false;
+                        $process_srch = $item['search'];
+                        $process_rplc = $item['replace'];
+                        $process_hash = '';
+                        
+                        if ($has_relative) {
+                            $process_hash = self::computeReplaceableHash($process_srch, $process_rplc); 
+                        }
+                        
+                        if ($has_relative && $process_hash && in_array($process_hash, $relative_replaceables_hash)) {
+                            $is_processing_relative = true;
+                        }
+                        
+                        $edited_data = self::recursiveUnserializeReplace($item['search'], $item['replace'], $edited_data, false, $is_processing_relative);
                     }
                     
                     $serial_check = self::fixSerialString($edited_data);
@@ -656,6 +695,80 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
         }
         
         return $left_off;        
+    }   
+    
+    /**
+     * Set relative replaceables if it exists
+     * @param array $list
+     */
+    protected static function setRelativeReplaceables($list = [])
+    {     
+        if (!is_array($list)) {
+            return;
+        }
+        
+        if (!function_exists('wp_extract_urls') || (defined('PRIME_MOVER_EXCLUDE_EXTERNAL_RELATIVE_SRCHRPLC') && 
+            false === PRIME_MOVER_EXCLUDE_EXTERNAL_RELATIVE_SRCHRPLC)) {
+            return;
+        }
+        
+        $key = 'relative_upload_scheme';
+        $key_slashed = $key . '_slashedvar';
+        
+        $hashes = [];
+        if (!empty($list[$key]['search']) && !empty($list[$key]['replace'])) {
+            $hashes[] = self::computeReplaceableHash($list[$key]['search'] . $list[$key]['replace']);
+        }
+        
+        if (!empty($list[$key_slashed]['search']) && !empty($list[$key_slashed]['replace'])) {
+            $hashes[] = self::computeReplaceableHash($list[$key_slashed]['search'] . $list[$key_slashed]['replace']);
+        }
+        
+        self::$relative_replaceables = $hashes;
+    }
+    
+    /**
+     * Compute replaceable hash based on search and replace strings
+     * @param string $search
+     * @param string $replace
+     * @return string
+     */
+    private static function computeReplaceableHash($search = '', $replace = '')
+    {
+        return hash('adler32', $search . $replace);
+    }
+    
+    /**
+     * Set internal domain if it applies
+     * @param PrimeMoverImporter $importer
+     * @param array $list
+     */
+    protected static function setInternalDomain(PrimeMoverImporter $importer = null, $list = [])
+    {
+        if (!is_array($list)) {
+            return;
+        }
+        
+        $key = 'generic_domain_scheme';
+        $internal_origin = '';
+        $internal_target = '';
+        $host_origin = '';
+        $host_target = '';
+        
+        $relative_replaceables_hash = self::getRelativeReplaceablesHash();
+        if (!empty($relative_replaceables_hash) && !empty($list[$key]['search']) && !empty($list[$key]['replace'])) {
+            
+            $internal_origin = $importer->getSystemInitialization()->removeSchemeFromUrl($list[$key]['search']);
+            $internal_target = $importer->getSystemInitialization()->removeSchemeFromUrl($list[$key]['replace']);
+            
+            $host_origin = wp_parse_url($list[$key]['search'], PHP_URL_HOST);
+            $host_target = wp_parse_url($list[$key]['replace'], PHP_URL_HOST);
+        }
+        
+        if ($internal_origin && $internal_target && $host_origin && $host_target) {
+            $internals = array_unique([$internal_origin, $internal_target, $host_origin, $host_target]);
+            self::$internal_domain = $internals;
+        }
     }
     
     /**
@@ -676,8 +789,11 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
         if (!$importer->getSystemAuthorization()->isUserAuthorized() ) {
             return;
         }      
-               
+        
+        self::setRelativeReplaceables($list);
+        self::setInternalDomain($importer, $list);
         self::logSearchReplaceHeaderCall($ret, $importer, $tables, $list);
+        
         list($excluded_column, $table_with_excluded_column, $is_already_timeout) = self::getExcludedColumn($excluded_columns);
         $total_rows_processed = self::getTotalRowsProcessed($ret);        
         
@@ -991,6 +1107,13 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
         do_action('prime_mover_log_processed_events', $list , $ret['blog_id'], 'import', 'logSearchReplaceHeader', 'PrimeMoverSearchReplace', true);
         do_action('prime_mover_log_processed_events', "Search replace tables: " , $ret['blog_id'], 'import', 'logSearchReplaceHeader', 'PrimeMoverSearchReplace', true);
         do_action('prime_mover_log_processed_events',$tables, $ret['blog_id'], 'import', 'logSearchReplaceHeader', 'PrimeMoverSearchReplace', true);
+        
+        $relative_replaceables_hash = self::getRelativeReplaceablesHash();
+        if (!empty($relative_replaceables_hash)) {
+            $internal_domains = self::getInternalDomain();
+            do_action('prime_mover_log_processed_events',"RELATIVE REPLACEABLES, internal domains array:", $ret['blog_id'], 'import', 'logSearchReplaceHeader', 'PrimeMoverSearchReplace');
+            do_action('prime_mover_log_processed_events',$internal_domains, $ret['blog_id'], 'import', 'logSearchReplaceHeader', 'PrimeMoverSearchReplace');           
+        }
     }
     
     /**
@@ -1031,23 +1154,25 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
     /**
      * Take a serialized array and unserialized it replacing elements and
      * unserializing any subordinate arrays and performing the replace.
+     * 
+     * The original array with all elements replaced as needed.
      * @codeCoverageIgnore
-     * @param string $from       String we're looking to replace.
-     * @param string $to         What we want it to be replaced with
-     * @param array  $data       Used to pass any subordinate arrays back to in.
-     * @param bool   $serialised Does the array passed via $data need serializing.
-     *
-     * @return array	The original array with all elements replaced as needed.
+     * @param string $from
+     * @param string $to
+     * @param string $data
+     * @param boolean $serialised
+     * @param boolean $is_processing_relative
+     * @return string|array|string[]|\SplFixedArray|string
      */
-    public static function recursiveUnserializeReplace($from = '', $to = '', $data = '', $serialised = false)
+    public static function recursiveUnserializeReplace($from = '', $to = '', $data = '', $serialised = false, $is_processing_relative = false)
     {
         try {
             if (is_string($data) && ($unserialized = @unserialize($data)) !== false) {
-                $data = self::recursiveUnserializeReplace($from, $to, $unserialized, true);
+                $data = self::recursiveUnserializeReplace($from, $to, $unserialized, true, $is_processing_relative);
             } elseif (is_array($data)) {
                 $_tmp = array();
                 foreach ($data as $key => $value) {
-                    $_tmp[$key] = self::recursiveUnserializeReplace($from, $to, $value, false);
+                    $_tmp[$key] = self::recursiveUnserializeReplace($from, $to, $value, false, $is_processing_relative);
                 }
                 $data = $_tmp;
                 unset($_tmp);
@@ -1060,15 +1185,19 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
                         $key = trim($key);
                     }
                     if ($_tmp instanceof SplFixedArray) {
-                        $_tmp[$key] = self::recursiveUnserializeReplace($from, $to, $value, false);
+                        $_tmp[$key] = self::recursiveUnserializeReplace($from, $to, $value, false, $is_processing_relative);
                     } else {
-                        $_tmp->$key = self::recursiveUnserializeReplace($from, $to, $value, false);
+                        $_tmp->$key = self::recursiveUnserializeReplace($from, $to, $value, false, $is_processing_relative);
                     }
                 }
                 $data = $_tmp;
                 unset($_tmp);
             } else {
-                if (is_string($data)) {
+                if (self::isValidStringEntity($data)) {
+                    if ($is_processing_relative) {
+                        list($from, $to) = self::generateSrchReplaceArraysExcludeExternals($from, $to, $data);
+                    }
+                    
                     $data = str_replace($from, $to, $data);
                 }
             }
@@ -1083,5 +1212,94 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
         }
         
         return $data;               
-    }    
+    }   
+    
+    /**
+     * Generate search and replace arrays excluding external URLs
+     * @param string $from
+     * @param string $to
+     * @param string $data
+     * @return array
+     */
+    private static function generateSrchReplaceArraysExcludeExternals($from = '', $to = '', $data = '')
+    {
+        $internal_domain = self::getInternalDomain();
+        if (empty($internal_domain)) {            
+            return [$from, $to];
+        }
+        
+        $internal_urls = array_filter(wp_extract_urls($data), [__CLASS__, 'isInternalLink']);
+        if (empty($internal_urls)) {            
+            return [$from, $to];
+        }
+        
+        $search_arrays = [];
+        $replace_arrays = [];
+        
+        foreach ($internal_urls as $internal_url_original) {            
+            $internal_url_replaced = str_replace($from, $to, $internal_url_original);
+            $search_arrays[] = $internal_url_original;
+            $replace_arrays[] = $internal_url_replaced;        
+        }     
+
+        return self::maybeLogAndReturnSearchReplaceInternalUrlArrays([$search_arrays, $replace_arrays]);
+    }
+    
+    /**
+     * Maybe log relative search and replace
+     * @param array $array
+     * @return array
+     */
+    private static function maybeLogAndReturnSearchReplaceInternalUrlArrays($array = [])
+    {
+        if (PRIME_MOVER_LOG_RELATIVE_REPLACEABLE_PROCESS) {
+            $blog_id = self::getBlogId();            
+            do_action('prime_mover_log_processed_events',"RELATIVE REPLACEABLES, external URLs exists returning ONLY internal URLs arrays: ", $blog_id, 'import', 'maybeLogAndReturnSearchReplaceInternalUrlArrays', 'PrimeMoverSearchReplace');
+            do_action('prime_mover_log_processed_events', $array, $blog_id, 'import', 'maybeLogAndReturnSearchReplaceInternalUrlArrays', 'PrimeMoverSearchReplace');
+        }
+        
+        return $array;
+    }
+    
+    /**
+     * Check if link is internal link
+     * @param string $link
+     * @return boolean
+     */
+    private static function isInternalLink($link = '') 
+    {
+        $internal_domain = self::getInternalDomain();
+        $link = strtolower($link);
+        if (in_array(wp_parse_url($link, PHP_URL_SCHEME), wp_allowed_protocols(), true)) {
+            return in_array(wp_parse_url($link, PHP_URL_HOST), $internal_domain, true);
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Checks if restricted string entity
+     * @param string $given
+     * @return boolean
+     */
+    protected static function restrictedEntity($given = '')
+    {
+        if (str_contains($given, PRIME_MOVER_EXPORT_DIR_SLUG) || str_contains($given, PRIME_MOVER_TMP_DIR_SLUG) ||
+            str_contains($given, PRIME_MOVER_LOCK_DIR_SLUG) || str_contains($given, PRIME_MOVER_IMPORT_DIR_SLUG))
+        {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Checks if valid string entity for search replace
+     * @param string $given
+     * @return boolean
+     */
+    protected static function isValidStringEntity($given = '')
+    {
+        return (is_string($given) && !self::restrictedEntity($given));       
+    }
 }

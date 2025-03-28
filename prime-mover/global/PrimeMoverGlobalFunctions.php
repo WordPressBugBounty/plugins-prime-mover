@@ -605,6 +605,15 @@ if ( !function_exists( 'primeMoverOpenSSLDecrypt' ) ) {
     }
 
 }
+if ( !function_exists( 'str_contains' ) ) {
+    function str_contains(  $haystack, $needle  ) {
+        if ( '' === $needle ) {
+            return true;
+        }
+        return false !== strpos( $haystack, $needle );
+    }
+
+}
 if ( !function_exists( 'primeMoverRestoreAdminCaps' ) ) {
     function primeMoverRestoreAdminCaps() {
         return [

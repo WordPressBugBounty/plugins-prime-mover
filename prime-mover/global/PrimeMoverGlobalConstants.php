@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PRIME_MOVER_VERSION', '2.0.4');
+define('PRIME_MOVER_VERSION', '2.0.5');
 define('PRIME_MOVER_PLUGIN_CODENAME', 'Prime Mover');
 define('PRIME_MOVER_PRO_PLUGIN_CODENAME', 'Prime Mover PRO');
 define('PRIME_MOVER_BACKUP_MARKUP_VERSION', '1.2.0');
@@ -147,6 +147,10 @@ if (!defined('PRIME_MOVER_MUST_USE_PLUGIN_SCRIPT')) {
     define('PRIME_MOVER_MUST_USE_PLUGIN_SCRIPT', PRIME_MOVER_PLUGIN_PATH. 'scripts' . DIRECTORY_SEPARATOR . PRIME_MOVER_MUST_USE_PLUGIN_FILENAME);
 }
 
+if (!defined('PRIME_MOVER_PLUGIN_MANAGER_SCRIPT')) {
+    define('PRIME_MOVER_PLUGIN_MANAGER_SCRIPT', WPMU_PLUGIN_DIR. DIRECTORY_SEPARATOR . PRIME_MOVER_MUST_USE_PLUGIN_FILENAME);
+}
+
 if (!defined('PRIME_MOVER_MUST_USE_CONSTANT_SCRIPT')) {
     define('PRIME_MOVER_MUST_USE_CONSTANT_SCRIPT', PRIME_MOVER_PLUGIN_PATH. 'scripts' . DIRECTORY_SEPARATOR . PRIME_MOVER_MUST_USE_PLUGIN_CONSTANT_SCRIPT);
 }
@@ -195,6 +199,10 @@ if (!defined('PRIME_MOVER_RESTORE_URL_DOC') ) {
     define('PRIME_MOVER_RESTORE_URL_DOC', 'https://codexonics.com/prime_mover/prime-mover/how-to-export-and-restore-using-pro-version/');
 }
 
+if (!defined('PRIME_MOVER_ALTERNATIVE_DOWNLOAD_DOC') ) {
+    define('PRIME_MOVER_ALTERNATIVE_DOWNLOAD_DOC', 'https://codexonics.com/prime_mover/prime-mover/faq-how-to-download-wprime-package-via-other-methods/');
+}
+
 if (!defined('PRIME_MOVER_PRICING_PAGE') ) {
     define('PRIME_MOVER_PRICING_PAGE', 'https://codexonics.com/prime_mover/prime-mover/pricing/');
 }
@@ -205,6 +213,10 @@ if (!defined('PRIME_MOVER_GET_BLOGID_TUTORIAL') ) {
 
 if (!defined('PRIME_MOVER_RESETDB_TUTORIAL') ) {
     define('PRIME_MOVER_RESETDB_TUTORIAL', 'https://codexonics.com/prime_mover/prime-mover/how-to-create-fresh-wordpress-install-with-specific-administrator-email/');
+}
+
+if (!defined('PRIME_MOVER_FIX_MU_SCRIPT_TUTORIAL')) {
+    define('PRIME_MOVER_FIX_MU_SCRIPT_TUTORIAL', 'https://codexonics.com/prime_mover/prime-mover/troubleshooting-unable-to-activate-prime-mover-in-restricted-mu-plugins-directory/');
 }
 
 if (!defined('PRIME_MOVER_CLI_TIMEOUT_SECONDS') ) {
@@ -369,6 +381,14 @@ if (!defined('PRIME_MOVER_PRICING_PAGE_DEVELOPMENT_MODE')) {
 
 if (!defined('PRIME_MOVER_FORCE_NATIVE_USER_INSERT')) {
     define('PRIME_MOVER_FORCE_NATIVE_USER_INSERT', false);
+}
+
+if (!defined('PRIME_MOVER_LOG_RELATIVE_REPLACEABLE_PROCESS')) {
+    define('PRIME_MOVER_LOG_RELATIVE_REPLACEABLE_PROCESS', false);
+}
+
+if (!defined('PRIME_MOVER_EXCLUDE_EXTERNAL_RELATIVE_SRCHRPLC')) {
+    define('PRIME_MOVER_EXCLUDE_EXTERNAL_RELATIVE_SRCHRPLC', true);
 }
 
 if (!defined('PRIME_MOVER_MUST_PLUGIN_MANAGER_CLASS')) {

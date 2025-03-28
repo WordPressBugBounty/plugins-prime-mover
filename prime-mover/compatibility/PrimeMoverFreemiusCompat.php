@@ -127,19 +127,147 @@ class PrimeMoverFreemiusCompat
         
         add_filter('network_admin_plugin_action_links_' . PRIME_MOVER_DEFAULT_PRO_BASENAME , [$this, 'userFriendlyActionLinks'], PHP_INT_MAX, 1);
         add_filter('plugin_action_links_' . PRIME_MOVER_DEFAULT_PRO_BASENAME , [$this, 'userFriendlyActionLinks'], PHP_INT_MAX, 1);
+        add_filter('prime_mover_process_srchrplc_query_update', [$this, 'maybeSkipFreemiusOptionsUpdate'], 15, 4);
         
         add_filter('network_admin_plugin_action_links_' . PRIME_MOVER_DEFAULT_FREE_BASENAME , [$this, 'userFriendlyActionLinks'], PHP_INT_MAX, 1);
         add_filter('plugin_action_links_' . PRIME_MOVER_DEFAULT_FREE_BASENAME , [$this, 'userFriendlyActionLinks'], PHP_INT_MAX, 1);
-       
+        add_filter('prime_mover_filter_ret_after_rename_table', [$this, 'injectFreemiusOptionsForSrchRplcExclusion'], 10, 2); 
+        
         add_action('network_admin_notices', [$this, 'maybeShowMainSiteOnlyMessage'] );
         add_action( 'init', [$this, 'maybeUpdateIfUserReadMessage']);
         add_action('prime_mover_load_module_apps', [$this, 'maybeResetFreemiusOnIssues'], -1); 
         
         add_action('admin_head', [$this, 'jSUpgrade'], 100);
         add_action('admin_head', [$this, 'filterPrimeMoverSlug'], 50);
-        add_action('prime_mover_load_module_apps', [$this, 'removeVerifiedMeta'], 1000);         
+        add_action('prime_mover_load_module_apps', [$this, 'removeVerifiedMeta'], 1000);                
         
         $this->injectFreemiusHooks();
+    }
+ 
+    /**
+     * Exclude Freemius options in the import search and replace process
+     * @param boolean $update
+     * @param array $ret
+     * @param string $table
+     * @param array $where_sql
+     * @return string|boolean
+     */
+    public function maybeSkipFreemiusOptionsUpdate($update = true, $ret = [], $table = '', $where_sql = [])
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized() || !$table) {
+            return $update;
+        }
+        
+        $blog_id = 0;
+        if (!empty($ret['blog_id'])) {
+            $blog_id = $ret['blog_id'];
+        }
+        
+        $blog_id = (int)$blog_id;
+        if (!$blog_id) {
+            return $update;
+        }
+        
+        $this->getSystemFunctions()->switchToBlog($blog_id);
+        $wpdb = $this->getSystemInitialization()->getWpdB();
+        $options = "{$wpdb->prefix}options";
+        
+        if ($table !== $options) {
+            $this->getSystemFunctions()->restoreCurrentBlog();
+            return $update;
+        }
+        
+        if (!is_array($where_sql) || !is_array($ret) || !isset($ret['prime_mover_freemius_option_ids']) || !isset($where_sql[0])) {
+            $this->getSystemFunctions()->restoreCurrentBlog();
+            return $update;
+        }
+        
+        $option_id_string = $where_sql[0];
+        if (!$option_id_string) {
+            $this->getSystemFunctions()->restoreCurrentBlog();
+            return $update;
+        }
+        
+        $freemius_option_ids = $ret['prime_mover_freemius_option_ids'];
+        if (!is_array($freemius_option_ids) || empty($freemius_option_ids)) {
+            $this->getSystemFunctions()->restoreCurrentBlog();
+            return $update;
+        }
+        $int = 0;
+        if (false !== strpos($option_id_string, '=')) {
+            $exploded = explode("=", $option_id_string);
+            $int = str_replace('"', '', $exploded[1]);
+            $int = (int)$int;
+        }
+        
+        $this->getSystemFunctions()->restoreCurrentBlog();
+        if ($int && in_array($int, $freemius_option_ids)) {
+            return false;
+            
+        } else {
+            return $update;
+        }
+    }
+    
+    /**
+     * Inject Freemius options for search replace exclusion
+     * @param array $ret
+     * @param number $blog_id
+     * @return array
+     */
+    public function injectFreemiusOptionsForSrchRplcExclusion($ret = [], $blog_id = 0)
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized() || !is_array($ret) || !$blog_id) {
+            return $ret;
+        }
+        
+        if (!isset($ret['prime_mover_freemius_option_ids'])) {
+            $ret['prime_mover_freemius_option_ids'] = $this->getFreemiusOptionsOnImport($blog_id);
+        }  
+        
+        return $ret;
+    }
+ 
+    /**
+     * Get Freemius options on import so they are left untouched by the import process
+     * @param number $blogid_to_import
+     * @return array|mixed[]
+     */
+    protected function getFreemiusOptionsOnImport($blogid_to_import = 0)
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return [];
+        }
+        
+        $affected_options = [];
+        if (!$blogid_to_import) {
+            return $affected_options;
+        }
+        
+        $this->getSystemFunctions()->switchToBlog($blogid_to_import);
+        $wpdb = $this->getSystemInitialization()->getWpdB();
+        
+        $options_query = "SELECT option_id FROM {$wpdb->prefix}options WHERE option_name LIKE %s";
+        $prefix_search = $wpdb->esc_like('fs_') . '%';
+        $option_query_prepared = $wpdb->prepare($options_query, $prefix_search);
+        $option_query_results = $wpdb->get_results($option_query_prepared, ARRAY_N);
+        
+        if (!is_array($option_query_results) || empty($option_query_results)) {
+            $this->getSystemFunctions()->restoreCurrentBlog();
+            return $affected_options;
+        }
+        
+        foreach ($option_query_results as $v) {
+            if (! is_array($v)) {
+                continue;
+            }
+            
+            $val = reset($v);
+            $affected_options[] = (int)$val;
+        }
+        
+        $this->getSystemFunctions()->restoreCurrentBlog();
+        return $affected_options;
     }
     
     /**

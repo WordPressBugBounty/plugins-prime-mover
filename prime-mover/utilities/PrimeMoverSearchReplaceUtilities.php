@@ -32,6 +32,8 @@ class PrimeMoverSearchReplaceUtilities
     private $relative_replaceables;
     private $double_replace_scenario;
     private $edge_wp_folder_check;
+    private $double_replace_handle_content;
+    private $double_replace_handle_uploads;
     
     /**
      * Constructor
@@ -151,6 +153,27 @@ class PrimeMoverSearchReplaceUtilities
             'removed_trailing_slash_wproot_slashedvar',
             'wpcontent_dirs'
         ];        
+        
+        $this->double_replace_handle_content = false;
+        $this->double_replace_handle_uploads = false;
+    }
+    
+    /**
+     * Get double replace handle content
+     * @return boolean
+     */    
+    public function getDoubleReplaceHandleContent()
+    {
+        return $this->double_replace_handle_content;
+    }
+    
+    /**
+     * Get double replace handle uploads
+     * @return boolean
+     */
+    public function getDoubleReplaceHandleUploads()
+    {
+        return $this->double_replace_handle_uploads;
     }
     
     /**
@@ -297,11 +320,130 @@ class PrimeMoverSearchReplaceUtilities
         add_filter('prime_mover_filter_final_replaceables', [$this, 'maybeHandleEdgeWpFolder'], 15003, 4);
         
         add_filter('prime_mover_filter_final_replaceables', [$this, 'maybeRemoveRedundantReplaceables'], 20000, 4);
-        add_filter('prime_mover_process_srchrplc_query_update', [$this, 'maybeSkipDbQueryUpdate'], 10, 4);
+        add_filter('prime_mover_process_srchrplc_query_update', [$this, 'maybeSkipDbQueryUpdate'], 10, 4);        
         
         add_filter('prime_mover_filter_final_replaceables', [$this, 'maybeUnsetWpRoot'], 25000, 4);
+        add_filter('prime_mover_filter_final_replaceables', [$this, 'maybeAdjustEdgeRelativeCustomContentUploads'], 30000, 4);
     }
-
+    
+    /**
+     * Maybe adjust relative edge content and uploads directories
+     * @param array $replaceables
+     * @param array $ret
+     * @param boolean $retries
+     * @param number $blogid_to_import
+     */
+    public function maybeAdjustEdgeRelativeCustomContentUploads($replaceables = [], $ret = [], $retries = false, $blogid_to_import = 0)
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized() || !is_array($replaceables)) {
+            return $replaceables;
+        }
+        
+        if (!$this->getDoubleReplaceScenario()) {
+            return $replaceables;
+        }
+        
+        if (!empty($replaceables['relative_upload_scheme'])) {
+            return $replaceables;    
+        }
+        
+        if (empty($ret['main_search_replace_replaceables'])) {
+            return $replaceables;
+        }
+        
+        $resource = $ret['main_search_replace_replaceables'];
+        
+        if ($this->getDoubleReplaceHandleUploads()) {
+            $replaceables = $this->adjustEdgeRelativeCustomContentUploadsHelper($replaceables, 'wpupload_path', 'removed_trailing_slash_wproot', 
+                'double_rpcl_custom_upload_fix', $resource);            
+        }
+        
+        if ($this->getDoubleReplaceHandleContent()) {
+            $replaceables = $this->adjustEdgeRelativeCustomContentUploadsHelper($replaceables, 'wpcontent_dirs', 'removed_trailing_slash_wproot',
+                'double_rpcl_custom_content_fix', $resource);            
+        }
+        
+        
+        if ($this->getDoubleReplaceHandleUploads()) {
+            $replaceables = $this->adjustEdgeRelativeCustomContentUploadsHelper($replaceables, 'generic_upload_scheme', 'generic_domain_scheme',
+                'double_rpcl_custom_upload_url_fix', $resource);
+        }
+        
+        if ($this->getDoubleReplaceHandleUploads()) {
+            $replaceables = $this->adjustEdgeRelativeCustomContentUploadsHelper($replaceables, 'generic_content_scheme', 'generic_domain_scheme',
+                'double_rpcl_custom_content_url_fix', $resource);
+        }        
+        
+        return $replaceables;;
+    }
+    
+    /**
+     * Helper function for edge relative custom content uploads directories
+     * @param array $replaceables
+     * @param string $subject
+     * @param string $key
+     * @param string $identifier
+     * @param array $resource
+     * @return array
+     */
+    protected function adjustEdgeRelativeCustomContentUploadsHelper($replaceables = [], $subject = '', $key = '', $identifier = '', $resource = [])
+    {
+        if (!is_array($replaceables) || !is_array($resource) || !$subject || !$key || !$identifier) {
+            return $replaceables;
+        }
+        
+        $subject_dir = '';
+        if (!empty($resource[$subject]['search'])) {
+            $subject_dir = $resource[$subject]['search'];
+        }
+       
+        $srch_dir_part = '';
+        if (!empty($resource[$key]['search'])) {
+            $srch_dir_part = $resource[$key]['search'];
+        }
+       
+        $target_dir_part = '';
+        if (!empty($resource[$key]['replace'])) {
+            $target_dir_part = $resource[$key]['replace'];
+        }
+       
+        $search_param_double_rplc = '';
+        if ($srch_dir_part && $target_dir_part && $subject_dir) {
+            $search_param_double_rplc = str_replace($srch_dir_part,  $target_dir_part, $subject_dir);
+        }        
+       
+        $target_param_double_rplc = '';
+        if (!empty($resource[$subject]['replace'])) {
+            $target_param_double_rplc = $resource[$subject]['replace'];
+        }
+       
+        $search_param_double_rplc_slashedvar = '';
+        if ($search_param_double_rplc) {
+            $search_param_double_rplc_slashedvar = str_replace('/', '\/', $search_param_double_rplc);
+        }
+        
+        $target_param_double_rplc_slashedvar = '';
+        if ($target_param_double_rplc) {
+            $target_param_double_rplc_slashedvar = str_replace('/', '\/', $target_param_double_rplc);
+        }       
+        
+        if (!isset($replaceables[$identifier]) && $identifier && $search_param_double_rplc && $target_param_double_rplc) {
+            $replaceables[$identifier] = [
+                'search' => $search_param_double_rplc,
+                'replace' => $target_param_double_rplc
+            ];
+        }
+        
+        if (!isset($replaceables["{$identifier}_slashedvar"]) && $identifier && $search_param_double_rplc_slashedvar && $target_param_double_rplc_slashedvar) {
+            $replaceables["{$identifier}_slashedvar"] = [
+                'search' => $search_param_double_rplc_slashedvar,
+                'replace' => $target_param_double_rplc_slashedvar
+            ];        
+        }
+        
+        return $replaceables;
+    }
+    
     /**
      * Maybe remove redundant replaceable
      * @param array $replaceables
@@ -598,9 +740,18 @@ class PrimeMoverSearchReplaceUtilities
         list($wp_root_source, $wp_root_target, $absolute_source, $absolute_target, $given_source_relative, $given_target_relative) = $this->computeRelativePathRequisites($replaceables, 
             $wp_root_key, $given_replaceable, $validate);
         
-        if ($this->getSystemFunctions()->isFileResideInExportDir($absolute_target, $wp_root_source)) {
+        if ($this->maybeDoubleReplaceScenario($absolute_target, $wp_root_source, $replaceables)) {
             $this->double_replace_scenario = true;
         }    
+        
+        if ($this->getDoubleReplaceScenario() && $this->isRelativeToSource($replaceables, 'content_dir_check')) {
+            $this->double_replace_handle_content = true;
+        }
+        
+
+        if ($this->getDoubleReplaceScenario() && $this->isRelativeToSource($replaceables, 'upload_dir_check')) {
+            $this->double_replace_handle_uploads = true;
+        }
         
         if (defined('PRIME_MOVER_NO_RELATIVE_URL_SRCH_RPLC') && true === PRIME_MOVER_NO_RELATIVE_URL_SRCH_RPLC) {
             return $replaceables;
@@ -637,6 +788,75 @@ class PrimeMoverSearchReplaceUtilities
         }
         
         return $replaceables;
+    }
+    
+    /**
+     * Maybe double replace scenario in case the target follows relative path from the source
+     * @param string $absolute_target
+     * @param string $wp_root_source
+     * @return boolean
+     */
+    protected function maybeDoubleReplaceScenario($absolute_target = '', $wp_root_source = '')
+    {        
+        return ($this->getSystemFunctions()->isFileResideInExportDir($absolute_target, $wp_root_source));         
+    }
+    
+    /**
+     * Checks if given path is relative to source
+     * Return TRUE if relative otherwise FALSE
+     * @param array $replaceables
+     * @param string $mode
+     * @return boolean
+     */
+    protected function isRelativeToSource($replaceables = [], $mode = 'content_dir_check')
+    {
+        $modes = [
+          'content_dir_check' => 'wpcontent_dirs',
+          'upload_dir_check' => 'wpupload_path'
+        ];
+        $root_key = 'removed_trailing_slash_wproot';
+        if (empty($modes[$mode])) {
+            return false;
+        }
+       
+        $processing_mode = $modes[$mode];
+        $source_root = '';
+        $target_root = '';
+        if (!empty($replaceables[$root_key]['search']) && !empty($replaceables[$root_key]['replace'])) {
+            $source_root = $replaceables[$root_key]['search'];
+            $target_root = $replaceables[$root_key]['replace'];
+        }
+        
+        if (!$source_root || !$target_root) {
+            return false;
+        }
+       
+        $source_root = wp_normalize_path($source_root);
+        $target_root = wp_normalize_path($target_root);
+        
+        $source_content_dir = '';
+        $target_content_dir = '';
+        
+        if (!empty($replaceables[$processing_mode]['search']) && !empty($replaceables[$processing_mode]['replace'])) {
+            $source_content_dir = $replaceables[$processing_mode]['search'];
+            $target_content_dir = $replaceables[$processing_mode]['replace'];
+        }
+        
+        if (!$source_content_dir || !$target_content_dir) {
+            return false;
+        }
+        
+        $source_content_dir = wp_normalize_path($source_content_dir);
+        $target_content_dir = wp_normalize_path($target_content_dir);
+        
+        $source_content_relative = str_replace($source_root, '', $source_content_dir);
+        $target_content_relative = str_replace($target_root, '', $target_content_dir);
+        
+        if ($source_content_relative === $source_content_dir || $target_content_relative === $target_content_dir) {
+            return false;
+        }
+        
+        return !str_contains($source_content_relative, $target_content_relative);        
     }
     
     /**
@@ -1348,8 +1568,8 @@ class PrimeMoverSearchReplaceUtilities
             return $upload_phrase;
         }
         
-        /** @var Type $target_site_upload_path Target site upload path*/
-        /** @var Type $source_site_upload_path Source site upload path*/
+        /** @var string $target_site_upload_path Target site upload path*/
+        /** @var string $source_site_upload_path Source site upload path*/
         list($target_site_upload_url, $target_site_upload_path, $source_site_upload_url, $source_site_upload_path) = $basic_parameters;
         
         $origin_scheme = '';

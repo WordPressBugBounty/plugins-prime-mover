@@ -45,12 +45,53 @@ class PrimeMoverFileSystemDependencies
         foreach ($this->getRequiredPermissionPaths() as $path) {
             if ($path === WPMU_PLUGIN_DIR && true !== wp_mkdir_p($path)) {
                 $this->problematic_paths[] = $path;
-            } elseif ($this->isValidPath($path) && $this->wpIsNotWritable($path)) {
-                $this->problematic_paths[] = $path;
+            } elseif ($this->isValidPath($path) && $this->wpIsNotWritable($path)) {                
+                $add = true;
+                if (true === $this->isPluginManagerScriptUpdated($path)) {
+                    $add = false;
+                }
+                
+                if ($add) {
+                    $this->problematic_paths[] = $path;
+                }                
             }
         }
     }
     
+    /**
+     * Checks if plugin manager script is updated as per reference script
+     * Returns TRUE if script is updated otherwise FALSE
+     * @param string $path
+     * @return boolean
+     */
+    private function isPluginManagerScriptUpdated($path = '')
+    {
+        $path = wp_normalize_path($path);  
+        $mu_plugin_script = wp_normalize_path(PRIME_MOVER_MUST_USE_PLUGIN_SCRIPT);
+        
+        return ($this->isPathPluginManager($path) && md5_file($path) === md5_file($mu_plugin_script));
+    }
+    
+    /**
+     * Checks if plugin manager script is the path and it exists
+     * @param string $path
+     * @param boolean $normalize
+     * @return boolean
+     */
+    private function isPathPluginManager($path = '', $normalize = false)
+    {
+        if ($normalize) {
+            $path = wp_normalize_path($path); 
+        }
+        
+        return (is_file($path) && PRIME_MOVER_MUST_USE_PLUGIN_FILENAME === basename($path));
+    }
+    
+    /**
+     * Checks if path is writable
+     * @param mixed $path
+     * @return boolean
+     */
     protected function wpIsNotWritable($path)
     {
        return !wp_is_writable($path);        
@@ -111,6 +152,7 @@ class PrimeMoverFileSystemDependencies
         if ( empty($problematic_paths) || ! is_array($problematic_paths)) {
             return;
         }
+        $plugin_manager_error = [];
         ?>
         <div class="error">        
          <p><?php printf( esc_html__( 'The %s plugin cannot be activated if the following paths were not writable by WordPress', 'prime-mover' ), 
@@ -118,15 +160,24 @@ class PrimeMoverFileSystemDependencies
             <ul>
                 <?php 
                 foreach ( $this->getProblematicPaths() as $path ) {
+                    if ($this->isPathPluginManager($path, true)) {
+                        $plugin_manager_error[] = wp_normalize_path($path);
+                    }
                 ?>
                     <li><strong><?php echo $path;?></strong></li>
                 <?php    
                 }
                 ?>
             </ul>
-             <?php 
+            
+             <?php
+             $plugin_manager_error_text = '';
+             if (!empty($plugin_manager_error)) {
+                 $plugin_manager_error_text = sprintf(esc_html__('In addition, you can %s for possible solutions regarding this issue.', 'prime-mover'), 
+                     '<a class="prime-mover-external-link" href="' . PRIME_MOVER_FIX_MU_SCRIPT_TUTORIAL . '">' . esc_html__('check out this tutorial', 'prime-mover') . '</a>');
+             }
              $text = esc_html__('', 'prime-mover');            
-             echo sprintf(esc_html__('%s Please contact your web hosting provider or request to make these paths writable.', 'prime-mover' ), $text); ?></p>
+             echo sprintf(esc_html__('%s Please contact your web hosting provider or request to make these paths writable. %s', 'prime-mover' ), $text, $plugin_manager_error_text); ?></p>
             </div>
     <?php
     }

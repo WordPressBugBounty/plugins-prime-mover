@@ -922,6 +922,10 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
                 $column_display_name = '<a class="prime-mover-external-link" href="' . esc_url(PRIME_MOVER_RESTORE_URL_DOC . "#remote-url-restore-dialog"). '">' . $column_display_name . '</a>';     
             }
             
+            if ('download' === $column_key) {
+                $column_display_name = '<a class="prime-mover-external-link" href="' . esc_url(PRIME_MOVER_ALTERNATIVE_DOWNLOAD_DOC). '">' . $column_display_name . '</a>';
+            }
+            
             $class = array( 'manage-column', "column-$column_key" );
             
             if ( in_array( $column_key, $hidden, true ) ) {

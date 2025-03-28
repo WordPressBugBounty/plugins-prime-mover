@@ -28,6 +28,7 @@ if (! defined('ABSPATH')) {
 class PrimeMoverDownloadUtilities
 {
     private $resume_download_stream;
+    private $binary_archive_type;
 
     const CRON_BIWEEKLY_INTERVAL = 259200;
     const CRON_TESTING_INTERVAL = 600;
@@ -39,6 +40,16 @@ class PrimeMoverDownloadUtilities
     public function __construct(PrimeMoverResumableDownloadStream $resume_download_stream)
     {
         $this->resume_download_stream = $resume_download_stream;
+        $this->binary_archive_type = ['application/octet-stream', 'application/x-tar'];
+    }
+    
+    /**
+     * Get binary archive type
+     * @return number|string[]
+     */
+    public function getBinaryArchiveType()
+    {
+        return $this->binary_archive_type;
     }
     
     /**
@@ -737,7 +748,86 @@ class PrimeMoverDownloadUtilities
             $resumable_method = true;
         }
         
+        return $this->forceReadFileRendering([$linkurl, $readfile_method, $header_location_method, $resumable_method]);
+    }
+    
+    /**
+     * Force read file rendering on servers that does not identify tar or WPRIME archive format.
+     * @param array $rendering_methods
+     * @return array
+     */
+    protected function forceReadFileRendering($rendering_methods = [])
+    {
+        $force_readfile = false;
+        $content_type = null;
+        global $is_nginx;
+        if (!is_bool($is_nginx)) {
+            return $rendering_methods;
+        }
+        
+        if (!$is_nginx) {
+            return $rendering_methods;
+        }
+       
+        /** @var Bool $linkurl */
+        /** @var Bool $readfile_method */
+        /** @var Bool $header_location_method */
+        /** @var Bool $resumable_method */        
+        list($linkurl, $readfile_method, $header_location_method, $resumable_method) = $rendering_methods;        
+        if (!$header_location_method) {
+            return $rendering_methods;
+        }
+        
+        if (!is_string($linkurl) || !$linkurl) {
+            return $rendering_methods;
+        }
+
+        $args = $this->getSystemInitialization()->getDevArgs();
+        $headers = wp_remote_head($linkurl, $args);     
+        if (is_wp_error($headers)) {
+            $force_readfile = true;
+        }
+        
+        if (!$force_readfile) {
+            $content_type = wp_remote_retrieve_header($headers, 'content-type');
+        }
+        
+        if (!$force_readfile && !$this->isContentTypeBinary($content_type)) {
+            $force_readfile = true;
+        }
+        
+        if (!$force_readfile) {
+            return $rendering_methods;
+        }
+        
+        $readfile_method = true;
+        $header_location_method = false;
+        $resumable_method = false;
+        
         return [$linkurl, $readfile_method, $header_location_method, $resumable_method];
+    }
+    
+    /**
+     * Maybe content type binary
+     * Returns TRUE if given content type is binary WPRIME archive format
+     * @param mixed $given
+     * @return boolean
+     */
+    protected function isContentTypeBinary($given = null)
+    {
+        if (is_string($given) && $given) {
+            return in_array($given, $this->getBinaryArchiveType());
+        }
+        
+        if (is_array($given)) {
+            foreach ($given as $content_type) {
+                if (in_array($content_type, $this->getBinaryArchiveType())) {
+                    return true;
+                }
+            }            
+        }
+        
+        return false;
     }
     
     /**
@@ -751,12 +841,16 @@ class PrimeMoverDownloadUtilities
      */
     protected function renderDefaultHeaders($header_location_method = false, $readfile_method = false, $input_server = [], $generatedFilename = '', $total_filesize = 0, $content_type = 'Content-Type: application/zip')
     {
-        if ($header_location_method || $readfile_method) {            
+        if ($header_location_method || $readfile_method) {
+            
             header($content_type);
             header('Content-Disposition: attachment; filename="'. $generatedFilename .'"');
-            header('Content-Length: ' . $total_filesize);  
+            if ($readfile_method) {
+                header('Content-Length: ' . $total_filesize);
+            }
+            
             header('X-PrimeMover-Size: ' . $total_filesize);
-        }                  
+        }
     }
     
     /**

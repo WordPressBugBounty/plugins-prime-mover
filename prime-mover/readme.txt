@@ -3,9 +3,9 @@ Contributors: codexonics, freemius
 Donate link: https://codexonics.com
 Tags: migrate wordpress, multisite migration, clone, backup
 Requires at least: 4.9.8
-Tested up to: 6.7
+Tested up to: 6.8
 Requires PHP: 5.6
-Stable tag: 2.0.4
+Stable tag: 2.0.5
 License: GPLv3 or later
 License URI: https://codexonics.com
 
@@ -104,6 +104,16 @@ Update now to get all the latest bug fixes, improvements, and features!
 
 == Changelog ==
 
+= 2.0.5 =
+
+* Fixed: Controls were added for the outdated Prime Mover plugin manager script in the mu-plugins directory.
+* Fixed: Unable to download package in Docker-based WordPress installations.
+* Fixed: Search and replace issues with similar subdirectory path installations.
+* Fixed: Freemius safe mode after import.
+* Fixed: After import, search and replace issues with broken external WordPress site URL.
+* Compatibility: Tested for WordPress 6.8 release.
+* Usability: Added tutorial to download packages in different ways.
+
 = 2.0.4 =
 
 * Fixed: Data was missing on import due to a large extended insert in the database restore.
@@ -116,11 +126,5 @@ Update now to get all the latest bug fixes, improvements, and features!
 * Usability: Warn installation of mismatched user administrators and sites with existing content. 
 * Tested: Compatibility with the latest PHP 8.4.
 * Fixed: Updated Freemius SDK to version 2.10.1.
-
-= 2.0.2 =
-
-* Fixed: Slow export and restore on capable servers.
-* Usability: Turn on turbo mode by default.
-* Feature: Allow users to adjust non 'user_id' columns containing user IDs during export and restore.
 
 See the previous changelogs in changelog.txt.

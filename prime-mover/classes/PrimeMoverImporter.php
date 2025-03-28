@@ -2429,7 +2429,9 @@ class PrimeMoverImporter implements PrimeMoverImport
         do_action('prime_mover_log_processed_events', $ret, $blogid_to_import, 'import', $current_func, $this, true);
         do_action('prime_mover_after_renamedb_prefix', $blogid_to_import, $ret);
         
-        $ret = $this->getSystemFunctions()->doMemoryLogs($ret, $current_func, 'import', $blogid_to_import);        
+        $ret = apply_filters('prime_mover_filter_ret_after_rename_table', $ret, $blogid_to_import);
+        $ret = $this->getSystemFunctions()->doMemoryLogs($ret, $current_func, 'import', $blogid_to_import);    
+        
         return apply_filters('prime_mover_save_return_import_progress', $ret, $blogid_to_import, $next_func, $current_func);
     }
     
@@ -2828,11 +2830,11 @@ class PrimeMoverImporter implements PrimeMoverImport
         
         if ($umeta_id) {
             $ret['prime_mover_tracker_umeta_id'] = (int)$umeta_id;
-        }
+        }              
         
         do_action('prime_mover_update_user_meta', $user_id, $meta_key, $ret);         
         return $ret;
-    }
+    }    
     
     /**
      * Return import progress data to continue processing

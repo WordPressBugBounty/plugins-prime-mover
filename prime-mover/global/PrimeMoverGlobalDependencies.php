@@ -43,7 +43,8 @@ class PrimeMoverGlobalDependencies
             PRIME_MOVER_PLUGIN_PATH,
             PRIME_MOVER_THEME_CORE_PATH,
             get_stylesheet_directory(),
-            WPMU_PLUGIN_DIR
+            WPMU_PLUGIN_DIR,
+            PRIME_MOVER_PLUGIN_MANAGER_SCRIPT
         );
         
         if (defined('WP_CONTENT_DIR')) {
