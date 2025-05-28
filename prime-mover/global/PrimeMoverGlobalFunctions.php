@@ -636,3 +636,10 @@ if ( !function_exists( 'primeMoverRestoreAdminCaps' ) ) {
     }
 
 }
+if ( !function_exists( 'primeMoverGetFreemiusSDK' ) ) {
+    function primeMoverGetFreemiusSDK() {
+        global $pm_fs;
+        return $pm_fs;
+    }
+
+}

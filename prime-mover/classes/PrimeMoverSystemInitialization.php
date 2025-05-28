@@ -3737,6 +3737,15 @@ Options -Indexes
     }
     
     /**
+     * Checks if using WordPress.org version
+     * @return boolean
+     */
+    public function isUsingFreeCode()
+    {
+        return (PRIME_MOVER_DEFAULT_FREE_SLUG === plugin_basename(PRIME_MOVER_MAINPLUGIN_FILE));
+    }
+    
+    /**
      * Get $wpdb instance usable for Prime Mover objects
      * @return $wpdb instance
      */

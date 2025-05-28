@@ -2,6 +2,14 @@
 
 **This is a list detailing changes for all Prime Mover releases.**
 
+= 2.0.3 =
+
+* Fixed: Preserve user IDs from the source site to the target site if possible.
+* Fixed: Runtime error on database / dB + media restore only, with a difference due to double-quoting table names.
+* Usability: Warn installation of mismatched user administrators and sites with existing content. 
+* Tested: Compatibility with the latest PHP 8.4.
+* Fixed: Updated Freemius SDK to version 2.10.1.
+
 = 2.0.2 =
 
 * Fixed: Slow export and restore on capable servers.

@@ -147,10 +147,103 @@ class PrimeMoverToolBox
         add_filter('prime_mover_filter_error_output', [$this, 'appendCustomScheduleToLog'], 51, 1);
         add_action('prime_mover_scheduled_backup_settings_per_site', [$this, 'outputSiteUtilitiesHeading'], 71, 1);
         add_action('prime_mover_scheduled_backup_settings_per_site', [$this, 'outputNonUserIdAdjustment'], 75, 1);
+        
+        add_action('prime_mover_scheduled_backup_settings_per_site', [$this, 'outputExcludeTables'], 80, 1);
     }
 
     /**
+     * Output exclude tables setting
+     * @param number $blog_id
+     */
+    public function outputExcludeTables($blog_id = 0)
+    {
+        $settings_api = $this->getAutoBackupSetting()->getSettingsConfig()->getMasterSettingsConfig();
+        $identifier = 'excluded-tables';
+        
+        if (!isset($settings_api[$identifier])) {
+            return;
+        }
+        
+        $button_specs = [
+            'button_wrapper' => 'div',
+            'button_classes' => 'button-primary',
+            'button_text' => '',
+            'disabled' => '',
+            'title' => ''
+        ];
+        
+        
+        if (!isset($settings_api[$identifier])) {
+            return;
+        }
+        
+        $button_specs = [
+            'button_wrapper' => 'div',
+            'button_classes' => 'button-primary',
+            'button_text' => '',
+            'disabled' => '',
+            'title' => ''
+        ];
+        
+        
+        $config = $settings_api[$identifier];
+        $heading_text = esc_html__('Excluded tables', 'prime-mover');
+        
+        $first_paragraph = '';
+        $first_paragraph .= '<div class="prime-mover-setting-description">';
+        $first_paragraph .= '<p class="description prime-mover-settings-paragraph">';
+        
+        $first_paragraph .= esc_html__('All database tables belonging to the exported site will be included in the export package by default.', 'prime-mover');
+        $first_paragraph .= '</p>';
+        $first_paragraph .= '<p class="description">';
+        
+        $first_paragraph .= esc_html__('It is possible to exclude some custom database tables from being exported by clicking the button below to expand and check them. You can only exclude custom database tables created by other plugins or themes.',
+            'prime-mover');
+        
+        $first_paragraph .= '</p>';
+        $toggle_btn_title = esc_attr(esc_html__('Click this button to expand the database tables of this site.', 'prime-mover'));
+        $validated_array = $this->buildTablesArray($blog_id);
+        $empty_text = esc_html__('No tables found', 'prime-mover');
+        
+        $second_paragraph = '';
+        $second_paragraph .= '<p class="description prime-mover-settings-paragraph">';
+        $second_paragraph .= esc_html__('Use this tool to reduce the size of your database export and speed up the database import at the restore end. This is useful if the site no longer uses these plugins but still has large database tables.',
+            'prime-mover');
+        
+        $second_paragraph .= '</p>';
+        $second_paragraph .= '<p class="description">';
+        $second_paragraph .= esc_html__('Take note you cannot exclude WordPress core tables because they are required for your site to work. Please note that if you exclude tables still actively used by your plugins or themes, you will have missing functionality after import, or your site will have errors.',
+            'prime-mover');
+        
+        $second_paragraph .= '</p>';
+        
+        $this->getPrimeMoverSettingsTemplate()->renderCheckBoxesTextAreaDisplayTemplate($heading_text, $identifier, $config, true, $first_paragraph, $toggle_btn_title,
+            $validated_array, $empty_text, $second_paragraph, $button_specs, $blog_id, false); 
+    }
+  
+    /**
+     * Build database tables array for markup
+     * @param number $blog_id
+     * @return array
+     */
+    protected function buildTablesArray($blog_id = 0)
+    {
+        $tables = apply_filters('prime_mover_tables_to_export', $this->getSystemFunctions()->getTablesToExport($blog_id), $blog_id, [], true);
+        $core = $this->getSystemInitialization()->getCoreWpTables($blog_id);
+        
+        $validated = [];
+        foreach ($tables as $table) {
+            if (!in_array($table, $core)) {
+                $validated[] = $table;
+            }
+        }
+        
+        return $validated;
+    }
+    
+    /**
      * Output non-user ID adjustment setting
+     * @param number $blog_id
      */
     public function outputNonUserIdAdjustment($blog_id = 0)
     {

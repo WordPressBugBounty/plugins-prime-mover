@@ -73,7 +73,7 @@ class PrimeMoverSettingsConfig
                   "purpose" => __('This is a subsite specific setting for enabling/disabling automatic backup feature.', 'prime-mover'),
                   "validation_id" => 'settings_checkbox_validation',
                   "show_as_required" => true, 
-                  "documentation" => ''
+                  "documentation" => 'https://codexonics.com/prime_mover/prime-mover/how-to-enable-automatic-backup-for-wordpress-multisite-and-single-site/'
               ],       
             
             'autobackup_export_options' =>
@@ -95,7 +95,7 @@ class PrimeMoverSettingsConfig
                   'default_value' => '',
                   'return_default_if_no_key' => false,
                   "show_as_required" => true,
-                  "documentation" => ''
+                  "documentation" => 'https://codexonics.com/prime_mover/prime-mover/understanding-prime-mover-backup-options/'
             ],
             
             'autobackup_schedule' =>
@@ -115,7 +115,7 @@ class PrimeMoverSettingsConfig
                 "purpose" => __('This is the automatic backup export schedule on a per site basis.', 'prime-mover'),
                 "validation_id" => 'settings_autobackup_schedule_validation',
                 "show_as_required" => true,
-                "documentation" => ''
+                "documentation" => 'https://codexonics.com/prime_mover/prime-mover/how-to-add-custom-backup-schedules-for-automatic-backup/'
             ],
             
             'autobackup_encryption_status' =>
@@ -135,7 +135,7 @@ class PrimeMoverSettingsConfig
                 "purpose" => __('Check this box if you want backups to be encrypted. This will encrypt the database, user data, media files, plugins, and themes.', 'prime-mover'),
                 "validation_id" => 'settings_checkbox_validation',
                 "show_as_required" => false,
-                "documentation" => ''
+                "documentation" => 'https://codexonics.com/prime_mover/prime-mover/how-to-enable-encryption-support-in-prime-mover/'
             ], 
             
             'autobackup_backup_to_dropbox' =>
@@ -155,7 +155,7 @@ class PrimeMoverSettingsConfig
                 "purpose" => __('This is automatic backup setting for Dropbox cloud storage.', 'prime-mover'),
                 "validation_id" => 'settings_checkbox_validation',
                 "show_as_required" => false,
-                "documentation" => ''
+                "documentation" => 'https://codexonics.com/prime_mover/prime-mover/prime-mover-dropbox-integration/'
             ],
             
             'autobackup_backup_to_gdrive' =>
@@ -175,7 +175,7 @@ class PrimeMoverSettingsConfig
                 "purpose" => __('This is automatic backup setting for Gdrive cloud storage.', 'prime-mover'),
                 "validation_id" => 'settings_checkbox_validation',
                 "show_as_required" => false,
-                "documentation" => ''
+                "documentation" => 'https://codexonics.com/prime_mover/prime-mover/prime-mover-pro-google-drive-api-integration/'
             ],
             
             'autobackup_db_maintenance_mode' =>
@@ -386,6 +386,46 @@ class PrimeMoverSettingsConfig
                 "validation_id" => 'settings_checkbox_validation',
                 "show_as_required" => false,
                 "documentation" => ''
+            ],
+            
+            'excluded-plugins' =>
+            [
+                "button_selector" => '#js-save-prime-mover-excluded-plugins',
+                "spinner_selector" => '.js-save-prime-mover-excluded-plugins-spinner',
+                "data_selector" => '#js-prime-mover-excluded-plugins',
+                "ajax_action" => 'prime_mover_excluded_plugins',
+                "ajax_key" => 'text_area_data',
+                "datatype" => "checkboxes",
+                "dialog" => false,
+                "encrypted" => false,
+                "nonce" => "prime_mover_excluded_plugins_nonce",
+                "description" => __('Excluded plugins', 'prime-mover'),
+                "on_status" => __('enabled', 'prime-mover'),
+                "off_status" => __('off', 'prime-mover'),
+                "purpose" => __('This is a global setting for excluding plugins during the export process.', 'prime-mover'),
+                "validation_id" => '',
+                "show_as_required" => false,
+                "documentation" => 'https://codexonics.com/prime_mover/prime-mover/how-to-exclude-plugins-in-prime-mover-pro/'
+            ],
+            
+            'excluded-tables' =>
+            [
+                "button_selector" => '#js-save-prime-mover-excluded-tables',
+                "spinner_selector" => '.js-save-prime-mover-excluded-tables-spinner',
+                "data_selector" => '#js-prime-mover-excluded-tables',
+                "ajax_action" => 'prime_mover_excluded_tables',
+                "ajax_key" => 'text_area_data',
+                "datatype" => "checkboxes",
+                "dialog" => false,
+                "encrypted" => false,
+                "nonce" => "prime_mover_excluded_tables_nonce",
+                "description" => __('Excluded tables', 'prime-mover'),
+                "on_status" => __('enabled', 'prime-mover'),
+                "off_status" => __('off', 'prime-mover'),
+                "purpose" => __('This setting excludes database tables for a specific site during the export process.', 'prime-mover'),
+                "validation_id" => '',
+                "show_as_required" => false,
+                "documentation" => 'https://codexonics.com/prime_mover/prime-mover/how-do-we-exclude-database-tables-in-prime-mover-export/'
             ],
             
         ];

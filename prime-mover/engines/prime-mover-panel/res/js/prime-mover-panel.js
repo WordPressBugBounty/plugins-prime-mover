@@ -13,8 +13,7 @@
             PrimeMoverControlPanel.resetToDefaults(); 
             PrimeMoverControlPanel.generateAuthorizationKey();   
             PrimeMoverControlPanel.copyKeyToClipBoard();
-            PrimeMoverControlPanel.copyEncryptionKeyToClipBoard();
-            PrimeMoverControlPanel.slideTogglerActivatedPlugins();
+            PrimeMoverControlPanel.copyEncryptionKeyToClipBoard();            
     });
     var PrimeMoverControlPanel = {
      	/**
@@ -112,15 +111,6 @@
                     "dialog" : true,
                     "dialog_selector" : "#js-prime-mover-panel-enc-warn-dialog",
                     "dialog_button_text" : prime_mover_control_panel_renderer.prime_mover_update_enc_key_button
-                 },
-                 { 
-                   "button_selector" : '#js-save-prime-mover-excluded-plugins', 
-                   "spinner_selector" : '.js-save-prime-mover-excluded-plugins-spinner',
-                   "data_selector" : '#js-prime-mover-excluded-plugins',
-                   "ajax_action" : 'prime_mover_excluded_plugins',
-                   "ajax_key" : 'text_area_data',
-                   "datatype" : "text",
-                   "dialog" : false
                  },
                  { 
                    "button_selector" : '#js-save-prime-mover-excluded-uploads', 
@@ -221,10 +211,16 @@
 	         var jsApiSettings = prime_mover_control_panel_renderer.prime_mover_settings_js_api;	        	
 	          initializeData = initializeData.concat(jsApiSettings);	
 	         
-              $.each(initializeData, function (i, activeSelectors) {                  
-		          $('body').on('click', activeSelectors.button_selector, function(){ 
+              $.each(initializeData, function (i, activeSelectors) { 
+				 if ('checkboxes' === activeSelectors.datatype) {
+					var checkboxes_selector = activeSelectors.data_selector;
+					var checkboxes_identifier = activeSelectors.ajax_action;
+					PrimeMoverControlPanel.slideTogglerCheckBoxes(checkboxes_selector, checkboxes_identifier);				
+				 }
+				 
+				 $('body').on('click', activeSelectors.button_selector, function(){ 
 	                  var spinner_selector = activeSelectors.spinner_selector;
-	                    if ('text' === activeSelectors.datatype) {
+	                    if ('text' === activeSelectors.datatype || 'checkboxes' === activeSelectors.datatype) {
 	                        var value = $(activeSelectors.data_selector).val();  
 	                    }
 	                    
@@ -677,25 +673,24 @@
             }
         },
     	/**
-    	 * Slide toggler handler for activated plugins
+    	 * Slide toggler handler for chekcboxes
     	 */
-        slideTogglerActivatedPlugins: function() {
-            var toggling_el = '#js-prime-mover-toggle-activated-plugins'; 
-            var checkboxes_el = '#js-prime-mover-activated-plugins-helper input:checkbox';
+        slideTogglerCheckBoxes: function(data_selector, checkboxes_identifier) {
+            var toggling_el = '.' + checkboxes_identifier + ' #js-prime-mover-toggle-checkboxes'; 
+            var checkboxes_el = '.' + checkboxes_identifier + ' #js-prime-mover-toggle-checkboxes-helper input:checkbox';
             
-            var checked_el = '#js-prime-mover-activated-plugins-helper input:checkbox:checked';
-            var toggler = '#js-prime-mover-activated-plugins-helper';
-            var excluded_plugins_textarea = '#js-prime-mover-excluded-plugins';
-	    
-            $('body').on('click',toggling_el, function(){                
+            var checked_el = '.' + checkboxes_identifier + ' #js-prime-mover-toggle-checkboxes-helper input:checkbox:checked';
+            var toggler = '.' + checkboxes_identifier + ' #js-prime-mover-toggle-checkboxes-helper';           
+			
+            $('body').on('click',toggling_el, function(){ 			           
                 $(toggler).slideToggle( "fast", function() {
-                    if ($(this).is(":visible")) {
+                    if ($(this).is(":visible")) {						
                         $(toggling_el).text(prime_mover_control_panel_renderer.prime_mover_close_text);
-                    } else {
+                    } else {						
                         $(toggling_el).text(prime_mover_control_panel_renderer.prime_mover_expand_text);
                     }
                 });      		 	  
-	    });
+	        });
 
             $(checkboxes_el).change(function() {
                 var searchIDs = $(checked_el).map(function(){
@@ -703,7 +698,7 @@
                 }).get();
 
                 var processed_value = searchIDs.join("\n");
-                $(excluded_plugins_textarea).val(processed_value);                
+                $(data_selector).val(processed_value);                
             }); 
         },
     	/**Show clipboard when site key exist

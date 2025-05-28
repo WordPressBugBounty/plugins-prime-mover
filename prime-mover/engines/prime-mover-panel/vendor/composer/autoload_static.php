@@ -37,6 +37,7 @@ class ComposerStaticInitb531163b37830d127c8f48479f7cab62
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverDropBoxSettings' => __DIR__ . '/../..' . '/helpers/PrimeMoverDropBoxSettings.php',
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverEncryptionKeyHandler' => __DIR__ . '/../..' . '/helpers/PrimeMoverEncryptionKeyHandler.php',
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedPlugins' => __DIR__ . '/../..' . '/helpers/PrimeMoverExcludedPlugins.php',
+        'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedTables' => __DIR__ . '/../..' . '/helpers/PrimeMoverExcludedTables.php',
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedUploads' => __DIR__ . '/../..' . '/helpers/PrimeMoverExcludedUploads.php',
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedUploadsUtilities' => __DIR__ . '/../..' . '/helpers/PrimeMoverExcludedUploadsUtilities.php',
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverGdriveSettings' => __DIR__ . '/../..' . '/helpers/PrimeMoverGdriveSettings.php',

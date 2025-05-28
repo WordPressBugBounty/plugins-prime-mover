@@ -143,7 +143,7 @@ class PrimeMoverSettingsTemplate
         <tbody>
         <tr>
             <th scope="row">                
-                <?php $this->renderLabelHeading($identifier, $heading_text, $config); ?>
+                <?php $this->renderLabelHeading($identifier, $heading_text, $config, $pro, $blog_id); ?>
             </th>
             <td>                             
                 <p class="description">                     
@@ -193,7 +193,7 @@ class PrimeMoverSettingsTemplate
         <tbody>
         <tr>
             <th scope="row">                
-                <?php $this->renderLabelHeading($identifier, $heading_text, $config); ?>
+                <?php $this->renderLabelHeading($identifier, $heading_text, $config, $pro, $blog_id); ?>
             </th>
             <td>                             
                 <p class="description">                
@@ -255,7 +255,7 @@ class PrimeMoverSettingsTemplate
         <tbody>
         <tr>
             <th scope="row">                
-                <?php $this->renderLabelHeading($identifier, $heading_text, $config, $pro); ?>
+                <?php $this->renderLabelHeading($identifier, $heading_text, $config, $pro, $blog_id); ?>
             </th>
             <td>                             
                 <p class="description">                
@@ -331,7 +331,7 @@ class PrimeMoverSettingsTemplate
         <tbody>
         <tr>
             <th scope="row">                
-                <?php $this->renderLabelHeading($identifier, $heading_text, $config); ?>
+                <?php $this->renderLabelHeading($identifier, $heading_text, $config, $pro, $blog_id); ?>
             </th>
             <td>                                             
                 <div class="prime-mover-setting-description">
@@ -350,8 +350,9 @@ class PrimeMoverSettingsTemplate
      * @param string $heading_text
      * @param array $config
      * @param boolean $pro
+     * @param number $blog_id
      */
-    private function renderLabelHeading($identifier = '', $heading_text = '', $config = [], $pro = false)
+    private function renderLabelHeading($identifier = '', $heading_text = '', $config = [], $pro = false, $blog_id = 0)
     {
         $required_label = false;
         if (isset($config['show_as_required'])) {
@@ -367,7 +368,7 @@ class PrimeMoverSettingsTemplate
     <?php 
         }
         if ($pro && !empty($config['documentation'])) {
-            do_action('prime_mover_last_table_heading_settings', $config['documentation']);
+            do_action('prime_mover_last_table_heading_settings', $config['documentation'], $blog_id);
         }
     }
     
@@ -470,12 +471,14 @@ class PrimeMoverSettingsTemplate
         if (!$this->getPrimeMover()->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
+        
+        
         ?>
         <table class="form-table">
         <tbody>
         <tr>
             <th scope="row">                
-                <?php $this->renderLabelHeading($identifier, $heading_text, $config); ?>
+                <?php $this->renderLabelHeading($identifier, $heading_text, $config, $pro, $blog_id); ?>
             </th>
             <td>
 
@@ -490,5 +493,126 @@ class PrimeMoverSettingsTemplate
             </p>
          <?php 
         $this->renderTemplateEnd($button_specs, $config, $pro, $blog_id);   
+    }
+
+    /**
+     * Render checkboxes and text area display settings template
+     * @param string $heading_text
+     * @param string $identifier
+     * @param array $config
+     * @param boolean $pro
+     * @param string $first_paragraph
+     * @param string $toggle_btn_title
+     * @param array $validated_array
+     * @param string $empty_text
+     * @param string $second_paragraph
+     * @param array $button_specs
+     * @param number $blog_id
+     * @param boolean $use_key
+     */
+    public function renderCheckBoxesTextAreaDisplayTemplate($heading_text = '', $identifier = '', $config = [], $pro = false, $first_paragraph = '', $toggle_btn_title = '', 
+    $validated_array = [], $empty_text = '', $second_paragraph = '', $button_specs = [], $blog_id = 0, $use_key = true)
+    {
+        if (!$this->getPrimeMover()->getSystemAuthorization()->isUserAuthorized()) {
+            return;
+        }
+        
+        $identifier_underscore = str_replace('-', '_', $identifier); 
+        $checkboxes_tbl_class = $config['ajax_action'];
+        ?>
+       <table class="form-table <?php echo esc_attr($checkboxes_tbl_class); ?>">
+        <tbody>
+        <tr>
+        <th scope="row">                       
+            <?php $this->renderLabelHeading($identifier, $heading_text, $config, $pro, $blog_id); ?>                
+        </th>
+        <td>
+        <?php  
+        $setting = $this->getPrimeMoverSettings()->convertSettingsToTextAreaOutput($identifier_underscore, false, false, false, $blog_id);
+        ?>
+        <textarea readonly="readonly" class="large-text" name="prime-mover-<?php echo esc_attr($identifier); ?>" id="js-prime-mover-<?php echo esc_attr($identifier); ?>" rows="5" cols="45"><?php echo esc_textarea($setting);?></textarea>
+        
+       <?php echo $first_paragraph; ?>
+       
+       <p class="description">
+           <button id="js-prime-mover-toggle-checkboxes" class="button" type="button"
+               title="<?php echo esc_attr($toggle_btn_title); ?>">
+               <?php echo esc_attr(esc_html__('Click to expand', 'prime-mover')); ?>
+           </button> 
+       </p>
+               
+       <div id="js-prime-mover-toggle-checkboxes-helper" class="prime-mover-toggle-checkboxes-helper">
+            <?php $this->buildCheckBoxesMarkup($setting, $validated_array, $empty_text, $use_key); ?>
+       </div>
+                
+       <?php echo $second_paragraph; ?>                   
+                
+       <?php 
+            if (is_multisite()) {
+       ?>
+        
+       <p class="description">
+          <strong><em>
+          <span><?php echo esc_html__('IMPORTANT: ', 'prime-mover'); ?>
+                <?php echo esc_html__('This feature only works for subsites with active PRO licenses.', 'prime-mover'); ?></span>
+          </em></strong>
+       </p>             
+        <?php 
+           }
+        $this->renderTemplateEnd($button_specs, $config, $pro, $blog_id);    
+    }
+    
+    /**
+     * Build checkboxes elements markup
+     * @param string $setting
+     * @param array $validated_array
+     * @param string $empty_text
+     * @param boolean $use_key
+     */
+    protected function buildCheckBoxesMarkup($setting = '', $validated_array = [], $empty_text ='', $use_key = true)
+    {
+        $saved = [];
+        if ($setting) {
+            $saved = array_filter(preg_split('/\r\n|\r|\n/', $setting));
+        }
+        
+        if (empty($validated_array)) {
+            ?>
+        <p><?php echo $empty_text; ?>  
+        
+        <?php           
+        } else {        
+            ?>    
+            <ul>
+            <?php
+            $compare = '';
+            foreach ($validated_array as $k => $v) {
+                $checked = false;     
+                if ($use_key) {
+                    $compare = $k;
+                } else {
+                    $compare = $v;
+                }
+                
+                if (in_array($compare, $saved, true)) {
+                    $checked = true;    
+                }
+                
+                if (isset($v['Name'])) {
+                    $name = $v['Name'];  
+                    $key = $k;
+                } else {
+                    $name = $v;
+                    $key = $v;
+                }
+            ?> 
+            <li><label><input <?php checked($checked); ?> type="checkbox" name="prime-mover-display-checkboxes" value="<?php echo esc_attr($key); ?>">
+                <?php echo $name; ?> (<em><?php echo $k; ?></em>)</label></li> 
+         <?php                
+            }
+        }
+     ?>
+       </ul>
+     <?php 
     }    
 }

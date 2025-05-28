@@ -310,7 +310,7 @@ class PrimeMoverBuddyPressCompat
         add_filter('prime_mover_process_serialized_data_user_adjustment', [$this, 'maybeUserAdjustSerialized'], 10, 4);
         
         add_filter('prime_mover_inject_thirdparty_app_prefix', [$this, 'maybeInjectdBuddyPressTablePrefix'], 10, 3);         
-        add_filter('prime_mover_tables_to_export', [$this, 'maybeAppendBuddyPressTables'], 10, 3);    
+        add_filter('prime_mover_tables_to_export', [$this, 'maybeAppendBuddyPressTables'], 10, 4);    
         add_filter('prime_mover_filter_ret_after_db_dump', [$this, 'filterTablesForWriting'], 1, 3);
         
         add_filter('prime_mover_filter_export_db_data', [$this, 'randomizeBpDbPrefix'], 6, 1); 
@@ -2209,9 +2209,10 @@ class PrimeMoverBuddyPressCompat
      * @param array $tables
      * @param number $blogid_to_export
      * @param array $ret
+     * @param boolean $force
      * @return array
      */
-    public function maybeAppendBuddyPressTables($tables = [], $blogid_to_export = 0, $ret = [])
+    public function maybeAppendBuddyPressTables($tables = [], $blogid_to_export = 0, $ret = [], $force = false)
     {
         if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return $tables;
@@ -2221,11 +2222,35 @@ class PrimeMoverBuddyPressCompat
             return $tables;
         }
         
-        if (!isset($ret['bp_randomizedbprefixstring']) || empty($ret['buddypress_tables'])) {
-            return $tables;
+        if ($force && $this->maybeExportedSiteImplementsBuddyPress($blogid_to_export)) {
+            
+            return $this->returnBpTables($ret, $blogid_to_export, $tables, true);
+            
+        } else {
+            if (!isset($ret['bp_randomizedbprefixstring']) || empty($ret['buddypress_tables'])) {
+                return $tables;
+            }
+            
+            return $this->returnBpTables($ret, $blogid_to_export, $tables, false);
+        }        
+    }
+    
+    /**
+     * Return BP tables
+     * @param array $ret
+     * @param number $blogid_to_export
+     * @param array $tables
+     * @param boolean $force
+     * @return array
+     */
+    protected function returnBpTables($ret = [], $blogid_to_export = 0, $tables = [], $force = false)
+    {
+        if ($force) {
+            $buddypress_tables = $this->getBuddyPressTables();
+        } else {
+            $buddypress_tables = $ret['buddypress_tables'];
         }
-
-        $buddypress_tables = $ret['buddypress_tables'];   
+        
         if ($this->maybeBasePrefixSameWithSite($blogid_to_export)) {
             return $tables;
         }
@@ -2234,7 +2259,7 @@ class PrimeMoverBuddyPressCompat
             return array_merge($tables, $buddypress_tables);
         }
         
-        return $tables;
+        return $tables;        
     }
     
     /**

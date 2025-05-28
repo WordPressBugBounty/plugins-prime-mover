@@ -26,6 +26,7 @@ if (! defined('ABSPATH')) {
 class PrimeMoverHotFix
 {     
     private $prime_mover;
+    private $utilities;
     
     /**
      * Construct
@@ -35,6 +36,27 @@ class PrimeMoverHotFix
     public function __construct(PrimeMover $prime_mover, $utilities = [])
     {
         $this->prime_mover = $prime_mover;
+        $this->utilities = $utilities;
+    }
+    
+    /**
+     * Get utilities
+     * @return array
+     */
+    public function getUtilities()
+    {
+        return $this->utilities;
+    }
+    
+    /**
+     * Get Freemius integration object
+     */
+    public function getFreemiusIntegration()
+    {
+        $utilities = $this->getUtilities();
+        $freemius_integration = $utilities['freemius_integration'];
+        
+        return $freemius_integration;
     }
     
     /**
@@ -94,6 +116,23 @@ class PrimeMoverHotFix
         add_filter('prime_mover_ajax_rendered_js_object', [$this, 'configureRateLimitingParameters'], 150, 1 );
         
         add_filter('prime_mover_inject_db_parameters', [$this, 'checkIfdBIsUsingAnsiQuotes'], 25, 2);
+        add_action('current_screen', [$this, 'maybeAddEmptyTitlePricingPage']);
+    }
+ 
+    /**
+     * Maybe add empty title on pricing page
+     * Core returns null which causes deprecated notices in PHP 8.1+
+     */
+    public function maybeAddEmptyTitlePricingPage()
+    {        
+        if (!$this->getFreemiusIntegration()->isPricingPage()) {
+            return;
+        }
+        
+        global $title;
+        if (is_null($title)) {
+            $title = '';
+        }            
     }
     
     /**

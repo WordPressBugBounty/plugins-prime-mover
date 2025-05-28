@@ -214,7 +214,7 @@ class PrimeMoverDisplaySettings
         add_action('prime_mover_control_panel_settings', [$this, 'showEncryptionSetting'], 35); 
         add_action('prime_mover_control_panel_settings', [$this, 'showGdriveSettings'], 30); 
         
-        add_action('prime_mover_last_table_heading_settings', [$this, 'maybeInformProSetting'], 10, 1);   
+        add_action('prime_mover_last_table_heading_settings', [$this, 'maybeInformProSetting'], 10, 2);   
         add_action('prime_mover_panel_after_enqueue_assets', [$this, 'primeMoverEnqueueClipBoardJs'], 10);
     }
  
@@ -306,10 +306,18 @@ class PrimeMoverDisplaySettings
     /**
      * Maybe display documentation link for a setting
      * @param string $url
+     * @param number $blog_id
      */
-    public function maybeInformProSetting($url = '')
+    public function maybeInformProSetting($url = '', $blog_id = 0)
     {
-        if ( false === apply_filters('prime_mover_is_loggedin_customer', false)) { ?>
+        $render = false;
+        if ($blog_id && is_multisite()) {
+            $render = apply_filters('prime_mover_multisite_blog_is_licensed', false, $blog_id);
+        } else {
+            $render = apply_filters('prime_mover_is_loggedin_customer', false);
+        }
+        
+        if (false === $render) { ?>
             <p class="prime_mover_pro_class_heading_table"><span class="dashicons dashicons-lock prime-mover-dashicons-lock"></span><?php esc_html_e('PRO FEATURE', 'prime-mover'); ?></p>        
     <?php 
         } else {            

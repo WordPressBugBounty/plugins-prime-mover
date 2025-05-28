@@ -11,6 +11,8 @@ namespace Codexonics\PrimeMoverFramework\classes;
  * source code.
  */
 
+use Freemius;
+
 if (! defined('ABSPATH')) {
     exit;
 }
@@ -67,6 +69,15 @@ class PrimeMoverHookedMethods
     public function getSystemAuthorization()
     {
         return $this->getSystemChecks()->getSystemAuthorization();
+    }
+    
+    /**
+     * Get Freemius
+     * @return Freemius
+     */
+    public function getFreemius()
+    {
+        return $this->getSystemAuthorization()->getFreemius();
     }
     
     /**
@@ -220,7 +231,7 @@ class PrimeMoverHookedMethods
             }
             
             if (!$rendered && $this->getSystemFunctions()->isMultisiteMainSite($blog_id) && $this->isColumnsMatched('export', $column_name, $blog_id)) {
-                $upgrade_url = network_admin_url( 'admin.php?page=migration-panel-settings-pricing');
+                $upgrade_url = apply_filters('prime_mover_filter_upgrade_pro_url', $this->getFreemius()->get_upgrade_url(), $blog_id); 
             ?>	
 		    <a title="<?php echo esc_attr__('Upgrade or activate license to create backup/export the main site.', 'prime-mover'); ?>" href="<?php echo esc_url($upgrade_url);?>" 
 		    class="js-prime-mover-upgrade-button-simple prime-mover-upgrade-button-simple prime_mover_exportbutton button">
@@ -286,7 +297,7 @@ class PrimeMoverHookedMethods
             }
             
             if (!$rendered && $this->getSystemFunctions()->isMultisiteMainSite($blog_id) && $this->isColumnsMatched('import', $column_name, $blog_id)) {
-                $upgrade_url = network_admin_url( 'admin.php?page=migration-panel-settings-pricing');
+                $upgrade_url = apply_filters('prime_mover_filter_upgrade_pro_url', $this->getFreemius()->get_upgrade_url(), $blog_id)
                 ?>
 		        <a title="<?php echo esc_attr__('Upgrade or activate license to migrate/restore the main site.', 'prime-mover'); ?>" href="<?php echo esc_url($upgrade_url);?>" 
 		        class="js-prime-mover-upgrade-button-simple prime-mover-upgrade-button-simple prime-mover-fileupload-label button">

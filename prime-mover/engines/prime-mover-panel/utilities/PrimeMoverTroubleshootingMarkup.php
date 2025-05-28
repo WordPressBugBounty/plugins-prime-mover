@@ -459,7 +459,7 @@ class PrimeMoverTroubleshootingMarkup
      */
     public function renderPersistTroubleShootingMarkup($setting = '')
     {
-        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Persist / HTTP API Log', 'prime-mover'));
+        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Persist / HTTP API Log', 'prime-mover'), 'https://codexonics.com/prime_mover/prime-mover/how-to-submit-debug-data-to-support/#http-api-logs');
     ?>
         <p class="description">
             <label for="js-prime_mover_persist_log_checkbox">

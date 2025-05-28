@@ -13,6 +13,7 @@ namespace Codexonics\PrimeMoverFramework\menus;
 
 use WP_List_Table;
 use Codexonics\PrimeMoverFramework\classes\PrimeMover;
+use Freemius;
 
 /**
  * Prime Mover Backups List Table
@@ -73,6 +74,15 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
     public function getSystemAuthorization()
     {
         return $this->getPrimeMover()->getSystemAuthorization();
+    }
+    
+    /**
+     * Get Freemius
+     * @return Freemius
+     */
+    public function getFreemius()
+    {
+        return $this->getSystemAuthorization()->getFreemius();    
     }
     
     /**
@@ -797,7 +807,8 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
         if ('true' === $encryption_status) { 
             $note = esc_html__('Restoring encrypted package is a PRO feature. Please upgrade or activate license to restore this package.', 'prime-mover');
             $class = "js-prime-mover-upgrade-button-simple prime-mover-upgrade-button-simple button";
-            $url = $this->getSystemInitialization()->getUpgradeUrl();
+            $url = apply_filters('prime_mover_filter_upgrade_pro_url', $this->getFreemius()->get_upgrade_url(), $blog_id);  
+            
             $link_text = apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__( 'Upgrade to PRO', 'prime-mover' ), $blog_id);
             $link_active = false;
         }

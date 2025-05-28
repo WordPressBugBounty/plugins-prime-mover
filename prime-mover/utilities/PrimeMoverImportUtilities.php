@@ -14,6 +14,7 @@ namespace Codexonics\PrimeMoverFramework\utilities;
 use Codexonics\PrimeMoverFramework\classes\PrimeMoverImporter;
 use WP_Error;
 use ZipArchive;
+use Freemius;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -80,6 +81,15 @@ class PrimeMoverImportUtilities
     public function getSystemAuthorization()
     {
         return $this->getImporter()->getSystemAuthorization();
+    }
+    
+    /**
+     * Get Freemius
+     * @return Freemius
+     */
+    public function getFreemius()
+    {
+        return $this->getSystemAuthorization()->getFreemius();
     }
     
     /**
@@ -455,10 +465,14 @@ class PrimeMoverImportUtilities
                  '<a href="' . $backups_menu_url . '">' . esc_html__('Prime Mover package path', 'prime-mover') . '</a>' , '<em>' . esc_html__('Prime Mover -> Packages', 'prime-mover') . '</em>'); 
              ?>    
           </p>
-          <?php if ( false === apply_filters('prime_mover_is_loggedin_customer', false)) { ?>
+          <?php if ( false === apply_filters('prime_mover_is_loggedin_customer', false)) { 
+              $upgrade_url = apply_filters('prime_mover_filter_upgrade_pro_url', $this->getFreemius()->get_upgrade_url(), $blog_id);
+              $upgrade_text = apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__('Upgrade to PRO', 'prime-mover') , $blog_id, false);
+              
+          ?>
           <p class="js-prime-mover-upload-option-selected prime-mover-upload-option-selected">
-              <a target="_blank" href="<?php echo esc_url($this->getImporter()->getSystemFunctions()->getUpgradeUrl()); ?>">
-              <?php echo esc_html__('Upgrade to PRO', 'prime-mover');?></a> <?php echo esc_html__('to use all migration and backup options.', 'prime-mover');?></p>  
+              <a target="_blank" href="<?php echo esc_url($upgrade_url); ?>">
+              <?php echo $upgrade_text;?></a> <?php echo esc_html__('to use all migration and backup options.', 'prime-mover');?></p>  
           <?php 
           }
           ?>        

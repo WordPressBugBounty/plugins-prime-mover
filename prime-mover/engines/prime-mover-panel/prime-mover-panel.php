@@ -42,7 +42,7 @@ if ( defined( 'PRIME_MOVER_PANEL_PLUGINPATH' ) ) {
     return;
 }
 define( 'PRIME_MOVER_PANEL_PLUGINPATH', plugin_dir_path( __FILE__ ) );
-define( 'PRIME_MOVER_PANEL_VERSION', '2.0.5' );
+define( 'PRIME_MOVER_PANEL_VERSION', '2.0.6' );
 define( 'PRIME_MOVER_PANEL_MAINPLUGIN_FILE', __FILE__ );
 define( 'PRIME_MOVER_PANEL_PLUGINBASENAME', plugin_basename( PRIME_MOVER_PANEL_MAINPLUGIN_FILE ) );
 if ( !defined( 'PRIME_MOVER_DROPBOX_UPLOAD_CHUNK' ) ) {
@@ -118,7 +118,7 @@ function loadPrimeMoverControlPanel(  PrimeMover $prime_mover, array $utilities 
     );
     $backup_management->initHooks();
     $prime_mover_custom_dir_settings = new PrimeMoverDisplayCustomDirSettings($prime_mover_settings);
-    $prime_mover_excludedplugin_settings = new PrimeMoverDisplayExcludedPluginsSettings($prime_mover_settings);
+    $prime_mover_excludedplugin_settings = new PrimeMoverDisplayExcludedPluginsSettings($prime_mover_settings_template);
     $prime_mover_excludeduploads_settings = new PrimeMoverDisplayExcludedUploadSettings($prime_mover_settings);
     $prime_mover_display_maintenance_settings = new PrimeMoverDisplayMaintenanceSettings($prime_mover_settings);
     $prime_mover_display_security_settings = new PrimeMoverDisplaySecuritySettings($prime_mover_settings);

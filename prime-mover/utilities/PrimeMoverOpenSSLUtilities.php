@@ -11,6 +11,7 @@ namespace Codexonics\PrimeMoverFramework\utilities;
  * source code.
  */
 use Codexonics\PrimeMoverFramework\classes\PrimeMoverSystemInitialization;
+use Freemius;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -42,8 +43,8 @@ class PrimeMoverOpenSSLUtilities
      */
     public function __construct(PrimeMoverSystemInitialization $system_initialization)
     {
-        $this->system_initialization = $system_initialization;        
-    }
+        $this->system_initialization = $system_initialization; 
+    }    
     
     /**
      * Get system authorization
@@ -54,6 +55,15 @@ class PrimeMoverOpenSSLUtilities
         return $this->getSystemInitialization()->getSystemAuthorization();
     }
 
+    /**
+     * Get Freemius
+     * @return Freemius
+     */
+    public function getFreemius()
+    {
+        return $this->getSystemAuthorization()->getFreemius();
+    }
+    
     /**
      * Get system initialization
      * @return \Codexonics\PrimeMoverFramework\classes\PrimeMoverSystemInitialization
@@ -357,9 +367,13 @@ class PrimeMoverOpenSSLUtilities
             $ret['error'] = esc_html__("Signature or blog ID is not set. Please check.", 'prime-mover');
             return $ret;
         }
+
+        $upgrade_url = apply_filters('prime_mover_filter_upgrade_pro_url', $this->getFreemius()->get_upgrade_url(), $blog_id);    
+        $upgrade_text = apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__('upgrade to Prime Mover PRO', 'prime-mover') , $blog_id, false);
+        
         if (!$this->isOpenSSLCustomer($blog_id)) {
-            $ret['error'] = sprintf(esc_html__("Restoring encrypted package is a PRO feature. Please %s to restore this package.", 'prime-mover'), '<a href="' . 
-                esc_url($this->getSystemInitialization()->getUpgradeUrl()) . '">' . esc_html__('upgrade to Prime Mover PRO', 'prime-mover') . '</a>');
+            $ret['error'] = sprintf(esc_html__("Restoring encrypted package is a PRO feature. %s to restore this package.", 'prime-mover'), '<a href="' . 
+                esc_url($upgrade_url) . '">' . $upgrade_text . '</a>');
             return $ret;
         }
         $validation_result = $this->verifyKeyHelper($data, $blog_id, true);

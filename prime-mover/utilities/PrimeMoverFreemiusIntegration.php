@@ -2,6 +2,7 @@
 namespace Codexonics\PrimeMoverFramework\utilities;
 
 use Freemius;
+use FS_Plugin_License;
 
 /*
  * This file is part of the Codexonics.PrimeMoverFramework package.
@@ -26,7 +27,7 @@ class PrimeMoverFreemiusIntegration
 {    
     private $freemius_options;    
     private $shutdown_utilities;
-    private $freemius;
+    private $pricing_page_ids;
     
     const FREEMIUS_USERKEY = '_freemius_usermeta';
     const FREEMIUS_NETWORKUSERKEY = '_freemius_network_usermeta';
@@ -34,13 +35,28 @@ class PrimeMoverFreemiusIntegration
     /**
      * Constructor
      * @param PrimeMoverShutdownUtilities $shutdown_utilities
-     * @param Freemius $freemius
      */
-    public function __construct(PrimeMoverShutdownUtilities $shutdown_utilities, Freemius $freemius)
+    public function __construct(PrimeMoverShutdownUtilities $shutdown_utilities)
     {
         $this->freemius_options = [];
         $this->shutdown_utilities = $shutdown_utilities;
-        $this->freemius = $freemius;
+        
+        $this->pricing_page_ids = [
+            'admin_page_migration-panel-settings-pricing',
+            'admin_page_migration-panel-settings-pricing-network',
+            'prime-mover_page_migration-panel-settings-pricing',
+            'prime-mover_page_migration-panel-settings-pricing-network',
+            'prime-mover-pro_page_migration-panel-settings-pricing-network'
+            ];
+    }
+    
+    /**
+     * Get pricing page IDs
+     * @return string|string[]
+     */
+    public function getPricingPageIds()
+    {
+        return $this->pricing_page_ids;
     }
     
     /**
@@ -49,7 +65,7 @@ class PrimeMoverFreemiusIntegration
      */
     public function getFreemius()
     {
-        return $this->freemius;    
+        return $this->getSystemAuthorization()->getFreemius();    
     }
     
     /**
@@ -113,7 +129,7 @@ class PrimeMoverFreemiusIntegration
         
         add_filter('prime_mover_multisite_blog_is_licensed', [$this, 'maybeBlogIDLicensed'], 10, 2);        
         add_action('admin_head', [$this, 'networkLevelOnlyNoDelegate'], 99);  
-        add_filter('prime_mover_filter_upgrade_pro_text', [$this, 'appendCartIcon'], 9999, 1);
+        add_filter('prime_mover_filter_upgrade_pro_text', [$this, 'appendCartIcon'], 9999, 3);
         
         add_action('prime_mover_dashboard_content', [$this, 'showGettingStartedOnFreeUsers'], 1); 
         add_action('admin_menu', [$this, 'outputSupportMenu'], 9999999999 );
@@ -146,8 +162,11 @@ class PrimeMoverFreemiusIntegration
         $freemius->add_action('connect/after_license_input', [$this, 'unableToActivateLicenseAction']);        
         $freemius->add_filter('known_license_issues_url', [$this, 'filterLicenseIssuesUrl']);
         
-        $freemius->add_action('after_account_details', [$this, 'unableToActivateLicenseAccountDetails']);
-        $freemius->add_action('after_network_account_connection', [$this, 'maybeRedirectToAccountPage'], 10, 1);        
+        $freemius->add_action('after_account_details', [$this, 'unableToActivateLicenseAccountDetails'], 100);
+        $freemius->add_action('after_account_details', [$this, 'maybeInviteToUpgrade'], 10);
+        $freemius->add_action('after_network_account_connection', [$this, 'maybeRedirectToAccountPage'], 10, 1); 
+        
+        $freemius->add_action('after_account_details', [$this, 'handleWhiteLabelDeactivation'], 5);
     }
 
     /**
@@ -173,8 +192,12 @@ class PrimeMoverFreemiusIntegration
             return;
         }
                 
+        if (true === $this->getFreemius()->is_anonymous()) {
+            return;
+        } 
+        
         $result['success'] = true;
-        $result['next_page'] = esc_url_raw(network_admin_url( 'admin.php?page=migration-panel-settings-account'));
+        $result['next_page'] = esc_url_raw($this->getFreemius()->get_account_url());
         
         $this->jsonEncode($result);
     }
@@ -207,6 +230,51 @@ class PrimeMoverFreemiusIntegration
                  </ol>
         </div>    
     <?php     
+    }
+    
+    /**
+     * Handle white label mode
+     */
+    public function handleWhiteLabelDeactivation()
+    {
+        if (false === $this->maybeLoggedInUserIsCustomer() && $this->isWhiteLabeled() && 'yes' === $this->hasUsableLicense() && false === $this->getSystemFunctions()->getSystemInitialization()->isUsingFreeCode()) {
+            ?>
+            <div class="postbox prime-mover-account-details-div">
+                 <h3 id="prime_mover_account_upgrade_plan_text"><span class="dashicons dashicons-cart prime-mover-cart-dashicon"></span><?php esc_html_e('Activate PRO', 'prime-mover'); ?></h3>                
+                    <p class="notice notice-info notice-large"><?php 
+                    echo sprintf(esc_html__('It looks like your Freemius account license is white labeled. To activate the license on this site, please check out this %s.', 'prime-mover'), 
+                        '<a class="prime-mover-external-link" href="' . esc_url(CODEXONICS_WHITE_LABEL_GUIDE) . '">' . esc_html__('complete guide', 'prime-mover') . '</a>');
+                    ?> 
+                    </p>               
+            </div>
+            <?php
+        }        
+    }
+    
+    /**
+     * Maybe invite to upgrade
+     */
+    public function maybeInviteToUpgrade()
+    {        
+        if ('no' === $this->hasUsableLicense() && false === $this->getSystemFunctions()->getSystemInitialization()->isUsingFreeCode()) {
+            if ($this->isWhiteLabeled()) {
+                $upgrade_url = CODEXONICS_UPGRADE_PLAN_GUIDE;
+                $class = 'class="prime-mover-external-link"';
+            } else {                
+                $upgrade_url = $this->getFreemius()->get_upgrade_url();
+                $class = '';
+            }  
+        ?>
+            <div class="postbox prime-mover-account-details-div">
+                 <h3 id="prime_mover_account_upgrade_plan_text"><span class="dashicons dashicons-cart prime-mover-cart-dashicon"></span><?php esc_html_e('Upgrade plan', 'prime-mover'); ?></h3>                
+                    <p class="notice-large"><?php 
+                    echo sprintf(esc_html__('You have used up all of your license activation quota. You should %s to activate the license to other production sites.', 'prime-mover'), 
+                        '<a ' . $class . ' href="' . esc_url($upgrade_url) . '">' . esc_html__('upgrade your plan', 'prime-mover') . '</a>');
+                    ?> 
+                    </p>               
+            </div>
+            <?php
+        }        
     }
     
     /**
@@ -297,13 +365,19 @@ class PrimeMoverFreemiusIntegration
     /**
      * Append cart icon
      * @param string $markup
+     * @param number $blog_id
+     * @param boolean $show_icons
      * @return string
      */
-    public function appendCartIcon($markup = '')
+    public function appendCartIcon($markup = '', $blog_id = 0, $show_icons = true)
     {
-        $markup = '<i class="dashicons dashicons-cart prime-mover-cart-dashicon"></i>' . $markup;
+        if ($show_icons) {
+            $markup = '<i class="dashicons dashicons-cart prime-mover-cart-dashicon"></i>' . $markup;
+        }
+        
         return $markup;
     }
+    
     /**
      * Correct upgrade message for browser limit
      * @param array $msg
@@ -627,24 +701,45 @@ class PrimeMoverFreemiusIntegration
                      <p><a href="<?php echo esc_url($backups_menu_url);?>" class="button button-primary"><?php esc_html_e('Go to Packages', 'prime-mover'); ?></a></p>                                                     
           </div>   
           
-          <?php if ( ! $pro ) : ?>
-           <div class="card">                      
-                <h2><?php esc_html_e( 'Upgrade to Pro Version', 'prime-mover' ); ?></h2>             
+          <?php if ( ! $pro ) : ?>           
+           <div class="card">                 
+                <?php                   
+                    $free_trial = $this->getFreemius()->get_upgrade_url('annual', true);
+                    $class = '';
+                    
+                    $heading = esc_html__('Upgrade to Pro Version', 'prime-mover');
+                    if ('yes' === $this->hasUsableLicense() && false === $this->getSystemFunctions()->getSystemInitialization()->isUsingFreeCode()) {
+                        $heading = esc_html__('Activate Pro Version', 'prime-mover');
+                    }
+                ?>                    
+                <h2><?php echo $heading; ?></h2>             
                  <div class="notice-large highlight">
                          <?php if (is_multisite() ) : ?>  
-                              <p><?php esc_html_e( 'Migrate faster and secure your migration with database / media files encryption. Plus many more useful features you can get with Pro version. 
-                             Click the button below to compare FREE and PRO plans.', 'prime-mover' );?></p>        
+                              <p>
+                                  <?php 
+                                  esc_html_e( 'Migrate faster and secure your migration with database / media files encryption. Plus many more useful features you can get with Pro version. 
+                             Click the button below to compare FREE and PRO plans.', 'prime-mover' );
+                                  ?>
+                             </p>        
                          <?php else : ?>                                                  
-                              <?php 
-                              $free_trial = admin_url('admin.php?page=migration-panel-settings-pricing&trial=true');
-                              ?>
-                              <p><?php printf(esc_html__( 'Migrate faster and secure your migration with database / media files encryption. %s.', 'prime-mover' ), '<a href="' . $free_trial . '">' . esc_html__('Start your 14-days FREE trial now', 'prime-mover') . '</a>');?> 
+                              <p>
+                                  <?php 
+                                  $trial_markup =  '';
+                                  if ('' === $this->hasUsableLicense()) {
+                                      $trial_markup =  '<a ' . $class . ' href="' . $free_trial . '">' . esc_html__('Start your 14-days FREE trial now.', 'prime-mover') . '</a>';
+                                  }
+                                  echo sprintf(esc_html__( 'Migrate faster and secure your migration with database / media files encryption. %s', 'prime-mover' ), $trial_markup);
+                                   ?> 
                               </p>                                                    
                          <?php endif; ?>
-                 </div>                                      
-                     <p><a href="<?php echo esc_url($upgrade_url);?>" class="button button-primary"><?php esc_html_e( 'Upgrade to Pro Version', 'prime-mover' ); ?></a></p>   
+                 </div>                  
+                     <?php 
+                         $upgrade_url = apply_filters('prime_mover_filter_upgrade_pro_url', $upgrade_url);
+                         $upgrade_text = apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__('Upgrade to Pro Version', 'prime-mover') , 0, false);
+                     ?>                    
+                     <p><a href="<?php echo esc_url($upgrade_url);?>" class="button button-primary"><?php echo $upgrade_text; ?></a></p>   
                      <?php $this->outputSupportAndDocumentationMarkup($pro, $support, $contact_us); ?>              
-          </div>    
+          </div>         
           <?php endif; ?>
   
             <?php if ( $pro ) : ?>
@@ -734,14 +829,13 @@ class PrimeMoverFreemiusIntegration
             $settings = $this->getSettingsPageUrl();
         }
         
-        $upgrade_url = admin_url( 'admin.php?page=migration-panel-settings-pricing');
+        $upgrade_url = $this->getFreemius()->get_upgrade_url();
         $migration_tools = admin_url( 'tools.php?page=migration-tools');
         
         $contact_us = $this->getSystemFunctions()->getSystemInitialization()->getContactUsPage();
         $target = esc_html__( 'Migration Tools', 'prime-mover' );
         
         if (is_multisite() && is_network_admin()) {
-            $upgrade_url = network_admin_url( 'admin.php?page=migration-panel-settings-pricing');
             $migration_tools = network_admin_url( 'sites.php');
             $target = esc_html__( 'Network Sites', 'prime-mover' );
         }
@@ -1021,5 +1115,158 @@ class PrimeMoverFreemiusIntegration
         
         $id = md5( '' . ' ' . $message . ' ' . 'update-nag' );
         $freemius->remove_sticky($id );
+    }    
+ 
+    
+    /**
+     * Maybe set object cache
+     * @param string $value
+     * @param string $obj_key
+     * @return string
+     */
+    protected function maybeSetObjectCache($value = 'no', $obj_key = 'prime_mover_maybe_has_usable_license')
+    {
+        wp_cache_set($obj_key, $value);
+        return $value;        
+    }
+    
+    /**
+     * Checks if has usable license
+     * Returns 'yes' if usable
+     * Returns 'no' if available however not usable (expired, or out of quota)
+     * Returns '' if no license is being set or used.
+     * @return string|mixed|boolean
+     */
+    public function hasUsableLicense()
+    {        
+        $obj_key = 'prime_mover_maybe_has_usable_license';
+        $result = wp_cache_get($obj_key);
+        if (false === $result) {            
+            $obj = $this->getLicense();
+            if (!$this->getSystemAuthorization()->isUserAuthorized() || is_null($obj)) {
+                return $this->maybeSetObjectCache('', $obj_key);
+            }
+            
+            if (false === $obj) {
+                return $this->maybeSetObjectCache('no', $obj_key);
+            }   
+            
+            if ('' === $obj || !is_object($obj)) {                
+                return $this->maybeSetObjectCache('', $obj_key);
+            }                              
+            
+            if($obj instanceof FS_Plugin_License) {
+                return $this->maybeSetObjectCache('yes', $obj_key);
+            }            
+
+            return $this->maybeSetObjectCache('', $obj_key);
+        }
+        
+        return $result;  
+    }
+    
+    /**
+     * Get license
+     * @return NULL|string|boolean|FS_Plugin_License|boolean
+     * Returns null if unable to compute due ot missing dependencies
+     * Returns empty string if license object is not yet Set
+     * Returns boolean FALSE if license object is set but unusable
+     * Returns license object if set and usable 
+     * @param boolean $can_activate_check
+     * @return NULL|boolean|FS_Plugin_License|string|FS_Plugin_License|boolean
+     */
+    public function getLicense($can_activate_check = true) 
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return null;
+        }  
+        
+        $freemius = $this->getFreemius();
+        if (!is_object($freemius)) {
+            return null;    
+        }        
+        
+        $usable_license = false;
+        if (method_exists($freemius, '_get_license')) {
+            $usable_license = $freemius->_get_license();
+        }
+        
+        if (is_object($usable_license) && false === $can_activate_check) {
+            return $usable_license;            
+        }
+        
+        if (!method_exists($freemius, '_get_available_premium_license')) {
+            return null;    
+        }
+        
+        if (!method_exists($freemius, 'get_site')) {
+            return null;
+        }
+        
+        $site = $freemius->get_site();
+        if (!is_object($site)) {            
+            return null;
+        }
+        
+        if (!method_exists($site, 'is_localhost')) {
+            return null;
+        }
+        
+        $is_localhost = $site->is_localhost();  
+        if (!method_exists($freemius, 'has_any_license')) {
+            return null;
+        }
+        
+        $has_any_license = $freemius->has_any_license();
+        if (false === $has_any_license) {
+            return '';
+        }
+        
+        return $freemius->_get_available_premium_license($is_localhost);        
+    }
+    
+    /**
+     * Checks if white labeled
+     * @return boolean
+     */
+    public function isWhiteLabeled()
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return false;
+        } 
+        
+        $freemius = $this->getFreemius();
+        if (!is_object($freemius)) {
+            return false;
+        }
+        
+        if (!method_exists($freemius, 'is_whitelabeled')) {
+            return false;
+        }
+        
+        return $freemius->is_whitelabeled();
+    }
+    
+    /**
+     * Returns TRUE if pricing page otherwise FALSE
+     * @return boolean
+     */
+    public function isPricingPage()
+    {
+        $current_screen = get_current_screen();
+        if (!is_object($current_screen)) {
+            return false;    
+        }
+        
+        if (!isset($current_screen->id)) {
+            return false;    
+        }        
+        
+        $id = $current_screen->id;
+        if (empty($id)) {
+            return false;
+        }
+        
+        return in_array($id, $this->getPricingPageIds());        
     }
 }

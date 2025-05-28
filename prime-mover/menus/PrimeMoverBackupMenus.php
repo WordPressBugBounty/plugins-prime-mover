@@ -12,6 +12,7 @@ namespace Codexonics\PrimeMoverFramework\menus;
  */
 
 use Codexonics\PrimeMoverFramework\classes\PrimeMover;
+use Freemius;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -107,6 +108,15 @@ class PrimeMoverBackupMenus
     public function getSystemInitialization()
     {
         return $this->getPrimeMover()->getSystemInitialization();
+    }
+    
+    /**
+     * Get Freemius
+     * @return Freemius
+     */
+    public function getFreemius()
+    {
+        return $this->getSystemAuthorization()->getFreemius();    
     }
     
     /**
@@ -462,9 +472,9 @@ class PrimeMoverBackupMenus
                 'download_text' => esc_js(__( 'Download', 'prime-mover' )),
                 'restore_package_text' => esc_js(__( 'Restore package', 'prime-mover' )),
                 'copy_restore_url' => esc_js(__('Copy restore URL', 'prime-mover')),
-                'upgradetoprotext' => '<i class="dashicons dashicons-cart prime-mover-cart-dashicon"></i>' . esc_js(__('Upgrade to PRO', 'prime-mover')),
+                'upgradetoprotext' => apply_filters('prime_mover_filter_upgrade_pro_text', esc_js(__('Upgrade to PRO', 'prime-mover'), $blog_id)),
                 'backup_menu_url' => esc_url($backup_menu_url),
-                'freetrial_pricing_page' => esc_url($this->getSystemInitialization()->getUpgradeUrl(true)),
+                'freetrial_pricing_page' => esc_url($this->getFreemius()->get_upgrade_url('annual', true)),
                 'prime_mover_logo' => esc_url($this->getPluginsLogo())
             ])
         );

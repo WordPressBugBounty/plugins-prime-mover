@@ -903,7 +903,7 @@ class PrimeMoverExporter implements PrimeMoverExport
         $encrypt = $ret['enable_db_encryption'];
         
         $target_path = $this->getTargetDumpPath($ret, apply_filters('prime_mover_filter_blogid_to_export', $blogid_to_export, $ret));
-        $clean_tables = apply_filters('prime_mover_tables_to_export', $this->getTablesToExport($blogid_to_export), $blogid_to_export, $ret);
+        $clean_tables = apply_filters('prime_mover_tables_to_export', $this->getTablesToExport($blogid_to_export), $blogid_to_export, $ret, false);
         
         if (empty($clean_tables)) {
             $ret['error'] = esc_html__('Unable to dump database, please check that your database is not empty or these tables exists.', 'prime-mover');
@@ -1552,28 +1552,7 @@ class PrimeMoverExporter implements PrimeMoverExport
      */
     protected function getTablesToExport($blogid_to_export = 0)
     {
-        $this->getSystemFunctions()->switchToBlog($blogid_to_export);
-        
-        $wpdb = $this->getSystemInitialization()->getWpdB();
-        $target_prefix = $wpdb->prefix;
-        $escaped_like = $wpdb->esc_like($target_prefix);
-        $target_prefix = $escaped_like . '%';        
-        
-        if ($this->getSystemFunctions()->isMultisiteMainSite($blogid_to_export, true)) {              
-            $regex = $escaped_like . '[0-9]+';
-            $table_name = DB_NAME;            
-            $db_search = $this->getSystemFunctions()->getMultisiteMainSiteTableQuery($table_name);
-            
-            $prepared = $wpdb->prepare($db_search, $target_prefix, $regex);            
-            $tables_to_export = $wpdb->get_results($prepared, ARRAY_N);           
-            
-        } else {                        
-            $db_search = "SHOW TABLES LIKE %s";
-            $tables_to_export = $wpdb->get_results($wpdb->prepare($db_search, $target_prefix), ARRAY_N);            
-        }        
-        
-        $this->getSystemFunctions()->restoreCurrentBlog();
-        return $this->getSystemFunctions()->cleanDbTablesForExporting($tables_to_export, $blogid_to_export, $wpdb, 'export');     
+        return $this->getSystemFunctions()->getTablesToExport($blogid_to_export);
     }
     
     /**

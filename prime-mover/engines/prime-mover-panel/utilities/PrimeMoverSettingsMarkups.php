@@ -12,6 +12,7 @@ namespace Codexonics\PrimeMoverFramework\utilities;
  */
 
 use Codexonics\PrimeMoverFramework\classes\PrimeMover;
+use Freemius;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -43,6 +44,15 @@ class PrimeMoverSettingsMarkups
     public function getPrimeMover()
     {
         return $this->prime_mover;
+    }
+    
+    /**
+     * Get Freemius
+     * @return Freemius
+     */
+    public function getFreemius()
+    {
+        return $this->getPrimeMover()->getSystemAuthorization()->getFreemius();
     }
     
     /**
@@ -80,11 +90,12 @@ class PrimeMoverSettingsMarkups
         } else {
             $render = apply_filters('prime_mover_is_loggedin_customer', false);
         }
-        if (!$render && $pro) {            
+        if (!$render && $pro) {
+            $upgrade_url = apply_filters('prime_mover_filter_upgrade_pro_url', $this->getFreemius()->get_upgrade_url(), $blog_id);
     ?>        
-            <a title="<?php esc_attr_e('This is PRO feature setting. Please upgrade to use this setting.', 'prime-mover'); ?>" 
-            class="prime-mover-upgrade-button-simple button" href="<?php echo esc_url($this->getPrimeMover()->getSystemInitialization()->getUpgradeUrl()); ?>">
-            <i class="dashicons dashicons-cart prime-mover-cart-dashicon"></i><?php esc_html_e('Upgrade to PRO', 'prime-mover'); ?></a>
+            <a title="<?php esc_attr_e('This is PRO feature setting. Please upgrade or activate license to use this setting.', 'prime-mover'); ?>" 
+            class="prime-mover-upgrade-button-simple button" href="<?php echo esc_url($upgrade_url); ?>">            
+            <?php echo apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__( 'Upgrade to PRO', 'prime-mover' ), $blog_id); ?></a>
      <?php        
         } else {
        ?>
@@ -119,8 +130,10 @@ class PrimeMoverSettingsMarkups
     /**
      * Start markup
      * @param string $heading
+     * @param string $doc
+     * @param number $blog_id
      */
-    public function startMarkup($heading = '')
+    public function startMarkup($heading = '', $doc = '', $blog_id = 0)
     {
         ?>
         <table class="form-table">
@@ -128,6 +141,11 @@ class PrimeMoverSettingsMarkups
         <tr>
             <th scope="row">
                 <label><?php echo esc_html($heading); ?></label>
+                <?php 
+                    if ($doc) { 
+                        do_action('prime_mover_last_table_heading_settings', $doc, $blog_id); 
+                    }
+                ?>
             </th>
             <td>                      
                 <div class="prime-mover-setting-description">

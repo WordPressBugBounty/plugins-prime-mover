@@ -11,6 +11,8 @@ namespace Codexonics\PrimeMoverFramework\utilities;
  * source code.
  */
 
+use Freemius;
+
 if (! defined('ABSPATH')) {
     exit;
 }
@@ -130,6 +132,15 @@ class PrimeMoverComponentAuxiliary
     public function getSystemAuthorization()
     {
         return $this->getExporter()->getSystemAuthorization();
+    }
+    
+    /**
+     * Get Freemius
+     * @return Freemius
+     */
+    public function getFreemius()
+    {
+        return $this->getSystemAuthorization()->getFreemius();
     }
     
     /**
@@ -520,7 +531,9 @@ class PrimeMoverComponentAuxiliary
         if ($this->getSystemFunctions()->isMultisiteMainSite($blog_id) && $enabled) {
             list($note, $url, $class, $link_text) = $addnewbackup_button;
             $note = esc_html__('Exporting main site is a PRO feature. Please upgrade or activate license to use this feature.', 'prime-mover');
-            $url = esc_url(network_admin_url( 'admin.php?page=migration-panel-settings-pricing'));
+            
+            $upgrade_url = apply_filters('prime_mover_filter_upgrade_pro_url', $this->getFreemius()->get_upgrade_url(), $blog_id); 
+            $url = esc_url($upgrade_url);
             $link_text = apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__( 'Upgrade to PRO', 'prime-mover' ), $blog_id);
             
             $class = 'page-title-action prime-mover-upgrade-button';
@@ -547,7 +560,8 @@ class PrimeMoverComponentAuxiliary
         }
         
         if ($this->getSystemFunctions()->isMultisiteMainSite($blog_id) && $link_active) {
-            $url = esc_url(network_admin_url( 'admin.php?page=migration-panel-settings-pricing'));            
+            $upgrade_url = apply_filters('prime_mover_filter_upgrade_pro_url', $this->getFreemius()->get_upgrade_url(), $blog_id);            
+            $url = esc_url($upgrade_url);            
             $link_text = apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__( 'Upgrade to PRO', 'prime-mover' ), $blog_id);
             
             $note = esc_html__('Restoring main site is a PRO feature. Please upgrade or activate license to use this feature.', 'prime-mover');

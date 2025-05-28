@@ -30,10 +30,10 @@ class PrimeMoverFreemiusCompat
 {     
     private $prime_mover;
     private $freemius_options;
-    private $freemius;
     private $core_modules;
     private $free_deactivation_option;
     private $action_links;
+    private $utilities;
     
     const ON_UPGRADE_USER_VERIFIED = "prime_mover_upgrade_freemius_verified";
     
@@ -41,9 +41,8 @@ class PrimeMoverFreemiusCompat
      * Construct
      * @param PrimeMover $prime_mover
      * @param array $utilities
-     * @param Freemius $freemius
      */
-    public function __construct(PrimeMover $prime_mover, $utilities = [], Freemius $freemius = null)
+    public function __construct(PrimeMover $prime_mover, $utilities = [])
     {
         $this->prime_mover = $prime_mover;
         $this->freemius_options = [
@@ -62,11 +61,29 @@ class PrimeMoverFreemiusCompat
             'opt-in-or-opt-out prime-mover',            
         ];
         
-        $this->freemius = $freemius;
         $this->core_modules = [PRIME_MOVER_DEFAULT_FREE_BASENAME, PRIME_MOVER_DEFAULT_PRO_BASENAME];
         $this->free_deactivation_option = '_prime_mover_free_autodeactivated';
+        $this->utilities = $utilities;
     }   
  
+    /**
+     * Get utilities
+     * @return string|array
+     */
+    public function getUtilities()
+    {
+        return $this->utilities;
+    }
+    
+    /**
+     * Get Freemius integration
+     */
+    public function getFreemiusIntegration()
+    {
+        $utilities = $this->getUtilities();
+        return $utilities['freemius_integration'];
+    }
+    
     /**
      * Get action links
      * @return string[]
@@ -101,7 +118,7 @@ class PrimeMoverFreemiusCompat
      */
     public function getFreemius()
     {
-        return $this->freemius;
+        return $this->getSystemAuthorization()->getFreemius();
     }
     
     /**
@@ -320,7 +337,102 @@ class PrimeMoverFreemiusCompat
         
         $freemius->add_filter('pricing/show_annual_in_monthly', '__return_false');
         $freemius->add_filter('freemius_pricing_js_path', [$this, 'setCustomPricingPath'], 10, 1);
+        
+        $freemius->add_filter('pricing_url', [$this, 'filterUpgradeUrl'], 10, 1);
+        $freemius->add_filter('show_trial', [$this, 'maybehideTrial'], 10, 1);
     }
+    
+    /**
+     * Maybe hide trial
+     * @param boolean $show
+     * @return string|boolean
+     */
+    public function maybehideTrial($show = true)
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return $show;
+        }
+        
+        if ('yes' === $this->getFreemiusIntegration()->hasUsableLicense() &&
+            false === $this->getFreemiusIntegration()->maybeLoggedInUserIsCustomer() &&
+            false === $this->getFreemiusIntegration()->isWhiteLabeled()
+            ) {
+                return false;
+            }
+            
+        return $show;
+    }
+        
+    /**
+     * Filter upgrade URL for best upgrade experience
+     * @param string $url
+     * @return string
+     */
+    public function filterUpgradeUrl($url = '')
+    {        
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return $url;
+        }
+        
+        if ($this->getSystemInitialization()->isUsingFreeCode()) {
+            return $url;
+        }
+        
+        $filter = false;
+        if ('yes' === $this->getFreemiusIntegration()->hasUsableLicense() &&
+            false === $this->getFreemiusIntegration()->maybeLoggedInUserIsCustomer() &&
+            false === $this->getFreemiusIntegration()->isWhiteLabeled()
+            ) {
+                $filter = true;
+            }
+            
+        if (false === $filter) {                
+            return $url;
+        }
+            
+        $license = $this->getFreemiusIntegration()->getLicense();
+        if (!is_object($license)) {                
+            return $url;
+        }
+            
+        if (!property_exists($license, 'id')) {
+            return $url;
+        }
+        
+        $id = $license->id;
+        $id = trim($id);
+        if (!$id) {
+            return $url;
+        }
+        $id = (int)$id;
+        $freemius = $this->getFreemius();
+        if (!method_exists($freemius, 'get_user')) {
+            return $url;
+        }
+        
+        $user = $freemius->get_user();
+        if (!is_object($user)) {
+            return $url;
+        }
+
+        if (!property_exists($user, 'email')) {
+            return $url;
+        }
+        
+        $email = $user->email;
+        $email = trim($email);
+        if (!$email) {
+            return $url;
+        }
+        
+        if (!is_email($email)) {
+            return $url;
+        }
+        
+        $encoded = rawurlencode($email);
+        $url = 'https://users.freemius.com/licenses/(details:licenses/' . $id . ')?email=' . $encoded;
+        return $url;
+    }    
     
     /**
      * Set Freemius custom pricing path
@@ -668,7 +780,8 @@ class PrimeMoverFreemiusCompat
             return;
         }    
         
-        $upgrade_url = network_admin_url( 'admin.php?page=migration-panel-settings-pricing');
+        $upgrade_url = apply_filters('prime_mover_filter_upgrade_pro_url', $this->getFreemius()->get_upgrade_url());
+        $upgrade_text = apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__('upgrade to the PRO version', 'prime-mover') , 0, false);        
         $addsites_url = network_admin_url('site-new.php');        
         ?>
 	    <div class="notice notice-info">  
@@ -678,7 +791,7 @@ class PrimeMoverFreemiusCompat
         If you want to export and restore the multisite main site, you need to %s. Thanks!', 'prime-mover'), 
 	            '<strong>' . PRIME_MOVER_PLUGIN_CODENAME . '</strong>', 
 	            '<a href="' . esc_url($addsites_url) . '">' . esc_html__('add a subsite for testing', 'prime-mover') . '</a>',
-	            '<a href="' . esc_url($upgrade_url) . '">' . esc_html__('upgrade to the PRO version', 'prime-mover') . '</a>'
+	            '<a href="' . esc_url($upgrade_url) . '">' . strtolower($upgrade_text) . '</a>'
 	            );
                 ?>
 	        </p>	

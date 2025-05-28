@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PRIME_MOVER_VERSION', '2.0.5');
+define('PRIME_MOVER_VERSION', '2.0.6');
 define('PRIME_MOVER_PLUGIN_CODENAME', 'Prime Mover');
 define('PRIME_MOVER_PRO_PLUGIN_CODENAME', 'Prime Mover PRO');
 define('PRIME_MOVER_BACKUP_MARKUP_VERSION', '1.2.0');
@@ -53,6 +53,14 @@ if (!defined('CODEXONICS_LICENSING_GUIDE')) {
 
 if (!defined('CODEXONICS_ACTIVATE_PRO_GUIDE')) {
     define('CODEXONICS_ACTIVATE_PRO_GUIDE', 'https://codexonics.com/prime_mover/prime-mover/faq-how-to-activate-prime-mover-pro/');
+}
+
+if (!defined('CODEXONICS_UPGRADE_PLAN_GUIDE')) {
+    define('CODEXONICS_UPGRADE_PLAN_GUIDE', 'https://codexonics.com/prime_mover/prime-mover/how-to-upgrade-your-existing-pro-plan-to-higher-plan/');
+}
+
+if (!defined('CODEXONICS_WHITE_LABEL_GUIDE')) {
+    define('CODEXONICS_WHITE_LABEL_GUIDE', 'https://codexonics.com/prime_mover/prime-mover/faq-i-cannot-activate-license-please-help/#white-label');
 }
 
 if (!defined('CODEXONICS_UNABLE_TO_DOWNLOAD_GUIDE')) {

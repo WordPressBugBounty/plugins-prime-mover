@@ -100,6 +100,7 @@ return array(
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverDropBoxUploadProgress' => $baseDir . '/engines/prime-mover-flywheel/helpers/PrimeMoverDropBoxUploadProgress.php',
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverEncryptionKeyHandler' => $baseDir . '/engines/prime-mover-panel/helpers/PrimeMoverEncryptionKeyHandler.php',
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedPlugins' => $baseDir . '/engines/prime-mover-panel/helpers/PrimeMoverExcludedPlugins.php',
+    'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedTables' => $baseDir . '/engines/prime-mover-panel/helpers/PrimeMoverExcludedTables.php',
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedUploads' => $baseDir . '/engines/prime-mover-panel/helpers/PrimeMoverExcludedUploads.php',
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedUploadsUtilities' => $baseDir . '/engines/prime-mover-panel/helpers/PrimeMoverExcludedUploadsUtilities.php',
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverGDriveUploadProgress' => $baseDir . '/engines/prime-mover-flywheel/helpers/PrimeMoverGDriveUploadProgress.php',

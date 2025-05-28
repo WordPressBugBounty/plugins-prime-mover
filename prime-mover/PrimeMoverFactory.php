@@ -145,8 +145,10 @@ class PrimeMoverFactory
      */
     public function composeObjects()
     {        
-        $prime_mover_user = wp_get_current_user();        
-        $system_authorization = new PrimeMoverSystemAuthorization($prime_mover_user);        
+        $prime_mover_user = wp_get_current_user();  
+        $freemius = primeMoverGetFreemiusSDK();
+        
+        $system_authorization = new PrimeMoverSystemAuthorization($prime_mover_user,  $freemius);        
         $system_initialization = new PrimeMoverSystemInitialization($system_authorization);        
         
         $openssl_utilities = new PrimeMoverOpenSSLUtilities($system_initialization);
@@ -163,9 +165,7 @@ class PrimeMoverFactory
         
         $shutdown_utilities = new PrimeMoverShutdownUtilities($system_functions);
         
-        global $pm_fs;
-        
-        $freemius_integration = new PrimeMoverFreemiusIntegration($shutdown_utilities, $pm_fs);
+        $freemius_integration = new PrimeMoverFreemiusIntegration($shutdown_utilities);
         $freemius_integration->initHooks(); 
         
         $progress_handlers = new PrimeMoverProgressHandlers($shutdown_utilities);
@@ -299,7 +299,7 @@ class PrimeMoverFactory
         $events_menu = new PrimeMoverAutoBackupEventViewer($prime_mover, $backup_menu, $utilities);
         $events_menu->initHooks(); 
                 
-        $fcompat = new PrimeMoverFreemiusCompat($prime_mover, $utilities, $pm_fs);
+        $fcompat = new PrimeMoverFreemiusCompat($prime_mover, $utilities);
         $fcompat->registerHooks();
         
         do_action( 'prime_mover_load_module_apps', $prime_mover, $utilities);         

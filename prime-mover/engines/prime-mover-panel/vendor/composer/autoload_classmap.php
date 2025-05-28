@@ -36,6 +36,7 @@ return array(
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverDropBoxSettings' => $baseDir . '/helpers/PrimeMoverDropBoxSettings.php',
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverEncryptionKeyHandler' => $baseDir . '/helpers/PrimeMoverEncryptionKeyHandler.php',
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedPlugins' => $baseDir . '/helpers/PrimeMoverExcludedPlugins.php',
+    'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedTables' => $baseDir . '/helpers/PrimeMoverExcludedTables.php',
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedUploads' => $baseDir . '/helpers/PrimeMoverExcludedUploads.php',
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedUploadsUtilities' => $baseDir . '/helpers/PrimeMoverExcludedUploadsUtilities.php',
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverGdriveSettings' => $baseDir . '/helpers/PrimeMoverGdriveSettings.php',

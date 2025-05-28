@@ -5,7 +5,7 @@ Tags: migrate wordpress, multisite migration, clone, backup
 Requires at least: 4.9.8
 Tested up to: 6.8
 Requires PHP: 5.6
-Stable tag: 2.0.5
+Stable tag: 2.0.6
 License: GPLv3 or later
 License URI: https://codexonics.com
 
@@ -104,6 +104,16 @@ Update now to get all the latest bug fixes, improvements, and features!
 
 == Changelog ==
 
+= 2.0.6 =
+
+* Feature: Support was added to exclude database tables from export.
+* Usability: Added missing features tutorials.
+* Fixed: The white-labelled license upgrade page goes to a non-existent page.
+* Fixed: The user was presented with an upgrade instead of activating the license buttons.
+* Usability: Improved labeling of subsite action buttons based on plan subscription status.
+* Usability: Improved handling of upgrade buttons.
+* Updated Freemius SDK to the latest version.
+
 = 2.0.5 =
 
 * Fixed: Controls were added for the outdated Prime Mover plugin manager script in the mu-plugins directory.
@@ -118,13 +128,5 @@ Update now to get all the latest bug fixes, improvements, and features!
 
 * Fixed: Data was missing on import due to a large extended insert in the database restore.
 * Updated Freemius SDK to the latest version.
-
-= 2.0.3 =
-
-* Fixed: Preserve user IDs from the source site to the target site if possible.
-* Fixed: Runtime error on database / dB + media restore only, with a difference due to double-quoting table names.
-* Usability: Warn installation of mismatched user administrators and sites with existing content. 
-* Tested: Compatibility with the latest PHP 8.4.
-* Fixed: Updated Freemius SDK to version 2.10.1.
 
 See the previous changelogs in changelog.txt.

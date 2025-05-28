@@ -51,7 +51,7 @@ class PrimeMoverUploadSettingMarkup
     public function renderGDriveDownloadChunkSetting($setting = '', $default = 0)
     {
         $current_gdrivedownload_chunk_size = $this->getCloudChunkSizeSetting($setting, $default);
-        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Google Drive download chunk', 'prime-mover'));
+        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Google Drive download chunk', 'prime-mover'), 'https://codexonics.com/prime_mover/prime-mover/prime-mover-pro-google-drive-api-integration/#gdrive-chunks');
         ?>
         <p class="description">
           <label for="js-prime_mover_gdrivedownload_chunksize">
@@ -82,7 +82,7 @@ class PrimeMoverUploadSettingMarkup
     public function renderDropBoxUploadChunkSetting($setting = '', $default = 0)
     {
         $current_dropbox_chunk_size = $this->getCloudChunkSizeSetting($setting, $default);
-        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Dropbox upload chunk', 'prime-mover'));
+        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Dropbox upload chunk', 'prime-mover'), 'https://codexonics.com/prime_mover/prime-mover/prime-mover-dropbox-integration/#dropbox-chunk');
         ?>
         <p class="description">
           <label for="js-prime_mover_dropbox_chunksize">
@@ -113,7 +113,7 @@ class PrimeMoverUploadSettingMarkup
     public function renderGDriveUploadChunkSetting($setting = '', $default = 0)
     {
         $current_gdrive_chunk_size = $this->getCloudChunkSizeSetting($setting, $default);
-        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Google Drive upload chunk', 'prime-mover'));
+        $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Google Drive upload chunk', 'prime-mover'), 'https://codexonics.com/prime_mover/prime-mover/prime-mover-pro-google-drive-api-integration/#gdrive-chunks');
         ?>
         <p class="description">
           <label for="js-prime_mover_gdrive_chunksize">

@@ -12,6 +12,7 @@ namespace Codexonics\PrimeMoverFramework\compatibility;
  */
 
 use Codexonics\PrimeMoverFramework\classes\PrimeMover;
+use Freemius;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -51,6 +52,15 @@ class PrimeMoverMigrationOptions
     public function getSystemAuthorization()
     {
         return $this->getPrimeMover()->getSystemAuthorization();
+    }
+    
+    /**
+     * Get Freemius
+     * @return Freemius
+     */
+    public function getFreemius()
+    {
+        return $this->getSystemAuthorization()->getFreemius();
     }
     
     /**
@@ -349,7 +359,8 @@ class PrimeMoverMigrationOptions
         if (!$blog_id) {
             return;
         }    
-        $upgrade_url = $this->getSystemInitialization()->getUpgradeUrl();
+        
+        $upgrade_url = $this->getFreemius()->get_upgrade_url();
         if (false === apply_filters('prime_mover_multisite_blog_is_licensed', false, $blog_id)) {
             $checked = '';
             $disabled = 'disabled';
@@ -358,11 +369,13 @@ class PrimeMoverMigrationOptions
             $disabled = '';
         }
         if ($disabled) {
+            $upgrade_url = apply_filters('prime_mover_filter_upgrade_pro_url', $upgrade_url, $blog_id);
         ?>        
             <h3 <?php echo $this->returnFreeClass($disabled); ?>><?php esc_html_e('PRO export options', 'prime-mover' )?></h3>
                 <p class="prime-mover-migration-tools-p">
                     <span class="dashicons dashicons-unlock prime-mover-dashicon-unlock-migration-tools"></span>
-                    <a class="prime-mover-readable-link" href="<?php echo esc_url($upgrade_url); ?>"><?php esc_html_e('Upgrade to PRO', 'prime-mover'); ?></a>
+                    <a class="prime-mover-readable-link" href="<?php echo esc_url($upgrade_url); ?>">
+                    <?php echo apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__( 'Upgrade to PRO', 'prime-mover' ), $blog_id, false); ?></a>
                 </p>
         <?php 
         } else {

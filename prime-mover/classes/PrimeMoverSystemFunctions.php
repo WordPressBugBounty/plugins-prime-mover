@@ -4756,4 +4756,36 @@ class PrimeMoverSystemFunctions
         
         return $value;
     }
+    
+    /**
+     * Clean Tables to export
+     * @param number $blogid_to_export
+     * @return array
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverExporter::itGetTablesForExport()
+     */
+    public function getTablesToExport($blogid_to_export = 0)
+    {
+        $this->switchToBlog($blogid_to_export);
+        
+        $wpdb = $this->getSystemInitialization()->getWpdB();
+        $target_prefix = $wpdb->prefix;
+        $escaped_like = $wpdb->esc_like($target_prefix);
+        $target_prefix = $escaped_like . '%';
+        
+        if ($this->isMultisiteMainSite($blogid_to_export, true)) {
+            $regex = $escaped_like . '[0-9]+';
+            $table_name = DB_NAME;
+            $db_search = $this->getMultisiteMainSiteTableQuery($table_name);
+            
+            $prepared = $wpdb->prepare($db_search, $target_prefix, $regex);
+            $tables_to_export = $wpdb->get_results($prepared, ARRAY_N);
+            
+        } else {
+            $db_search = "SHOW TABLES LIKE %s";
+            $tables_to_export = $wpdb->get_results($wpdb->prepare($db_search, $target_prefix), ARRAY_N);
+        }
+        
+        $this->restoreCurrentBlog();
+        return $this->cleanDbTablesForExporting($tables_to_export, $blogid_to_export, $wpdb, 'export');
+    }
 }

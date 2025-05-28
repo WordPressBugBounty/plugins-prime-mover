@@ -101,6 +101,7 @@ class ComposerStaticInit368b6fde35050ae007aff0a90d135a24
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverDropBoxUploadProgress' => __DIR__ . '/../..' . '/engines/prime-mover-flywheel/helpers/PrimeMoverDropBoxUploadProgress.php',
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverEncryptionKeyHandler' => __DIR__ . '/../..' . '/engines/prime-mover-panel/helpers/PrimeMoverEncryptionKeyHandler.php',
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedPlugins' => __DIR__ . '/../..' . '/engines/prime-mover-panel/helpers/PrimeMoverExcludedPlugins.php',
+        'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedTables' => __DIR__ . '/../..' . '/engines/prime-mover-panel/helpers/PrimeMoverExcludedTables.php',
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedUploads' => __DIR__ . '/../..' . '/engines/prime-mover-panel/helpers/PrimeMoverExcludedUploads.php',
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedUploadsUtilities' => __DIR__ . '/../..' . '/engines/prime-mover-panel/helpers/PrimeMoverExcludedUploadsUtilities.php',
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverGDriveUploadProgress' => __DIR__ . '/../..' . '/engines/prime-mover-flywheel/helpers/PrimeMoverGDriveUploadProgress.php',

@@ -11,6 +11,9 @@ namespace Codexonics\PrimeMoverFramework\classes;
  * source code.
  */
 
+use Freemius;
+use WP_User;
+
 if (! defined('ABSPATH')) {
     exit;
 }
@@ -28,15 +31,28 @@ class PrimeMoverSystemAuthorization
     
     /** @var integer Prime Mover user ID */
     private $prime_mover_user_id;
+
+    /** @var Freemius object $freemius */    
+    private $freemius;
     
     /**
-     *
-     * @param \WP_User $user
-     * @compatibility 5.6
+     * Constructor
+     * @param WP_User $user
+     * @param Freemius $freemius
      */
-    public function __construct(\WP_User $user)
+    public function __construct(WP_User $user, Freemius $freemius)
     {
         $this->is_authorized = $this->checksIfUserIsAuthorized($user);
+        $this->freemius = $freemius;
+    }
+    
+    /**
+     * Get Freemius instance
+     * @return Freemius
+     */
+    public function getFreemius()
+    {
+        return $this->freemius;
     }
     
     /**

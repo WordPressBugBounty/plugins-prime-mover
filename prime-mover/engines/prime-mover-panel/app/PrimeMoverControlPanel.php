@@ -13,6 +13,7 @@ namespace Codexonics\PrimeMoverFramework\app;
 
 use Codexonics\PrimeMoverFramework\classes\PrimeMover;
 use Codexonics\PrimeMoverFramework\classes\PrimeMoverSystemAuthorization;
+use Freemius;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -80,6 +81,15 @@ class PrimeMoverControlPanel
     }
     
     /**
+     * Get Freemius
+     * @return Freemius
+     */
+    public function getFreemius()
+    {
+        return $this->getPrimeMover()->getSystemAuthorization()->getFreemius();
+    }
+    
+    /**
      * Init hooks
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverControlPanel::itAddsInitHooks()
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverControlPanel::itChecksIfHooksAreOutdated() 
@@ -101,13 +111,14 @@ class PrimeMoverControlPanel
         add_filter('prime_mover_filter_export_button_text', [$this, 'useProExportButtonText'], 10, 2);
         
         add_filter('prime_mover_filter_button_class', [$this, 'usePrimaryButtonClassPro'], 10, 2); 
-        add_filter('prime_mover_filter_upgrade_pro_text', [$this, 'maybeUseUpgradePlanText'], 10, 1);
+        add_filter('prime_mover_filter_upgrade_pro_text', [$this, 'maybeUseUpgradePlanText'], 10, 3);
         add_filter('prime_mover_filter_package_manager_columns', [$this, 'maybeAddMigrateColumn'], 10, 2);   
         
         add_action('admin_post_prime-mover-load-scheduled-backup-settings', [$this, 'maybeSwitchBlogForScheduledBackupSettings']);
         add_filter('prime_mover_control_panel_js_object', [$this, 'settingsApiJsObject'], 10, 1);
+        add_filter('prime_mover_filter_upgrade_pro_url', [$this, 'maybeUseCorrectUpgradeUrl'], 10, 2);
     }
-           
+    
     /**
      * Output settings parameter to JS Object
      * @param array $var
@@ -183,19 +194,45 @@ class PrimeMoverControlPanel
     /**
      * Maybe use upgrade plan text
      * @param string $text
-     * @return string
+     * @param number $blog_id
+     * @param boolean $show_icons
+     * @return string|string|mixed
      */
-    public function maybeUseUpgradePlanText($text = '')
-    {
-        if (!is_multisite()) {
+    public function maybeUseUpgradePlanText($text = '', $blog_id = 0, $show_icons = true)
+    {      
+        if ($this->getPrimeMover()->getSystemInitialization()->isUsingFreeCode()) {
             return $text;
         }
         
-        if ($this->getFreemiusIntegration()->maybeLoggedInUserIsCustomer()) {
-            $text = esc_html__('UPGRADE plan', 'prime-mover');
+        if ('yes' === $this->getFreemiusIntegration()->hasUsableLicense()) {
+            $text = esc_html__('Activate PRO', 'prime-mover');            
+        } 
+        
+        if ('no' === $this->getFreemiusIntegration()->hasUsableLicense()) {
+            $text = esc_html__('UPGRADE Plan', 'prime-mover');
         }
         
         return $text;
+    }
+
+    /**
+     * Use correct upgrade URL based on the site status
+     * @param string $url
+     * @param number $blog_id
+     */
+    public function maybeUseCorrectUpgradeUrl($url = '', $blog_id = 0)
+    {        
+        if ($this->getPrimeMover()->getSystemInitialization()->isUsingFreeCode()) {
+            return $url;
+        }
+        
+        if ('yes' === $this->getFreemiusIntegration()->hasUsableLicense() || $this->getFreemiusIntegration()->isWhiteLabeled()) {
+            if (false === $this->getFreemius()->is_anonymous()) {
+                $url = $this->getFreemius()->get_account_url();
+            }            
+        }
+        
+        return $url;
     }
     
     /**

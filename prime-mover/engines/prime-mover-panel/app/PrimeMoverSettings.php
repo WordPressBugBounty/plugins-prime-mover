@@ -223,11 +223,12 @@ class PrimeMoverSettings
      * @param boolean $display_key
      * @param boolean $media_settings
      * @param boolean $decrypt
+     * @param number $blog_id
      * @return string
      */
-    public function convertSettingsToTextAreaOutput($setting = '', $display_key = false, $media_settings = false, $decrypt = false)
-    {
-        $setting = $this->getSetting($setting, $decrypt, '', true);
+    public function convertSettingsToTextAreaOutput($setting = '', $display_key = false, $media_settings = false, $decrypt = false, $blog_id = 0)
+    {        
+        $setting = $this->getSetting($setting, $decrypt, '', true, $blog_id);
         $ret = '';
         if (!is_array($setting) || empty($setting)) {
             return $ret;
@@ -937,10 +938,8 @@ class PrimeMoverSettings
         if (!is_object($freemius_object)) {
             $use_native = true;
         }
-        if (!$use_native && !method_exists($freemius_object, '_get_license')) {
-            $use_native = true;
-        }
-        $license = $this->getFreemiusIntegration()->getFreemius()->_get_license();
+        
+        $license = $this->getFreemiusIntegration()->getLicense(false);
         if (!is_object($license)) {
             $use_native = true;
         }
