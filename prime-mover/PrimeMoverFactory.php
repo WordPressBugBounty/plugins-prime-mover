@@ -318,6 +318,28 @@ class PrimeMoverFactory
         $this->removePluginManagerOnUninstall();        
         $this->removePrimeMoverDirectoriesOnUninstall();
         $this->removePrimeMoverOptionsInDb();
+        $this->removePrimeMoverCrons();
+    }
+    
+    /**
+     * Remove Prime Mover cron hooks on uninstall
+     */
+    private function removePrimeMoverCrons()
+    {
+        if (!function_exists('getPrimeMoverCronHooks')) {
+            return;
+        }
+        
+        $prime_mover_crons = getPrimeMoverCronHooks();
+        if (!is_array($prime_mover_crons)) {
+            return;
+        }
+        
+        foreach ($prime_mover_crons as $cron_hook) {
+            if ($cron_hook && is_string($cron_hook)) {
+                wp_unschedule_hook($cron_hook);
+            }            
+        }
     }
     
     /**

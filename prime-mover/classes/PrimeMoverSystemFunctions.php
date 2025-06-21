@@ -1194,6 +1194,15 @@ class PrimeMoverSystemFunctions
          * Deal with user differences last
          */
         if ((isset($diff['users'])) && (! empty($diff['users']))) {
+            $admin_text = esc_html__('administrator', 'prime-mover');
+            $platform_text = esc_html__('WordPress', 'prime-mover');
+            $tutorial_link = PRIME_MOVER_RESETDB_TUTORIAL;
+            if (is_multisite()) {
+                $admin_text = esc_html__('super administrator', 'prime-mover');
+                $platform_text = esc_html__('WordPress multisite', 'prime-mover');
+                $tutorial_link = PRIME_MOVER_RESETDB_MULTISITE_TUTORIAL;
+            }            
+             
             $blank_site = true;
             if (isset($diff['users']['blank_site'])) {
                 $blank_site = $diff['users']['blank_site'];
@@ -1215,7 +1224,7 @@ class PrimeMoverSystemFunctions
             $msg .= PHP_EOL;
             $msg .= esc_html__('For best restoration results, the following is recommended:', 'prime-mover');
             $msg .= '<ol>';
-            $msg .= '<li>' . sprintf(esc_html__('Start with a %s', 'prime-mover'), '<a class="prime-mover-external-link" target="_blank" href="' . PRIME_MOVER_RESETDB_TUTORIAL . '">' . esc_html__('fresh WordPress install', 'prime-mover') . '</a>.') . '</li>';
+            $msg .= '<li>' . sprintf(esc_html__('Start with a %s', 'prime-mover'), '<a class="prime-mover-external-link" target="_blank" href="' . $tutorial_link . '">' . sprintf(esc_html__('fresh %s install', 'prime-mover'), $platform_text) . '</a>.') . '</li>';
             
             $recommended_email = '';
             if (!empty($diff['users']['recommended_email'])) {
@@ -1223,15 +1232,16 @@ class PrimeMoverSystemFunctions
             }
             
             if ($recommended_email) {
-                $msg .= '<li>' . sprintf(esc_html__('Set %s as its administrator.', 'prime-mover'), '<strong>' . $recommended_email . '</strong>') . '</li>';
+                $msg .= '<li>' . sprintf(esc_html__('Set %s as its %s.', 'prime-mover'), '<strong>' . $recommended_email . '</strong>', $admin_text) . '</li>';
             } else {
                 $msg .= '<li>' . sprintf(esc_html__('Use a %s email, and do not use %s to avoid user restoration conflicts', 'prime-mover'), '<em>' . 
                     esc_html__('different administrator email', 'prime-mover') . '</em>', '<strong>' . $recommended_email . '</strong>') . '</li>';
             }
             
             $msg .= '</ol>';
-            $msg .= sprintf(esc_html__('To do this, you must cancel this import by clicking the "%s" button and re-install WordPress in a fresh state. Please %s about this feature.', 'prime-mover'), 
+            $msg .= sprintf(esc_html__('To do this, you must cancel this import by clicking the "%s" button and re-install %s in a fresh state. Please %s about this feature.', 'prime-mover'), 
                 '<strong>' . esc_html__('No', 'prime-mover') . '</strong>',
+                $platform_text,
                 '<a class="prime-mover-external-link" target="_blank" href="' . CODEXONICS_USER_DIFF_FAQ . '">' . esc_html__('read the FAQ', 'prime-mover') . '</a>');
             $msg .= PHP_EOL;
             $msg .= PHP_EOL;
@@ -4755,6 +4765,57 @@ class PrimeMoverSystemFunctions
         }
         
         return $value;
+    }
+    
+    /**
+     * Replace is_multisite returns TRUE if multisite.
+     * This function returns TRUE if multisite AND MAIN SITE IS fresh (entire network also)
+     * @param number $blog_id
+     * @return boolean
+     */
+    public function isFreshMultisiteMainSite($blog_id = 0)
+    {
+        if (!$blog_id) {
+            return false;
+        }
+
+        if (!is_multisite()) {
+            return false;
+        }
+        
+        $admins = get_super_admins();
+        if (!is_array($admins)) {
+            return false;
+        }
+        
+        $count_admins = count($admins);
+        $count_admins = (int)$count_admins;
+        if ($count_admins > 1) {
+            return false;
+        }
+        
+        $count_users = get_user_count();
+        $count_users = (int)$count_users;
+        if ($count_users > 1) {
+            return false;
+        }
+        
+        $large_network = wp_is_large_network();
+        if ($large_network) {
+            return false;
+        }
+        
+        $count_blogs = get_blog_count();
+        $count_blogs = (int)$count_blogs;
+        if ($count_blogs > 1) {
+            return false;
+        }       
+        
+        if (!$this->isMultisiteMainSite($blog_id)) {
+            return false;
+        }
+        
+        return true;
     }
     
     /**

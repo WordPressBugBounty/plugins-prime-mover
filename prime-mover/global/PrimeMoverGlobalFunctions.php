@@ -614,6 +614,41 @@ if ( !function_exists( 'str_contains' ) ) {
     }
 
 }
+if ( !function_exists( 'str_starts_with' ) ) {
+    function str_starts_with(  $haystack, $needle  ) {
+        if ( '' === $needle ) {
+            return true;
+        }
+        return 0 === strpos( $haystack, $needle );
+    }
+
+}
+if ( !function_exists( 'getPrimeMoverCronHooks' ) ) {
+    function getPrimeMoverCronHooks() {
+        $prime_mover_crons = [];
+        if ( !function_exists( '_get_cron_array' ) ) {
+            return $prime_mover_crons;
+        }
+        $cron = _get_cron_array();
+        if ( !is_array( $cron ) ) {
+            return $prime_mover_crons;
+        }
+        $cron_values = array_values( $cron );
+        foreach ( $cron_values as $v ) {
+            if ( !is_array( $v ) ) {
+                continue;
+            }
+            $cron_hooks = array_keys( $v );
+            foreach ( $cron_hooks as $hook ) {
+                if ( $hook && is_string( $hook ) && str_starts_with( $hook, 'primeMover' ) ) {
+                    $prime_mover_crons[] = $hook;
+                }
+            }
+        }
+        return $prime_mover_crons;
+    }
+
+}
 if ( !function_exists( 'primeMoverRestoreAdminCaps' ) ) {
     function primeMoverRestoreAdminCaps() {
         return [

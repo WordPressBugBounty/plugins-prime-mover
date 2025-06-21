@@ -2,6 +2,11 @@
 
 **This is a list detailing changes for all Prime Mover releases.**
 
+= 2.0.4 =
+
+* Fixed: Data was missing on import due to a large extended insert in the database restore.
+* Updated Freemius SDK to the latest version.
+
 = 2.0.3 =
 
 * Fixed: Preserve user IDs from the source site to the target site if possible.

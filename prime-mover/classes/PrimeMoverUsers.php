@@ -133,17 +133,18 @@ class PrimeMoverUsers
         add_filter('prime_mover_validate_thirdpartyuser_processing', [$this, 'maybeRequisitesNotMeetForAdjustment'], 10, 3);
         add_filter('prime_mover_process_userid_adjustment_db', [$this, 'dBCustomerUserIdsHelper'], 10, 13); 
         
-        add_filter('prime_mover_filter_config_after_diff_check', [ $this, 'handleUserDifferences'], 99, 1);
+        add_filter('prime_mover_filter_config_after_diff_check', [ $this, 'handleUserDifferences'], 99, 2);
     }   
     
     /**
      * Handle user differences
      * @param array $import_data
+     * @param number $blog_id
      * @return array
      */
-    public function handleUserDifferences(array $import_data)
+    public function handleUserDifferences(array $import_data = [], $blog_id = 0)
     {
-        $bailout = apply_filters('prime_mover_maybe_bailout_user_diff_check', false, $import_data);
+        $bailout = apply_filters('prime_mover_maybe_bailout_user_diff_check', false, $import_data, $blog_id);
         if ($bailout) {
             return $import_data;
         }
@@ -153,7 +154,11 @@ class PrimeMoverUsers
         }
         
         $do_user_diff_check = !wp_is_large_user_count();
-        if (!$do_user_diff_check || is_multisite()) {
+        if (!$do_user_diff_check) {
+            return $import_data;
+        }
+        
+        if (is_multisite() && false === $this->getSystemFunctions()->isFreshMultisiteMainSite($blog_id)) {
             return $import_data;
         }
         

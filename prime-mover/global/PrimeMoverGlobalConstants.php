@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PRIME_MOVER_VERSION', '2.0.6');
+define('PRIME_MOVER_VERSION', '2.0.7');
 define('PRIME_MOVER_PLUGIN_CODENAME', 'Prime Mover');
 define('PRIME_MOVER_PRO_PLUGIN_CODENAME', 'Prime Mover PRO');
 define('PRIME_MOVER_BACKUP_MARKUP_VERSION', '1.2.0');
@@ -221,6 +221,10 @@ if (!defined('PRIME_MOVER_GET_BLOGID_TUTORIAL') ) {
 
 if (!defined('PRIME_MOVER_RESETDB_TUTORIAL') ) {
     define('PRIME_MOVER_RESETDB_TUTORIAL', 'https://codexonics.com/prime_mover/prime-mover/how-to-create-fresh-wordpress-install-with-specific-administrator-email/');
+}
+
+if (!defined('PRIME_MOVER_RESETDB_MULTISITE_TUTORIAL')) {
+    define('PRIME_MOVER_RESETDB_MULTISITE_TUTORIAL', 'https://codexonics.com/prime_mover/prime-mover/how-to-create-a-fresh-wordpress-multisite-install-with-a-specific-network-administrator-email/');
 }
 
 if (!defined('PRIME_MOVER_FIX_MU_SCRIPT_TUTORIAL')) {

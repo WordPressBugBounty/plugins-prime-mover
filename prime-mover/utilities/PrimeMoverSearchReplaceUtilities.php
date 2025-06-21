@@ -324,6 +324,96 @@ class PrimeMoverSearchReplaceUtilities
         
         add_filter('prime_mover_filter_final_replaceables', [$this, 'maybeUnsetWpRoot'], 25000, 4);
         add_filter('prime_mover_filter_final_replaceables', [$this, 'maybeAdjustEdgeRelativeCustomContentUploads'], 30000, 4);
+        add_filter('prime_mover_filter_final_replaceables', [$this, 'maybeUnsetGenericAltDomain'], 35000, 4);
+    }
+ 
+    /**
+     * Maybe unset generic alt domain
+     * @param array $replaceables
+     * @param array $ret
+     * @param boolean $retries
+     * @param number $blogid_to_import
+     */
+    public function maybeUnsetGenericAltDomain($replaceables = [], $ret = [], $retries = false, $blogid_to_import = 0)
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized() || !is_array($replaceables)) {
+            return $replaceables;
+        }
+        
+        if (!is_multisite()) {
+            return $replaceables;
+        }
+        
+        if (!isset($replaceables['generic_alt_domain_scheme'])) {               
+            return $replaceables;
+        }      
+        
+        $generic_domain_scheme_replace = '';
+        $generic_alt_domain_scheme_replace = '';
+       
+        if (isset($replaceables['generic_domain_scheme']['replace'])) {
+            $generic_domain_scheme_replace = $replaceables['generic_domain_scheme']['replace'];
+        }
+           
+        if (isset($replaceables['generic_alt_domain_scheme']['replace'])) {
+            $generic_alt_domain_scheme_replace = $replaceables['generic_alt_domain_scheme']['replace'];
+        }
+        
+        if (!$generic_domain_scheme_replace || !$generic_alt_domain_scheme_replace) {
+            return $replaceables;
+        }
+        
+        if ($generic_domain_scheme_replace !== $generic_alt_domain_scheme_replace) {
+            return $replaceables;
+        }
+        
+        $search = '';
+        $replace = '';
+        $subject = '';
+        
+        if (isset($replaceables['generic_alt_domain_scheme']['search'])) {
+            $search = $replaceables['generic_alt_domain_scheme']['search'];
+        }
+        
+        if (isset($replaceables['generic_alt_domain_scheme']['replace'])) {
+            $replace = $replaceables['generic_alt_domain_scheme']['replace'];
+        }
+        
+        if (isset($replaceables['generic_domain_scheme']['replace'])) {
+            $subject = $replaceables['generic_domain_scheme']['replace'];
+        }
+        
+        if (!$search || !$replace || !$subject) {
+            return $replaceables;
+        }
+        
+        if (!is_string($search) || !is_string($replace) || !is_string($subject)) {
+            return $replaceables;
+        }
+        
+        $search = trim($search);
+        $replace = trim($replace);
+        $subject = trim($subject);
+        
+        $result = str_replace($search, $replace, $subject);
+        $problem = false;
+        if ($result !== $subject && $result !== $replace) {
+             $problem = true;
+        }
+        
+        if (!$problem) {
+            return $replaceables;            
+        }
+        
+        if (isset($replaceables['generic_alt_domain_scheme'])) {
+            unset($replaceables['generic_alt_domain_scheme']);
+        }
+
+        if (isset($replaceables['generic_alt_domain_scheme_slashedvar'])) {
+            unset($replaceables['generic_alt_domain_scheme_slashedvar']);
+        } 
+        
+        return $replaceables;;
     }
     
     /**

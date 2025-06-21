@@ -5,7 +5,7 @@ Tags: migrate wordpress, multisite migration, clone, backup
 Requires at least: 4.9.8
 Tested up to: 6.8
 Requires PHP: 5.6
-Stable tag: 2.0.6
+Stable tag: 2.0.7
 License: GPLv3 or later
 License URI: https://codexonics.com
 
@@ -104,6 +104,12 @@ Update now to get all the latest bug fixes, improvements, and features!
 
 == Changelog ==
 
+= 2.0.7 =
+
+* Fixed: Malformed domain name due to edge case double search replace.
+* Feature: Added user difference check when migrating site to multisite main site.
+* Fixed: Removed cron jobs when the plugin is uninstalled.
+
 = 2.0.6 =
 
 * Feature: Support was added to exclude database tables from export.
@@ -123,10 +129,5 @@ Update now to get all the latest bug fixes, improvements, and features!
 * Fixed: After import, search and replace issues with broken external WordPress site URL.
 * Compatibility: Tested for WordPress 6.8 release.
 * Usability: Added tutorial to download packages in different ways.
-
-= 2.0.4 =
-
-* Fixed: Data was missing on import due to a large extended insert in the database restore.
-* Updated Freemius SDK to the latest version.
 
 See the previous changelogs in changelog.txt.

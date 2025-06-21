@@ -177,18 +177,24 @@ class PrimeMoverTroubleshooting
         add_action('wp_ajax_prime_mover_clear_autobackup_init_meta', [$this,'clearAutoBackupInitKey']);
         add_action('wp_ajax_prime_mover_clear_locked_settings', [$this,'clearLockedSettings']);
         
-        add_filter('prime_mover_maybe_bailout_user_diff_check', [$this, 'maybeBailOutUserSiteDiff'], 10, 1);
+        add_filter('prime_mover_maybe_bailout_user_diff_check', [$this, 'maybeBailOutUserSiteDiff'], 10, 3);
     }
 
     /**
      * Maybe bail out user site diff
      * @param boolean $bailout
+     * @param array $ret
+     * @param number $blog_id
      * @return string|boolean
      */
-    public function maybeBailOutUserSiteDiff($bailout = false)
+    public function maybeBailOutUserSiteDiff($bailout = false, $ret = [], $blog_id = 0)
     {
         $setting = $this->getPrimeMoverSettings()->getSetting(self::DISABLE_USER_DIFF_CHECK);
-        if (!$setting || is_multisite()) {
+        if (!$setting) {
+            return $bailout;
+        }
+        
+        if (is_multisite() && false === $this->getPrimeMover()->getSystemFunctions()->isFreshMultisiteMainSite($blog_id)) {
             return $bailout;
         }
         
@@ -739,7 +745,12 @@ class PrimeMoverTroubleshooting
      */
     public function renderDisableUserDiffMarkup()
     {
+        $blog_id = 0;
         if (is_multisite()) {
+            $blog_id = get_current_blog_id();
+        }
+        
+        if ($blog_id && false === $this->getPrimeMover()->getSystemFunctions()->isFreshMultisiteMainSite($blog_id)) {   
             return;
         }
         
