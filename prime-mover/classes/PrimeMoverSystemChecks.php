@@ -1056,18 +1056,11 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
     }
     
     /**
-     * Is the server running Windows operating system
-     * CREDITS: Snap Creek | https://wordpress.org/plugins/duplicator/
-     * @return bool Returns true if operating system is Windows
-     * @compatible 5.6
-     *
+     * Checks if running Windows
      */
     public function isWindows()
     {
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            return true;
-        }
-        return false;
+        return $this->getSystemFunctions()->isWindows();
     }
     
     /**
@@ -1184,7 +1177,7 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
         
         $this->getSystemFunctions()->restoreCurrentBlog();
     }
-    
+        
     /**
      * Get theme on specific site
      * @param number $blog_id

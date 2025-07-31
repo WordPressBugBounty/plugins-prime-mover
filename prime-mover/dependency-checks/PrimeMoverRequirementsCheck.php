@@ -128,13 +128,14 @@ class PrimeMoverRequirementsCheck
         $phpversion_check = $this->getPHPVersionDependencies()->phpPasses();
         $wpversion_check = $this->getCoreWPDependencies()->wpPasses();   
         $tableprefixcheck = $this->getCoreWPDependencies()->tablePrefixPass();
+        $database_check = $this->getCoreWPDependencies()->databasePass();
         $phpextensions_check = $this->getPHPCoreFunctionDependencies()->extensionsRequisiteCheck();
         $phpfunction_check = $this->getPHPCoreFunctionDependencies()->functionRequisiteCheck();
         $filesystem_check = $this->getFileSystemPermissionChecks()->fileSystemPermissionsRequisiteCheck();
         $pluginfoldername_check = $this->getPluginFolderNameDependency()->slugPasses();
         $coresaltdependency_check = $this->getCoreSaltDependency()->saltPasses();
         
-        if ( $phpversion_check && $wpversion_check && $phpextensions_check && $phpfunction_check && $filesystem_check && $pluginfoldername_check && $coresaltdependency_check && $tableprefixcheck) {
+        if ( $phpversion_check && $wpversion_check && $phpextensions_check && $phpfunction_check && $filesystem_check && $pluginfoldername_check && $coresaltdependency_check && $tableprefixcheck && $database_check) {
             $passes = true;
         }
         

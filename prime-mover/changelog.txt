@@ -2,6 +2,16 @@
 
 **This is a list detailing changes for all Prime Mover releases.**
 
+= 2.0.5 =
+
+* Fixed: Controls were added for the outdated Prime Mover plugin manager script in the mu-plugins directory.
+* Fixed: Unable to download package in Docker-based WordPress installations.
+* Fixed: Search and replace issues with similar subdirectory path installations.
+* Fixed: Freemius safe mode after import.
+* Fixed: After import, search and replace issues with broken external WordPress site URL.
+* Compatibility: Tested for WordPress 6.8 release.
+* Usability: Added tutorial to download packages in different ways.
+
 = 2.0.4 =
 
 * Fixed: Data was missing on import due to a large extended insert in the database restore.

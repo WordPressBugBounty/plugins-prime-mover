@@ -3,7 +3,7 @@
         'name' => 'codex-m/prime-mover-core',
         'pretty_version' => 'dev-master',
         'version' => 'dev-master',
-        'reference' => '44126d4736eeaf70024cc5acab43fdfe647dd0df',
+        'reference' => 'b43a698a8963df51301d085ad31d59ee24041c09',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'codex-m/prime-mover-core' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => '44126d4736eeaf70024cc5acab43fdfe647dd0df',
+            'reference' => 'b43a698a8963df51301d085ad31d59ee24041c09',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

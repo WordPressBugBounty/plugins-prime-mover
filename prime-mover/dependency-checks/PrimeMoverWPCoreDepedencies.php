@@ -60,6 +60,25 @@ class PrimeMoverWPCoreDependencies
             return false;
         }
     }
+ 
+    /**
+     * Prime Mover only supports WordPress core installations using MariaDB and MySQL.
+     * @return boolean
+     */
+    public function databasePass()
+    {
+        $notice_hook = 'admin_notices';
+        if (is_multisite()) {
+            $notice_hook = 'network_admin_notices';
+        }
+        
+        if ($this->usingSQlite()) {
+            add_action($notice_hook, array($this, 'unsupportedDatabaseNotice'));
+            return false;
+        } else {            
+            return true;
+        }
+    }
     
      /**
      * Check for sites configured without table base prefix
@@ -72,6 +91,20 @@ class PrimeMoverWPCoreDependencies
             return false;
         }        
         return true;
+    }
+
+    /**
+     * Check if using SQLite database
+     * Returns TRUE if using SQLite
+     * @return boolean
+     */
+    private function usingSQlite()
+    {
+        global $wpdb;
+        if ($wpdb instanceof WP_SQLite_DB) {
+            return true;
+        }
+        return false;        
     }
     
     /**
@@ -102,7 +135,7 @@ class PrimeMoverWPCoreDependencies
     }
     
     /**
-     * Display WP Version notice if non-compliant
+     * Display no DB prefix notice if non-compliant
      * @compatible 5.6
      */
     public function noDbPrefixNotice()
@@ -114,6 +147,28 @@ class PrimeMoverWPCoreDependencies
                  '<code>wp-config.php</code>',
                  '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>'); ?>
              </p>             
+        </div>
+        <?php 
+    }
+    
+    /**
+     * Display unsupported database notice
+     */
+    public function unsupportedDatabaseNotice()
+    {
+        ?>
+        <div class="error">
+             <p>
+             <?php printf(esc_html__('The %s plugin is not compatible with the SQLite database, so it cannot be activated on this site.', 'prime-mover' ),
+                 '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>'); 
+             ?>
+             </p>
+             
+              <?php printf(esc_html__('If you are in a local environment and using %s - consider using %s that utilize MySQL or MariaDB.', 'prime-mover'),
+                 '<strong>Studio by WordPress.com</strong>',
+                  '<a class="prime-mover-external-link" target="_blank" href="' . CODEXONICS_COMPATIBLE_LOCAL_APPS . '">' . esc_html__('compatible apps', 'prime-mover') . '</a>')
+             ?>
+             </p>               
         </div>
         <?php 
     }

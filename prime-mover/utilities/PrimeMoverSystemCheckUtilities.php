@@ -518,7 +518,7 @@ class PrimeMoverSystemCheckUtilities
         $copy_result = false;
         $delete_result = false;
         
-        $maybe_skip = $this->maybeSkipFileCopying($source, $destination);        
+        $maybe_skip = $this->maybeSkipFileCopying($source, $destination, $blog_id, $wp_filesystem);        
         if (is_wp_error($maybe_skip)) {
             return $maybe_skip;
         }
@@ -560,17 +560,37 @@ class PrimeMoverSystemCheckUtilities
      * @param string $source
      * @param string $destination
      * @param number $blog_id
+     * @param mixed $wp_filesystem
      * @return boolean|\WP_Error
      */
-    protected function maybeSkipFileCopying($source = '', $destination = '', $blog_id = 0)
+    protected function maybeSkipFileCopying($source = '', $destination = '', $blog_id = 0, $wp_filesystem = null)
     {      
         $source = wp_normalize_path($source);
         $destination = wp_normalize_path($destination);
+        $processing_thumbs = false;
+		$thumbs_delete_success = false;
+		
+        if ($this->isWindowsThumbsDb($source)) {
+			$processing_thumbs = true;
+        }
+		
+		if ($processing_thumbs && wp_is_writable($source)) {
+			$thumbs_delete_success = $wp_filesystem->delete( $source, true);			
+	    }
         
+		if ($processing_thumbs && $thumbs_delete_success) {  
+			do_action('prime_mover_log_processed_events', 'AUTOMATICALLY EXCLUDING THUMBS.DB FILE FROM IMPORT: ' . $source, $blog_id, 'import', __FUNCTION__, $this);
+	        return true;
+		}
+		
+		if ($processing_thumbs && false === $thumbs_delete_success) { 			
+			return new WP_Error('permission_issue_copy_dir', __('Could not copy thumbs.DB file due to permission issue - please create another export package so that this file will be auto-excluded.', 'prime-mover'));
+	    }
+		
         if (!$this->getSystemFunctions()->fileExists($source) ||
             !$this->getSystemFunctions()->fileExists($destination)) {
                 return false;
-        }
+        }        
         
         if (wp_is_writable($destination)) {
             return false;
@@ -1401,6 +1421,40 @@ class PrimeMoverSystemCheckUtilities
         }
         
         return $setting;  
+    }
+    
+    /**
+     * Returns TRUE if its Windows thumbs.db file
+     * @param string $file
+     * @return boolean
+     */
+    public function isWindowsThumbsDb($file = '', $os_check = true)
+    {
+        if (is_string($file)) {
+            $file = trim($file);
+        }
+        
+        if (!$file) {
+            return false;
+        }
+        
+        $file = wp_normalize_path($file);
+        $filename = basename($file);
+        $is_thumbs = false;
+        
+        if ('Thumbs.db' === $filename && is_file($file)) {
+            $is_thumbs = true;
+        }
+        
+        if (false === $os_check) {
+            return $is_thumbs;
+        }
+        
+        if ($os_check && $is_thumbs && $this->getSystemFunctions()->isWindows()) {
+            return true;
+        }       
+        
+        return false;
     }
     
     /**

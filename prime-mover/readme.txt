@@ -5,7 +5,7 @@ Tags: migrate wordpress, multisite migration, clone, backup
 Requires at least: 4.9.8
 Tested up to: 6.8
 Requires PHP: 5.6
-Stable tag: 2.0.7
+Stable tag: 2.0.8
 License: GPLv3 or later
 License URI: https://codexonics.com
 
@@ -104,6 +104,17 @@ Update now to get all the latest bug fixes, improvements, and features!
 
 == Changelog ==
 
+= 2.0.8 =
+
+* Usability: Block activation on WordPress sites using SQLite databases.
+* Fixed: Excluding Windows thumbs.db from export/import to prevent file permission issues.
+* Fixed: Multisite core global tables exported in single-site export.
+* Fixed: Exclude other site database tables in shared database export situation for single sites.
+* Fixed: Overwriting of database tables in WordPress sites sharing the same database.
+* Fixed: Updated the Freemius SDK to the latest version 2.12.1.
+* Fixed: Unidentified packages due to spaces in file names.
+* Fixed: Auto-exclude Advanced WordPress reset plugin to multisite import.
+
 = 2.0.7 =
 
 * Fixed: Malformed domain name due to edge case double search replace.
@@ -119,15 +130,5 @@ Update now to get all the latest bug fixes, improvements, and features!
 * Usability: Improved labeling of subsite action buttons based on plan subscription status.
 * Usability: Improved handling of upgrade buttons.
 * Updated Freemius SDK to the latest version.
-
-= 2.0.5 =
-
-* Fixed: Controls were added for the outdated Prime Mover plugin manager script in the mu-plugins directory.
-* Fixed: Unable to download package in Docker-based WordPress installations.
-* Fixed: Search and replace issues with similar subdirectory path installations.
-* Fixed: Freemius safe mode after import.
-* Fixed: After import, search and replace issues with broken external WordPress site URL.
-* Compatibility: Tested for WordPress 6.8 release.
-* Usability: Added tutorial to download packages in different ways.
 
 See the previous changelogs in changelog.txt.

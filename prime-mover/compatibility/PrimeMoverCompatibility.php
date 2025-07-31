@@ -55,6 +55,15 @@ class PrimeMoverCompatibility
     }
     
     /**
+     * Get system check utilities
+     * @return \Codexonics\PrimeMoverFramework\utilities\PrimeMoverSystemCheckUtilities
+     */
+    public function getSystemCheckUtilities()
+    {
+        return $this->getSystemChecks()->getSystemCheckUtilities();
+    }
+    
+    /**
      * Get screen options object
      * @return array
      */
@@ -124,7 +133,6 @@ class PrimeMoverCompatibility
      */
     public function initHooks()
     {
-        add_action('prime_mover_after_db_processing', [$this, 'deactivateReallySimpleSSLNonSecureSite'], 0, 2);
         add_action('prime_mover_load_module_apps', [$this, 'ensureCorrectSchemeIsUsed'], 0);
         add_action('init', [$this, 'destroyInCompatibleSessionOnAjax'], 999999);
         
@@ -154,7 +162,36 @@ class PrimeMoverCompatibility
         
         add_filter('prime_mover_filter_export_footprint', [$this, 'addThirdPartyPluginsProcessorToFootPrint'], 2500, 3);        
         add_action('prime_mover_after_db_processing', [$this, 'maybeScheduleThirdPartyProcessingOnImport'], 10, 2);
+        add_filter('prime_mover_media_resource_is_excluded', [$this, 'maybeExcludeWindowsThumbsDb'], 10000, 6);
     } 
+    
+    /**
+     * Maybe exclude Windows thumbs.db file
+     * @param boolean $ret
+     * @param string $file
+     * @param array $exclusion_rules
+     * @param string $source
+     * @param boolean $exporting_media
+     * @param number $blog_id
+     * @return string|boolean
+     */
+    public function maybeExcludeWindowsThumbsDb($ret = false, $file = '', $exclusion_rules = [], $source = '', $exporting_media = false, $blog_id = 0)
+    {
+        if (true === $ret) {
+            return $ret;
+        }
+        
+        if (!$exporting_media) {
+            return $ret;
+        }        
+                
+        if ($this->getSystemCheckUtilities()->isWindowsThumbsDb($file, false)) {
+            do_action('prime_mover_log_processed_events', "Excluded thumbs.db automatically from export", $blog_id, 'export', __FUNCTION__, $this);
+            return true;
+        }
+
+        return $ret;
+    }
     
     /**
      * Maybe schedule third party processing later on
@@ -820,32 +857,5 @@ class PrimeMoverCompatibility
             $correct = str_replace('http://', 'https://', $site_url);
             update_option( 'siteurl', $correct);
         }        
-    }
-    
-    /**
-     * Deactivate Really Simple SSL Plugin if restored on site without SSL working
-     * @param array $ret
-     * @param number $blog_id
-     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverCompatibility::itDeactivatesReallySimpleSSLPluginInsecureSite()
-     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverCompatibility::itDoesNotDeactivateReallySimpleSSLSecureSite()
-     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverCompatibility::itSkipsReallySimpleSSLDeactivationNotAuthorized()  
-     */
-    public function deactivateReallySimpleSSLNonSecureSite($ret = [], $blog_id = 0)
-    {
-        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
-            return;
-        }
-        $this->getSystemFunctions()->switchToBlog($blog_id);
-        $active_plugins = $this->getSystemFunctions()->getActivatedPlugins();
-        if (!is_array( $active_plugins ) ) {
-            $this->getSystemFunctions()->restoreCurrentBlog();
-            return;
-        }
-        foreach ($active_plugins as $plugin) {
-            if (false !== strpos($plugin, 'rlrsssl-really-simple-ssl.php') && !is_ssl() ) {
-                $this->getSystemFunctions()->deactivatePlugins($plugin, true);
-            }
-        }
-        $this->getSystemFunctions()->restoreCurrentBlog();
     }
 }

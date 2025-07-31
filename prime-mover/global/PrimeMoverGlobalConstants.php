@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PRIME_MOVER_VERSION', '2.0.7');
+define('PRIME_MOVER_VERSION', '2.0.8');
 define('PRIME_MOVER_PLUGIN_CODENAME', 'Prime Mover');
 define('PRIME_MOVER_PRO_PLUGIN_CODENAME', 'Prime Mover PRO');
 define('PRIME_MOVER_BACKUP_MARKUP_VERSION', '1.2.0');
@@ -89,6 +89,10 @@ if (!defined('CODEXONICS_USER_DIFF_FAQ')) {
 
 if (!defined('CODEXONICS_CUSTOM_CONSTANTS_MU_PLUGINS')) {
     define('CODEXONICS_CUSTOM_CONSTANTS_MU_PLUGINS', 'https://codexonics.com/prime_mover/prime-mover/how-to-add-default-prime-mover-constants-to-mu-plugins-directory/');
+}
+
+if (!defined('CODEXONICS_COMPATIBLE_LOCAL_APPS')) {
+    define('CODEXONICS_COMPATIBLE_LOCAL_APPS', 'https://codexonics.com/prime_mover/prime-mover/compatible-local-development-apps-prime-mover-plugin/');
 }
 
 if (!defined('PRIME_MOVER_PLUGIN_FILE')) {

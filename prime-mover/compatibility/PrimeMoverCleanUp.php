@@ -115,10 +115,112 @@ class PrimeMoverCleanUp
         
         add_action('prime_mover_before_doing_export', [$this, 'maybeCleanUpFallBackUserMeta'], 250, 2);
         add_action('prime_mover_after_completing_export', [$this, 'maybeCleanUpFallBackUserMeta'], 250);
+        add_action('prime_mover_after_db_processing', [$this, 'maybeDeactivatePluginsOnRestore'], 0, 2);
         
         add_action('prime_mover_before_doing_import', [$this, 'maybeCleanUpFallBackUserMeta'], 250, 2);
         add_action('prime_mover_after_actual_import', [$this, 'maybeCleanUpFallBackUserMeta'], 250);
+        add_filter('prime_mover_standard_extensions', [$this, 'exludeAdvancedWpResetInPluginsExport'], 99, 1 ); 
         
+        add_filter('prime_mover_filter_export_footprint', [$this, 'excludeAdvancedWpResetInFootprint'], 10000);        
+    }
+
+    /**
+     * Remove Advanced WP Reset in export footprint
+     * @param array $export_system_footprint
+     * @return array
+     */
+    public function excludeAdvancedWpResetInFootprint($export_system_footprint = [])
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return $export_system_footprint;
+        }
+        
+        if (!empty($export_system_footprint['plugins']) && is_array($export_system_footprint['plugins'])) {
+            $keys = array_keys($export_system_footprint['plugins']);
+            foreach ($keys as $plugin) {
+                if (str_contains($plugin, 'advanced-wp-reset.php') && isset($export_system_footprint['plugins'][$plugin])) {
+                    unset($export_system_footprint['plugins'][$plugin]);
+                    break;
+                }
+            }            
+        }       
+        
+        return $export_system_footprint;
+    }
+    
+    /**
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverCleanUp::itDoesNotDeactivateReallySimpleSSLSecureSite() 
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverCleanUp::itSkipsReallySimpleSSLDeactivationNotAuthorized() 
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverCleanUp::itDeactivatesReallySimpleSSLPluginInsecureSite() 
+     * 
+     * Deactivate plugins on restore for a single looping instance to improve performance.
+     * @param array $ret
+     * @param number $blog_id
+     */
+    public function maybeDeactivatePluginsOnRestore($ret = [], $blog_id = 0)
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return;
+        }
+        
+        $this->getSystemFunctions()->switchToBlog($blog_id);
+        $active_plugins = $this->getSystemFunctions()->getActivatedPlugins();
+        
+        if (!is_array($active_plugins)) {
+            $this->getSystemFunctions()->restoreCurrentBlog();
+            return;
+        }
+        
+        $deactivate = [];
+        foreach ($active_plugins as $plugin) {
+            if ($this->disablePluginsOnRestore($plugin)) {
+                $deactivate[] = $plugin;
+            }            
+        }
+        
+        /**
+         * Deactivate at once.
+         */
+        if (!empty($deactivate)) {
+            $this->getSystemFunctions()->deactivatePlugins($deactivate, true);
+        }
+        
+        $this->getSystemFunctions()->restoreCurrentBlog();
+    }
+    
+    /**
+     * Disable plugins on restore.
+     * Returns TRUE to deactivate otherwise FALSE.
+     * @param string $plugin
+     */
+    protected function disablePluginsOnRestore($plugin = '')
+    {        
+        /**
+         * Advanced WP Reset should be disabled on multisite, as it is not supported.
+         */
+        if (false !== strpos($plugin, 'advanced-wp-reset.php') && is_multisite()) {
+            return true;
+        }        
+        
+        /**
+         * Really simple SSL needs to be disabled on sites that don't have SSL.
+         */
+        if (false !== strpos($plugin, 'rlrsssl-really-simple-ssl.php') && !is_ssl() ) {
+            return true;
+        }        
+        
+        return false;                
+    }
+    
+    /**
+     * Exclude the Advanced WP Reset plugin, as it causes issues when activated in multisite.
+     * @param array $plugin_file
+     * @return array
+     */
+    public function exludeAdvancedWpResetInPluginsExport(array $plugin_file)
+    {
+        $plugin_file[] = 'advanced-wp-reset.php';
+        return $plugin_file;
     }
     
     /**

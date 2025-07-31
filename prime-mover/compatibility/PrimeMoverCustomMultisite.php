@@ -92,17 +92,18 @@ class PrimeMoverCustomMultisite
 
     /**
      * Remove core multisite tables since these are network specific
+     * Hooked to prime_mover_tables_to_export
      * @param array $tables
      * @param number $blogid_to_export
      * @return array
      */
     public function filterCoreMultisiteTables($tables = [], $blogid_to_export = 0)
-    {
-        if (!$blogid_to_export) {
-            return $tables;
+    {        
+        if (!is_multisite() && !$blogid_to_export) {
+            $blogid_to_export = 1;
         }
         
-        if (!$this->getSystemFunctions()->isMultisiteMainSite($blogid_to_export, true)) {
+        if (!$blogid_to_export) {
             return $tables;
         }
         
@@ -114,6 +115,7 @@ class PrimeMoverCustomMultisite
     
     /**
      * Exclude global level tables when restoring on main site
+     * Hooked to prime_mover_tables_for_replacement
      * @param array $all_tables
      * @param number $blog_id
      */
@@ -121,20 +123,17 @@ class PrimeMoverCustomMultisite
     {
         if (!is_array($all_tables) || empty($all_tables) || !$blog_id) {
             return $all_tables;
-        }
+        }        
         
-        if (!$this->getSystemFunctions()->isMultisiteMainSite($blog_id, true)) {
-            return $all_tables;
-        }
-        
-        $wpdb = $this->getSystemInitialization()->getWpdB();
-        
+        $wpdb = $this->getSystemInitialization()->getWpdB();        
         $global_tables = array_values($wpdb->tables('ms_global', true, $blog_id));
-        $global_tables[] = $wpdb->users;
-        $global_tables[] = $wpdb->usermeta;
         
-        $all_tables = array_diff($all_tables, $global_tables);
+        if ($this->getSystemFunctions()->isMultisiteMainSite($blog_id, true)) {
+            $global_tables[] = $wpdb->users;
+            $global_tables[] = $wpdb->usermeta;
+        }        
         
+        $all_tables = array_diff($all_tables, $global_tables);        
         return $all_tables;
     }
     
