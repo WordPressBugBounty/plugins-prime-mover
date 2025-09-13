@@ -125,7 +125,12 @@ class PrimeMoverUserFunctions
         if (empty($ret['unzipped_directory'])) {
             return $ret;
         }
+        
         $unzipped_dir = $ret['unzipped_directory'];
+        if (isset($ret['blog_id'])) {
+            $unzipped_dir = $this->getSystemInitialization()->getDynamicPathsPreviewDomains($unzipped_dir, $ret['blog_id']);
+        }
+        
         $path = $this->getSpecialMetaKeysImportFile($unzipped_dir);
         if ( ! $path) {  
             do_action('prime_mover_log_processed_events', "Special meta keys path does not exist, skipping..", $blogid_to_import, 'import', __FUNCTION__, $this);

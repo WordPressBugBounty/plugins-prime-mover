@@ -31,6 +31,9 @@ class PrimeMoverPageBuilderCompat
     private $leftoff_identifier;
     private $replaceables;
     private $system_utilities;
+    private $brizy_plugin;
+    private $brizy_leftoff_identifier;
+    private $brizy_compilation_option;
     
     /**
      * Construct
@@ -41,11 +44,16 @@ class PrimeMoverPageBuilderCompat
     {
         $this->prime_mover = $prime_mover;
         $this->tagdiv_plugin = 'td-composer/td-composer.php';
+        $this->brizy_plugin = 'brizy/brizy.php';
         
         $this->callbacks = [
-            'maybeAdjustTagDivEncodedData' => 35            
+            'maybeAdjustTagDivEncodedData' => 35,
+            'maybeAdjustBrizyEncodedData' => 40
         ];
+        
         $this->leftoff_identifier = '3rdparty_tagdiv_leftoff';
+        $this->brizy_leftoff_identifier = '3rdparty_brizy_leftoff';
+        
         $this->replaceables = [        
             'wpupload_url_alternative',
             'generic_legacy_upload_scheme',
@@ -61,6 +69,16 @@ class PrimeMoverPageBuilderCompat
             'relative_content_schem'
          ];
         $this->system_utilities = $utilities['sys_utilities'];
+        $this->brizy_compilation_option = 'prime_mover_mark_brizy_for_compilation';
+    }
+    
+    /**
+     * Get Brizy compilation option
+     * @return string
+     */
+    public function getBrizyCompilationOption()
+    {
+        return $this->brizy_compilation_option;
     }
     
     /**
@@ -91,6 +109,15 @@ class PrimeMoverPageBuilderCompat
     }
     
     /**
+     * Get Brizy leftoff identifier
+     * @return string
+     */
+    public function getBrizyLeftOffIdentifier()
+    {
+        return $this->brizy_leftoff_identifier;
+    }
+    
+    /**
      * Get callbacks
      * @return number[]
      */
@@ -106,6 +133,16 @@ class PrimeMoverPageBuilderCompat
     public function getTagDivPlugin()
     {
         return $this->tagdiv_plugin;
+    }
+    
+    /**
+     * 
+     * Get Brizy plugin
+     * @return string
+     */
+    public function getBrizyPlugin()
+    {
+        return $this->brizy_plugin;
     }
     
     /**
@@ -172,12 +209,88 @@ class PrimeMoverPageBuilderCompat
         }
         
         add_action('prime_mover_before_thirdparty_data_processing', [$this, 'removeProcessorHooksWhenDependencyNotMeet'], 10, 2);   
+        add_action('prime_mover_before_thirdparty_data_processing', [$this, 'removeBrizyAdjustmentWhenDependencyNotMeet'], 10, 2);        
         add_filter('prime_mover_non_user_adjustment_select_query', [$this, 'seekPostToUpdateQuery'], 10, 6);
+        
+        add_filter('prime_mover_non_user_adjustment_select_query', [$this, 'brizySeekToUpdateQuery'], 10, 6);    
         add_filter('prime_mover_non_user_adjustment_update_data', [$this, 'updateEncodedPageBuilderEncodedData'], 10, 7);
+        add_filter('prime_mover_non_user_adjustment_update_data', [$this, 'updateBrizyEncodedData'], 10, 7);
         
         add_filter('prime_mover_filter_export_footprint', [$this, 'maybeExportingThemeLessSite'], 500, 2);
         add_action('prime_mover_after_actual_import', [$this, 'maybeDisableThemeIfThemeLessSite'], 10, 2);
+        add_action('prime_mover_after_actual_import', [$this, 'maybeMarkBrizyForCompilation'], 2000, 2);
+        
+        add_action('wp_loaded', [$this, 'maybeRefreshBrizyCompiler'], 2000, 2);
     }    
+    
+    /**
+     * Check if we need to refresh Brizy compiler (page builder)
+     * @param array $ret
+     * @param number $blogid_to_import
+     */
+    public function maybeMarkBrizyForCompilation($ret = [], $blogid_to_import = 0)
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return;
+        }
+      
+        if (!is_multisite()) {
+            $blogid_to_import = 1;
+        }
+        
+        if (!$blogid_to_import) {
+            return;
+        }
+        
+        $this->getSystemFunctions()->switchToBlog($blogid_to_import);
+        if (!$this->getSystemFunctions()->isPluginActive($this->getBrizyPlugin())) {
+            $this->getSystemFunctions()->restoreCurrentBlog();
+            return;
+        }
+        
+        $this->getSystemFunctions()->restoreCurrentBlog();  
+        $this->getSystemFunctions()->updateBlogOption($blogid_to_import, $this->getBrizyCompilationOption(), 'yes');
+    }
+    
+    /**
+     * Check if we need to refresh Brizy compiler (page builder)
+     */
+    public function maybeRefreshBrizyCompiler()
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return;
+        }
+        
+        if (!$this->getSystemFunctions()->isPluginActive($this->getBrizyPlugin())) {
+            return;
+        }
+        
+        $blog_id = 1;
+        if (is_multisite()) {
+            $blog_id = get_current_blog_id();
+        }
+        
+        if ('yes' !== $this->getSystemFunctions()->getBlogOption($blog_id, $this->getBrizyCompilationOption())) {
+            return;
+        } 
+        
+        if (!class_exists('Brizy_Editor_Post')) {
+            return;
+        }
+        
+        if (!method_exists('Brizy_Editor_Post','markAllForCompilation')) {
+            return;
+        }
+        
+        \Brizy_Editor_Post::markAllForCompilation();  
+        
+        do_action('prime_mover_log_processed_events', 'Brizy plugin re-compilation completed - marking done by deleting options.', $blog_id, 'import', __FUNCTION__, $this);
+        if (is_multisite()) {
+            delete_blog_option($blog_id, $this->getBrizyCompilationOption());
+        } else {
+            delete_option($this->getBrizyCompilationOption());
+        }        
+    }
     
     /**
      * Maybe disable theme is theme less restoration
@@ -204,6 +317,82 @@ class PrimeMoverPageBuilderCompat
         }
         
         return $export_system_footprint;
+    }
+    
+    /**
+     * Update Brizy encoded data
+     * @param number $primary_index_id
+     * @param string $value
+     * @param string $table
+     * @param string $primary_index
+     * @param string $user_id_column
+     * @param string $leftoff_identifier
+     * @param array $ret
+     */
+    public function updateBrizyEncodedData($primary_index_id = 0, $value = '', $table = '', $primary_index = '', $user_id_column = '', $leftoff_identifier = '', $ret = [])
+    {
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return $primary_index_id;
+        } 
+       
+        if ($this->getBrizyLeftOffIdentifier() !== $leftoff_identifier) {
+            return $primary_index_id;
+        }
+        
+        if (!isset($ret['prime_mover_final_replaceables'])) {
+            return $primary_index_id;
+        }
+         
+        if (!isset($ret['prime_mover_final_replaceables']['generic_domain_scheme']['search'])) {
+            return $primary_index_id;
+        }
+        
+        if (!isset($ret['prime_mover_final_replaceables']['generic_domain_scheme']['replace'])) {
+            return $primary_index_id;
+        }
+        
+        $from = $ret['prime_mover_final_replaceables']['generic_domain_scheme']['search'];
+        $to = $ret['prime_mover_final_replaceables']['generic_domain_scheme']['replace'];
+       
+        $meta_id = (int)$primary_index_id;
+        $meta_value = $value;
+        
+        $fromEncoded = urlencode($from);
+        $toEncoded   = urlencode($to);
+        
+        $data = maybe_unserialize($meta_value);
+        if (false === $data) {
+            return $primary_index_id;
+        }
+        
+        if (empty($data['brizy-post']['editor_data'])) {
+            return $primary_index_id;
+        }
+        
+        $json = base64_decode($data['brizy-post']['editor_data']);
+        if (!$json || (!strpos($json, $from) && !strpos($json, $fromEncoded))) {
+            return $primary_index_id;
+        }
+        
+        $blog_id = 1;
+        if (is_multisite()) {
+            $blog_id = get_current_blog_id();
+        }
+        do_action('prime_mover_log_processed_events', 'Brizy plugin search and replacing URLs in database.', $blog_id, 'import', __FUNCTION__, $this);
+        $json = str_replace($from, $to, $json);
+        $json = str_replace($fromEncoded, $toEncoded, $json);
+        $data['brizy-post']['editor_data'] = base64_encode($json);
+        $data['brizy-post']['compiled_html'] = '';
+       
+        $wpdb = $this->getPrimeMover()->getSystemInitialization()->getWpdB();
+        $query = $wpdb->prepare("
+            UPDATE $wpdb->postmeta
+            SET meta_value = %s
+            WHERE meta_id = %d",
+            $data, $meta_id
+        );
+        
+        return $this->getUserQueries()->updateCustomerUserIdBySQL($meta_id, 0, '', '', '', $query);        
     }
     
     /**
@@ -300,21 +489,30 @@ class PrimeMoverPageBuilderCompat
      * @param string $table
      * @param string $primary_index
      * @param string $column_strings
+     * @param string $given_identifier
+     * @param string $where
      * @return string
      */
-    public function seekPostToUpdateQuery($query = '', $ret = [], $leftoff_identifier = '', $table = '', $primary_index = '', $column_strings = '')
+    public function seekPostToUpdateQuery($query = '', $ret = [], $leftoff_identifier = '', $table = '', $primary_index = '', 
+        $column_strings = '', $given_identifier = '', $where = '')
     {
         if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return $query;
         } 
-        
-        if ($this->getLeftOffIdentifier() !== $leftoff_identifier) {
+       
+        if (!$given_identifier) {
+            $given_identifier = $this->getLeftOffIdentifier();
+        }
+       
+        if ($given_identifier !== $leftoff_identifier) {
             return $query;
         }
         
         $wpdb = $this->getPrimeMover()->getSystemInitialization()->getWpdB();
-        $postcontent_column = $this->getUserQueries()->parsePrimaryIndexUserColumns($column_strings, 'user');
-        $where = "WHERE {$postcontent_column} LIKE '%tdc_css=\"%' AND post_status = 'publish'";
+        if (!$where) {
+            $target_column = $this->getUserQueries()->parsePrimaryIndexUserColumns($column_strings, 'user');
+            $where = "WHERE {$target_column} LIKE '%tdc_css=\"%' AND post_status = 'publish'";
+        }        
         
         $left_off = 0;
         if (isset($ret[$leftoff_identifier])) {
@@ -326,7 +524,6 @@ class PrimeMoverPageBuilderCompat
         }
         
         $orderby = $wpdb->prepare("ORDER BY {$primary_index} DESC LIMIT %d", PRIME_MOVER_NON_USER_ADJUSTMENT_LOOKUP_LIMIT);        
-        
         $tbl = "{$wpdb->prefix}{$table}";
         $sql = "SELECT {$column_strings} FROM `{$tbl}` {$where} {$orderby}";
                 
@@ -334,18 +531,63 @@ class PrimeMoverPageBuilderCompat
     }
     
     /**
-     * Remove processor hooks when plugin not activated
+     * Brizy seek posts meta to update
+     * @param string $query
+     * @param array $ret
+     * @param string $leftoff_identifier
+     * @param string $table
+     * @param string $primary_index
+     * @param string $column_strings
+     * @return string
+     */
+    public function brizySeekToUpdateQuery($query = '', $ret = [], $leftoff_identifier = '', $table = '', $primary_index = '', $column_strings = '')
+    {
+        $given_identifier= $this->getBrizyLeftOffIdentifier();
+        $where = "WHERE meta_key = 'brizy'";
+        
+        return $this->seekPostToUpdateQuery($query, $ret, $leftoff_identifier, $table, $primary_index, $column_strings, $given_identifier, $where);
+    }
+    
+    /**
+     * Remove processor hooks when dependency not meet
+     * @param array $ret
+     * @param number $blogid_to_import
+     * @param string $plugin
+     * @param string $callback
+     */
+    public function removeProcessorHooksWhenDependencyNotMeet($ret = [], $blogid_to_import = 0, $plugin = '', $callback = '')
+    {
+        if (!$plugin) {
+            $plugin = $this->getTagDivPlugin(); 
+        }
+        
+        if (!$callback) {
+            $callback = 'maybeAdjustTagDivEncodedData';
+        }
+        
+        $callbacks = $this->getCallBacks();        
+        if (!isset($callbacks[$callback])) {
+            return;
+        }
+        
+        $priority = $callbacks[$callback];        
+        $validation_error = $this->getUserQueries()->maybeRequisitesNotMeetForAdjustment($ret, $blogid_to_import, $plugin, false);
+        if (is_array($validation_error)) {
+            remove_filter('prime_mover_do_process_thirdparty_data', [$this, $callback], $priority, 3);
+        }
+    }
+    
+    /**
+     * Remove processor hooks for Brizy page builder if not active
      * @param array $ret
      * @param number $blogid_to_import
      */
-    public function removeProcessorHooksWhenDependencyNotMeet($ret = [], $blogid_to_import = 0)
-    {
-        $validation_error = apply_filters('prime_mover_validate_thirdpartyuser_processing', $ret, $blogid_to_import, $this->getTagDivPlugin());
-        if (is_array($validation_error)) {
-            foreach ($this->getCallBacks() as $callback => $priority) {
-                remove_filter('prime_mover_do_process_thirdparty_data', [$this, $callback], $priority, 3);
-            }
-        }
+    public function removeBrizyAdjustmentWhenDependencyNotMeet($ret = [], $blogid_to_import = 0)
+    {        
+        $plugin = $this->getBrizyPlugin();
+        $callback = 'maybeAdjustBrizyEncodedData';
+              
+        $this->removeProcessorHooksWhenDependencyNotMeet($ret, $blogid_to_import, $plugin, $callback);
     }
     
     /**
@@ -378,8 +620,44 @@ class PrimeMoverPageBuilderCompat
         $progress_identifier = 'tagdiv encoded data';  
         $last_processor = apply_filters('prime_mover_is_thirdparty_lastprocessor', false, $this, __FUNCTION__, $ret, $blogid_to_import); 
         $handle_unique_constraint = '';
-        $non_user_adjustment = true;
-                
+        $non_user_adjustment = ['format' => OBJECT];
+        
+        return apply_filters('prime_mover_process_userid_adjustment_db', $ret, $table, $blogid_to_import, $leftoff_identifier, $primary_index, $column_strings,
+            $update_variable, $progress_identifier, $start_time, $last_processor, $handle_unique_constraint, $non_user_adjustment);
+    }
+    
+    /**
+     * Maybe adjust Brizy builder encoded data
+     * Hooked to `prime_mover_do_process_thirdparty_data` filter - priority 40
+     * @param array $ret
+     * @param number $blogid_to_import
+     * @param number $start_time
+     * @return array
+     */
+    public function maybeAdjustBrizyEncodedData($ret = [], $blogid_to_import = 0, $start_time = 0)
+    {      
+        $validation_error = $this->getUserQueries()->maybeRequisitesNotMeetForAdjustment($ret, $blogid_to_import, $this->getBrizyPlugin(), false);
+        if (is_array($validation_error)) {
+            return $validation_error;
+        }
+        
+        if (!empty($ret['3rdparty_current_function']) && __FUNCTION__ !== $ret['3rdparty_current_function']) {
+            return $ret;
+        }
+        
+        $ret['3rdparty_current_function'] = __FUNCTION__;
+        $table = 'postmeta';
+        $leftoff_identifier = $this->getBrizyLeftOffIdentifier();
+
+        $primary_index = 'meta_id';
+        $column_strings = 'meta_id, meta_value';
+        $update_variable = '3rdparty_brizy_log_updated';
+        $progress_identifier = 'brizy encoded data';
+
+        $last_processor = apply_filters('prime_mover_is_thirdparty_lastprocessor', false, $this, __FUNCTION__, $ret, $blogid_to_import);        
+        $handle_unique_constraint = '';
+        $non_user_adjustment = ['format' => ARRAY_A];
+        
         return apply_filters('prime_mover_process_userid_adjustment_db', $ret, $table, $blogid_to_import, $leftoff_identifier, $primary_index, $column_strings,
             $update_variable, $progress_identifier, $start_time, $last_processor, $handle_unique_constraint, $non_user_adjustment);
     }

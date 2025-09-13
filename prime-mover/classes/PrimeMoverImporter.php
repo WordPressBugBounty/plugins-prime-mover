@@ -635,6 +635,11 @@ class PrimeMoverImporter implements PrimeMoverImport
         if (isset($ret['error'])) {
             return $ret;
         }
+        
+        if (isset($ret['blog_id'])) {            
+            $unzipped_directory = $this->getSystemInitialization()->getDynamicPathsPreviewDomains($unzipped_directory, $ret['blog_id']);
+        }
+        
         $this->getSystemInitialization()->setTemporaryImportPackagePath($unzipped_directory);        
         $this->getSystemFunctions()->temporarilyIncreaseMemoryLimits();        
         
@@ -874,6 +879,11 @@ class PrimeMoverImporter implements PrimeMoverImport
         }
         if (isset($ret['unzipped_directory'])) {
             $unzipped_directory	= $ret['unzipped_directory'];
+            
+            if (isset($ret['blog_id'])) {
+                $unzipped_directory = $this->getSystemInitialization()->getDynamicPathsPreviewDomains($unzipped_directory, $ret['blog_id']);
+            }
+            
             $directory_name = basename($unzipped_directory);
             $exploded = explode("_", $directory_name);
             $reversed = array_reverse($exploded);
@@ -931,6 +941,11 @@ class PrimeMoverImporter implements PrimeMoverImport
         global $wp_filesystem;
         if (isset($ret['unzipped_directory'])) {
             $unzipped_directory	= $ret['unzipped_directory'];
+            
+            if (isset($ret['blog_id'])) {
+                $unzipped_directory = $this->getSystemInitialization()->getDynamicPathsPreviewDomains($unzipped_directory, $ret['blog_id']);
+            }
+            
             $footprint_package	= $unzipped_directory . 'footprint.json';
             if ($wp_filesystem->exists($footprint_package)) {
                 $json_string = file_get_contents($footprint_package);
@@ -1063,7 +1078,12 @@ class PrimeMoverImporter implements PrimeMoverImport
             if ($ret['unzipped_directory']) {
                 $unzipped_directory	= $ret['unzipped_directory'];
             }
-        }   
+        }
+        
+        if (isset($ret['blog_id'])) {
+            $unzipped_directory = $this->getSystemInitialization()->getDynamicPathsPreviewDomains($unzipped_directory, $ret['blog_id']);
+        }
+        
         $ret = apply_filters('prime_mover_after_user_diff_confirmation', $ret, $blogid_to_import);
         if ($is_extracting_tar) {
             $media_path = $unzipped_directory . 'media.wprime';
@@ -1216,6 +1236,10 @@ class PrimeMoverImporter implements PrimeMoverImport
             }
         }
         
+        if (isset($ret['blog_id'])) {
+            $unzipped_directory = $this->getSystemInitialization()->getDynamicPathsPreviewDomains($unzipped_directory, $ret['blog_id']);
+        }
+        
         $this->getSystemFunctions()->temporarilyIncreaseMemoryLimits();
         $skipped_languages_folder = true;
         if (isset($ret['skipped_languages_folder'])) {
@@ -1353,7 +1377,12 @@ class PrimeMoverImporter implements PrimeMoverImport
             if ($ret['unzipped_directory']) {
                 $unzipped_directory	= $ret['unzipped_directory'];
             }
-        }        
+        }
+        
+        if (isset($ret['blog_id'])) {
+            $unzipped_directory = $this->getSystemInitialization()->getDynamicPathsPreviewDomains($unzipped_directory, $ret['blog_id']);
+        }
+        
         $this->getSystemFunctions()->temporarilyIncreaseMemoryLimits();              
         if (!empty($ret['skipped_media'])) { 
             
@@ -1650,6 +1679,10 @@ class PrimeMoverImporter implements PrimeMoverImport
         }        
 
         $unzipped_path = $ret['unzipped_directory'];
+        if (isset($ret['blog_id'])) {
+            $unzipped_path = $this->getSystemInitialization()->getDynamicPathsPreviewDomains($unzipped_path, $ret['blog_id']);
+        }
+        
         $import_path_sql = $this->handleEncrypteddB($unzipped_path, $blogid_to_import);        
         if (!$import_path_sql ) {
             $ret['error'] = esc_html__('Unable to find the correct SQL path.', 'prime-mover');
@@ -1883,11 +1916,13 @@ class PrimeMoverImporter implements PrimeMoverImport
         $db_import_options = ['.sql', '.sql.enc'];
         foreach ($db_import_options as $extension ) {
             $sql_file_name = $blogid_to_import . $extension;
-            $temp_path_sql = $unzipped_path . $sql_file_name;            
+            $temp_path_sql = trailingslashit($unzipped_path) . $sql_file_name;            
             
             if ($wp_filesystem->exists($temp_path_sql)) {
                 $import_path_sql = $temp_path_sql;
-            }            
+            } else {
+                do_action('prime_mover_log_processed_events', "ERROR: SQL PATH DOES NOT EXISTS: {$temp_path_sql}", $blogid_to_import, 'import', __FUNCTION__, $this);
+            }
             if ($import_path_sql && '.sql.enc' === $extension) {
                 $this->getSystemInitialization()->setEncryptedDb(true);
             }

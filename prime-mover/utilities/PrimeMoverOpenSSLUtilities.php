@@ -242,6 +242,10 @@ class PrimeMoverOpenSSLUtilities
         }
         
         $unzipped_directory	= $ret['unzipped_directory'];
+        if (isset($ret['blog_id'])) {
+            $unzipped_directory = $this->getSystemInitialization()->getDynamicPathsPreviewDomains($unzipped_directory, $ret['blog_id']);
+        }
+        
         $signature_file	= $unzipped_directory . $this->getSystemInitialization()->getSignatureFile();
         
         global $wp_filesystem;        

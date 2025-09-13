@@ -577,12 +577,12 @@ class PrimeMoverUserQueries
      * @param string $handle_unique_constraint
      * @param string $table
      * @param object $wpdb
-     * @param boolean $non_user_adjustment
+     * @param array $non_user_adjustment
      * @param boolean $set_foreign_key_checks
      * @return array
      */
     private function bailOutAndReturnRetArray($ret = [], $leftoff_identifier = '', $update_variable = '', $last_processor = false, 
-        $handle_unique_constraint = '', $table = '', $wpdb = null, $non_user_adjustment = false, $set_foreign_key_checks = false)
+        $handle_unique_constraint = '', $table = '', $wpdb = null, $non_user_adjustment = [], $set_foreign_key_checks = false)
     {       
         $ret = $this->cleanUpRetArrayAfterCustomerIdProcessing($ret, $leftoff_identifier, $update_variable, $last_processor,
             $handle_unique_constraint, $table, $wpdb, $non_user_adjustment, $set_foreign_key_checks);
@@ -605,16 +605,16 @@ class PrimeMoverUserQueries
      * @param number $start_time
      * @param boolean $last_processor
      * @param string $handle_unique_constraint
-     * @param boolean $non_user_adjustment
+     * @param array $non_user_adjustment
      * @param array $filter_clause
      * @return array|boolean
      */
     public function dBCustomerUserIdsHelper($ret = [], $table = '', $blogid_to_import = 0, $leftoff_identifier = '', $primary_index = '', $column_strings = '',
-        $update_variable = '', $progress_identifier = '', $start_time = 0, $last_processor = false, $handle_unique_constraint = '', $non_user_adjustment = false, $filter_clause = [])
+        $update_variable = '', $progress_identifier = '', $start_time = 0, $last_processor = false, $handle_unique_constraint = '', $non_user_adjustment = [], $filter_clause = [])
     {
         $wpdb = $this->getSystemInitialization()->getWpdB();
         $this->getSystemFunctions()->switchToBlog($blogid_to_import);
-        
+                
         if (!$this->getSystemAuthorization()->isUserAuthorized()) {  
             return $this->bailOutAndReturnRetArray($ret, $leftoff_identifier, $update_variable, $last_processor, $handle_unique_constraint, $table, $wpdb, $non_user_adjustment);
         }
@@ -632,11 +632,11 @@ class PrimeMoverUserQueries
             $table_exists = true;
         }
         
-        if (!$table_exists) {
+        if (!$table_exists) {  
             do_action('prime_mover_log_processed_events', "$table TABLE DOES NOT EXIST - SKIPPING THIS USER ADJUSTMENT TABLE PROCESSING." , $blogid_to_import, 'import', __FUNCTION__, $this);
             return $this->bailOutAndReturnRetArray($ret, $leftoff_identifier, $update_variable, $last_processor, $handle_unique_constraint, $table, $wpdb, $non_user_adjustment);
         }
-        
+ 
         $query = $this->seekCustomersToUpdateQuery($ret, $leftoff_identifier, $table, $primary_index, $column_strings, $non_user_adjustment, $filter_clause);
         if (!$query) {
             return $this->bailOutAndReturnRetArray($ret, $leftoff_identifier, $update_variable, $last_processor, $handle_unique_constraint, $table, $wpdb, $non_user_adjustment);
@@ -656,8 +656,9 @@ class PrimeMoverUserQueries
         $user_equivalence = $ret['user_equivalence'];
         
         $format = ARRAY_A;
-        if ($non_user_adjustment) {
-            $format = OBJECT;
+        if (is_array($non_user_adjustment) && !empty($non_user_adjustment['format'])) {
+            $format = $non_user_adjustment['format'];
+            $format = constant($format);
         }
         
         while ($results = $wpdb->get_results($query, $format)) {
@@ -666,7 +667,7 @@ class PrimeMoverUserQueries
             } else {
                 $ret = $this->updateCustomerIds($results, $user_equivalence, $ret, $update_variable, $column_strings, $table, $leftoff_identifier, $non_user_adjustment, $filter_clause, $set_foreign_key_checks);
             }
-            
+ 
             $query = $this->seekCustomersToUpdateQuery($ret, $leftoff_identifier, $table, $primary_index, $column_strings, $non_user_adjustment, $filter_clause);
             $retry_timeout = apply_filters('prime_mover_retry_timeout_seconds', PRIME_MOVER_RETRY_TIMEOUT_SECONDS, __FUNCTION__);
             if ((microtime(true) - $start_time) > $retry_timeout) {
@@ -721,14 +722,14 @@ class PrimeMoverUserQueries
      * @param string $table
      * @param string $primary_index
      * @param string $column_strings
-     * @param boolean $non_user_adjustment
+     * @param array $non_user_adjustment
      * @param array $filter_clause
-     * @return string
+     * @return mixed|NULL|array|string
      */
-    protected function seekCustomersToUpdateQuery($ret = [], $leftoff_identifier = '', $table = '', $primary_index = '', $column_strings = '', $non_user_adjustment = false, $filter_clause = [])
+    protected function seekCustomersToUpdateQuery($ret = [], $leftoff_identifier = '', $table = '', $primary_index = '', $column_strings = '', $non_user_adjustment = [], $filter_clause = [])
     {
-        $query = '';
-        if ($non_user_adjustment) {
+        $query = '';                
+        if (!empty($non_user_adjustment)) {
             $query = apply_filters('prime_mover_non_user_adjustment_select_query', '', $ret, $leftoff_identifier, $table, $primary_index, $column_strings);            
         } 
         
@@ -805,18 +806,18 @@ class PrimeMoverUserQueries
      * @param string $column_strings
      * @param string $table
      * @param string $leftoff_identifier
-     * @param boolean $non_user_adjustment
+     * @param array $non_user_adjustment
      * @param array $filter_clause
      * @param boolean $set_foreign_key_checks
      * @return array
      */
     protected function updateCustomerIds($results = [], $user_equivalence = null, $ret = [], $update_variable = '', $column_strings = '',
-        $table = '', $leftoff_identifier = '', $non_user_adjustment = false, $filter_clause = [], $set_foreign_key_checks = false)
+        $table = '', $leftoff_identifier = '', $non_user_adjustment = [], $filter_clause = [], $set_foreign_key_checks = false)
     {
         if (empty($results)) {
             return;
         }
-        
+                
         $customers_updated = 0;
         if (isset($ret[$update_variable])) {
             $customers_updated = (int)$ret[$update_variable];
@@ -825,26 +826,21 @@ class PrimeMoverUserQueries
         list($primary_index, $user_id_column) = $this->parsePrimaryIndexUserColumns($column_strings);        
         $primary_index_id = 0;
         $processing_serialized = $this->isSerialized($filter_clause);
-                
-        foreach ($results as $result) {
-            
-            $this->maybeEnableUserImportExportTestMode(PRIME_MOVER_USER_ADJUSTMENT_TEST_DELAY, false);            
-            if ($non_user_adjustment) {
-                                
-                if (!is_object($result)) {
+       
+        $processing_non_user_adjustment = false;
+        if (!empty($non_user_adjustment)) {
+            $processing_non_user_adjustment = true;
+        }
+        
+        foreach ($results as $result) {            
+            $this->maybeEnableUserImportExportTestMode(PRIME_MOVER_USER_ADJUSTMENT_TEST_DELAY, false);             
+            if ($processing_non_user_adjustment) {             
+                $validated = $this->validateResultFormat($result, $user_id_column, $primary_index);
+                if (is_bool($validated) && false === $validated) {
                     continue;
                 }
-                                
-                if (!isset($result->{$primary_index}) || !isset($result->{$user_id_column})) {
-                    continue;
-                }
                 
-                $primary_index_id = $result->{$primary_index};
-                $value = $result->{$user_id_column};
-                
-                if (!$primary_index_id || !$value) {
-                    continue;
-                }                
+                list($primary_index_id, $value) = $this->validateResultFormat($result, $user_id_column, $primary_index);
                 $primary_index_id = apply_filters('prime_mover_non_user_adjustment_update_data', $primary_index_id, $value, $table, $primary_index, $user_id_column, $leftoff_identifier, $ret, $filter_clause);                
                 
             } else {
@@ -902,6 +898,36 @@ class PrimeMoverUserQueries
         return $ret;
     }
 
+    /**
+     * Valdate result format
+     * Returns false if data is invalid
+     * Otherwise return validated data (which could either be an array or object)
+     * 
+     * @param mixed $result
+     * @param mixed $user_id_column
+     * @param mixed $primary_index
+     * @return array| boolean
+     */
+    protected function validateResultFormat($result, $user_id_column, $primary_index)
+    {        
+        
+        if (is_object($result) && isset($result->{$primary_index}) && isset($result->{$user_id_column})) {
+            $primary_index_id = $result->{$primary_index};
+            $value = $result->{$user_id_column};
+        }
+        
+        if (is_array($result) && isset($result[$primary_index]) && isset($result[$user_id_column])) {
+            $primary_index_id = $result[$primary_index];
+            $value = $result[$user_id_column];
+        }      
+        
+        if (!$primary_index_id || !$value) {
+            return false;
+        }  
+      
+        return [$primary_index_id, $value];           
+    }
+    
     /**
      * Checks if the callback is meant to process serialized data
      * This does not check if data is actually serialized.
@@ -978,12 +1004,12 @@ class PrimeMoverUserQueries
      * @param string $handle_unique_constraint
      * @param string $table
      * @param wpdb $wpdb
-     * @param boolean $non_user_adjustment
+     * @param array $non_user_adjustment
      * @param boolean $set_foreign_key_checks
      * @return array
      */
     protected function cleanUpRetArrayAfterCustomerIdProcessing($ret = [], $leftoff_identifier = '', $update_variable = '',
-        $last_processor = false, $handle_unique_constraint = '', $table = '', wpdb $wpdb = null, $non_user_adjustment = false, $set_foreign_key_checks = false)
+        $last_processor = false, $handle_unique_constraint = '', $table = '', wpdb $wpdb = null, $non_user_adjustment = [], $set_foreign_key_checks = false)
     {
         if (isset($ret[$leftoff_identifier])) {
             unset($ret[$leftoff_identifier]);
@@ -1001,7 +1027,7 @@ class PrimeMoverUserQueries
             unset($ret['prime_mover_thirdparty_processing_retry']);
         }
         
-        if ($last_processor && false === $non_user_adjustment) {
+        if ($last_processor && empty($non_user_adjustment)) {
             $this->invalidateReportCacheAfterMigration();
         }
         

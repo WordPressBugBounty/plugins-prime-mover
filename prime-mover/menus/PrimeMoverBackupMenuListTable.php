@@ -347,11 +347,11 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
      * @see WP_List_Table::column_cb()
      */
     public function column_cb($item)
-    {
+    {        
         return sprintf(
             '<input type="checkbox" name="%1$s[]" value="%2$s" />',
              $this->_args['singular'],  
-             $item['package_filepath']                
+            $item['package_filepath']
             );
     }    
   
@@ -459,9 +459,12 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
         if (empty($input_data['prime_mover_backup']) || ! is_array($input_data['prime_mover_backup'])) {
             return;
         }   
+        
         $deleted = [];
-        $blog_id = $this->getBlogId();
+        $blog_id = $this->getBlogId();        
         foreach ($input_data['prime_mover_backup'] as $backup) {
+            
+            $backup = $this->getPrimeMover()->getSystemFunctions()->computeDynamicPathsPreviewDomains($backup, $blog_id);            
             $delete_result = $this->getPrimeMover()->getSystemFunctions()->primeMoverDoDelete($backup);           
             if ($delete_result) {
                 $deleted[] = $backup;

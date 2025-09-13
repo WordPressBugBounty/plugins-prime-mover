@@ -3735,6 +3735,108 @@ Options -Indexes
         
         return '';        
     }
+
+    /**
+     * Checks if preview domain
+     * @param string $given
+     * Returns TRUE if preview_domain
+     * Otherwise false if not preview domain
+     *
+     * @return boolean
+     */
+    public function isPreviewDomain($given = '')
+    {
+        if (!is_string($given) || !$given) {
+            return false;
+        }
+        
+        $preview_domain_values = PRIME_MOVER_PREVIEW_DOMAINS;
+        $preview_domains = json_decode($preview_domain_values, true);
+        if (!is_array($preview_domains)) {
+            return false;
+        }
+        
+        foreach ($preview_domains as $preview_domain) {
+            if (str_contains($given, $preview_domain)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+ 
+    /**
+     * Given the blog ID, retrieved the export subsite directory
+     * @compatible 5.6
+     * @param number $blog_id
+     * @return string
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itGetsExportPathofSubsite()
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itDoesNotGetExportPathIfNotAuthorized()
+     */
+    public function getExportPathOfThisSubsite($blog_id = 0)
+    {
+        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
+            return;
+        }
+        $ret = '';
+        $blog_id = (int) $blog_id;
+        $export_path = $this->getMultisiteExportFolderPath();
+        if ($blog_id > 0 && $export_path) {
+            $ret= $export_path . $blog_id . DIRECTORY_SEPARATOR;
+        }
+        return $ret;
+    }
+
+    /**
+     * Compute dynamic paths for preview domains
+     * Applicable only to WPRIME package paths inside export directory of specific site [DYNAMIC] / wprime
+     * Or unzipped directory inside export directory [DYNAMIC] / unzipped_directory
+     * @param string $static
+     * @param number $blog_id
+     * @return string
+     */
+    public function getDynamicPathsPreviewDomains($static = '', $blog_id = 0)
+    {
+        if (!$this->isPreviewDomain($static)) {
+            return $static;
+        }
+        
+        if (!is_multisite() && !$blog_id) {
+            $blog_id = 1;
+        }
+              
+        $base = '';
+        if (str_contains($static, $this->getUploadTmpPathSlug())) {
+            $base = $this->getDefaultImportFolder();
+        }
+        
+        if (!$base && str_contains($static, $this->getMultisiteExportFolderSlug())) {
+            $base = $this->getExportPathOfThisSubsite($blog_id);
+        }
+        
+        if (!$base && str_contains($static, $this->getTmpDownloadsFolderSlug())) {
+            $base = $this->getTmpDownloadsFolder();
+        }
+        
+        if (!$base) {
+            return $static;
+        }
+        
+        $basename = basename($static);        
+        $recomputed = wp_normalize_path(trailingslashit($base) . $basename);
+        if (is_dir($recomputed)) {
+            $recomputed = trailingslashit($recomputed);
+        }
+        
+        if (file_exists($recomputed)) {
+            do_action('prime_mover_log_processed_events', "PREVIEW DOMAIN RECOMPUTED PATH EXISTS AND RETURNED: {$recomputed}", $blog_id, 'import', __FUNCTION__, $this);
+            return $recomputed;
+            
+        } else {
+            do_action('prime_mover_log_processed_events', "PREVIEW DOMAIN RECOMPUTED RETURNED STATIC: {$static}, {$recomputed} DOES NOT EXISTS.", $blog_id, 'import', __FUNCTION__, $this);
+            return $static;
+        }
+    }
     
     /**
      * Checks if using WordPress.org version

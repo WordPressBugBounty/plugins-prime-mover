@@ -1250,7 +1250,12 @@ class PrimeMoverImportUtilities
         if (empty($import_data['unzipped_directory'])) {
             return $ret;
         }
-        $unzipped_directory = $import_data['unzipped_directory'];
+        
+        $unzipped_directory = $import_data['unzipped_directory'];        
+        if (isset($import_data['blog_id'])) {
+            $unzipped_directory = $this->getImporter()->getSystemInitialization()->getDynamicPathsPreviewDomains($unzipped_directory, $import_data['blog_id']);
+        }
+        
         $plugins_foldername = $this->getExportUtilities()->getPluginFoldername();
         $plugins_package_path = $unzipped_directory . $plugins_foldername . '/';
         
@@ -1270,6 +1275,11 @@ class PrimeMoverImportUtilities
             return $ret;
         }
         $unzipped_directory = $import_data['unzipped_directory'];
+        
+        if (isset($import_data['blog_id'])) {
+            $unzipped_directory = $this->getImporter()->getSystemInitialization()->getDynamicPathsPreviewDomains($unzipped_directory, $import_data['blog_id']);
+        }
+        
         $themes_foldername = $this->getExportUtilities()->getThemeFoldername();
         $themes_package_path = $unzipped_directory . $themes_foldername . DIRECTORY_SEPARATOR;
         

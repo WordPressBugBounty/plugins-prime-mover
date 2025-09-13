@@ -687,6 +687,11 @@ class PrimeMoverMultilingualCompat
         }
         
         $unzipped_directory = $ret['unzipped_directory'];
+        if (isset($ret['blog_id'])) {
+            $blog_id = $ret['blog_id'];
+            $unzipped_directory = $this->getSystemInitialization()->getDynamicPathsPreviewDomains($unzipped_directory, $blog_id);            
+        }
+        
         $lang_folder = $tar_config['prime_mover_source_site_lang_folder'];
         
         

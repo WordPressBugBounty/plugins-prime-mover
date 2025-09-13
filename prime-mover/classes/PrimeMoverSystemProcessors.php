@@ -252,6 +252,8 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
             // Get temp directory to delete
             global $wp_filesystem;
             $temp_dir = $delete_tmpfile_post['temp_file_to_delete'];
+            
+            $temp_dir = $this->getSystemFunctions()->computeDynamicPathsPreviewDomains($temp_dir, $blog_id);
             if ($temp_dir && $wp_filesystem->exists($temp_dir)) {
                 $this->getSystemInitialization()->setProcessingDelay(3);
                 $delete_result = $this->getSystemFunctions()->primeMoverDoDelete($temp_dir);
@@ -522,10 +524,12 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
 
                 if (isset($data_to_continue['unzipped_directory']) && isset($data_to_continue['diff']) && isset($data_to_continue['blog_id'])) {
                     $unzipped_directory_to_check = $data_to_continue['unzipped_directory'];
+                    $blogid_to_import = (int) $data_to_continue['blog_id'];
+                    $unzipped_directory_to_check = $this->getSystemFunctions()->computeDynamicPathsPreviewDomains($unzipped_directory_to_check, $blogid_to_import);
                     if ($wp_filesystem->exists($unzipped_directory_to_check)) {
                         unset($data_to_continue['diff']);
                         $data_to_continue['diff_confirmation'] = true;
-                        $blogid_to_import = (int) $data_to_continue['blog_id'];
+                        
                         if ($blogid_to_import > 0) {
                             $ret = $data_to_continue;
                             do_action('prime_mover_log_processed_events', 'Diff all cleared and validated, continuing the import', $blogid_to_import, 'import', 'primeMoverImportProcessor', $this);
@@ -572,6 +576,8 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
                 if (! $import_initiated && ! empty($import_ajax_input['multisite_import_package_uploaded_file'])) {
                     $import_package_path = $import_ajax_input['multisite_import_package_uploaded_file'];
                 }
+                
+                $import_package_path = $this->getSystemFunctions()->computeDynamicPathsPreviewDomains($import_package_path, $blogid_to_import);
                 if (! $import_initiated && $blogid_to_import > 0 && $requisites_meet && $this->getSystemFunctions()->fileExists($import_package_path)) {
                     do_action('prime_mover_log_processed_events', 'Original handler cleared and validated, starting the import.', $blogid_to_import, 'import', 'primeMoverImportProcessor', $this);
                     $all_clear = true;

@@ -2,6 +2,16 @@
 
 **This is a list detailing changes for all Prime Mover releases.**
 
+= 2.0.6 =
+
+* Feature: Support was added to exclude database tables from export.
+* Usability: Added missing features tutorials.
+* Fixed: The white-labelled license upgrade page goes to a non-existent page.
+* Fixed: The user was presented with an upgrade instead of activating the license buttons.
+* Usability: Improved labeling of subsite action buttons based on plan subscription status.
+* Usability: Improved handling of upgrade buttons.
+* Updated Freemius SDK to the latest version.
+
 = 2.0.5 =
 
 * Fixed: Controls were added for the outdated Prime Mover plugin manager script in the mu-plugins directory.

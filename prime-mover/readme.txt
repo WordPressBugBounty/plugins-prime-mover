@@ -5,7 +5,7 @@ Tags: migrate wordpress, multisite migration, clone, backup
 Requires at least: 4.9.8
 Tested up to: 6.8
 Requires PHP: 5.6
-Stable tag: 2.0.8
+Stable tag: 2.0.9
 License: GPLv3 or later
 License URI: https://codexonics.com
 
@@ -104,6 +104,11 @@ Update now to get all the latest bug fixes, improvements, and features!
 
 == Changelog ==
 
+= 2.0.9 =
+
+* Fixed: Added support for page builders using base64 encoded data.
+* Fixed: Compatibility issues with the preview domains setup.
+
 = 2.0.8 =
 
 * Usability: Block activation on WordPress sites using SQLite databases.
@@ -120,15 +125,5 @@ Update now to get all the latest bug fixes, improvements, and features!
 * Fixed: Malformed domain name due to edge case double search replace.
 * Feature: Added user difference check when migrating site to multisite main site.
 * Fixed: Removed cron jobs when the plugin is uninstalled.
-
-= 2.0.6 =
-
-* Feature: Support was added to exclude database tables from export.
-* Usability: Added missing features tutorials.
-* Fixed: The white-labelled license upgrade page goes to a non-existent page.
-* Fixed: The user was presented with an upgrade instead of activating the license buttons.
-* Usability: Improved labeling of subsite action buttons based on plan subscription status.
-* Usability: Improved handling of upgrade buttons.
-* Updated Freemius SDK to the latest version.
 
 See the previous changelogs in changelog.txt.

@@ -740,6 +740,7 @@ class PrimeMoverErrorHandlers
         $processed_path = $this->getShutDownUtilities()->primeMoverGetProcessedPath($blog_id);        
         if ( is_array( $processed_path ) ) {
             foreach ( $processed_path as $path_to_delete ) {
+                $path_to_delete = $this->getSystemInitialization()->getDynamicPathsPreviewDomains($path_to_delete, $blog_id);
                 if ( $wp_filesystem->exists($path_to_delete) && apply_filters('prime_mover_delete_package_on_error', true, $path_to_delete, $blog_id)) {                    
                     $this->reallyDeletePackage($path_to_delete, $error, $blog_id);
                 }

@@ -275,6 +275,11 @@ class PrimeMoverUserUtilities
             return false;
         }
         
+        $unzipped_directory = $ret['unzipped_directory'];
+        if (isset($ret['blog_id'])) {
+            $unzipped_directory = $this->getSystemInitialization()->getDynamicPathsPreviewDomains($unzipped_directory, $ret['blog_id']);
+        }
+        
         $users_export_file = $this->getUserFunctions()->getUsersExportFilePath($ret['unzipped_directory']);
         if (!$users_export_file ) {
             return false;

@@ -283,13 +283,13 @@ class PrimeMoverUsers
      * @param number $start_time
      * @param boolean $last_processor
      * @param string $handle_unique_constraint
-     * @param boolean $non_user_adjustment
+     * @param array $non_user_adjustment
      * @param array $filter_clause
      * @return array|boolean
      */
     public function dBCustomerUserIdsHelper($ret = [], $table = '', $blogid_to_import = 0, $leftoff_identifier = '', $primary_index = '', $column_strings = '',
-        $update_variable = '', $progress_identifier = '', $start_time = 0, $last_processor = false, $handle_unique_constraint = '', $non_user_adjustment = false, $filter_clause = [])
-    {
+        $update_variable = '', $progress_identifier = '', $start_time = 0, $last_processor = false, $handle_unique_constraint = '', $non_user_adjustment = [], $filter_clause = [])
+    {        
         return $this->getUserUtilities()->getUserFunctions()->getUserQueries()->dBCustomerUserIdsHelper($ret, $table, $blogid_to_import, $leftoff_identifier, $primary_index, $column_strings,
             $update_variable, $progress_identifier, $start_time, $last_processor, $handle_unique_constraint, $non_user_adjustment, $filter_clause);
     }

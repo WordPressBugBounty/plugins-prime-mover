@@ -437,8 +437,10 @@ class PrimeMoverBuddyPressCompat
         $filter_clause = [];
         $filter_clause['target_blog_id'] = $blogid_to_import;
         
+        $non_user_adjustment = ['format' => OBJECT];
+     
         return apply_filters('prime_mover_process_userid_adjustment_db', $ret, $table, 1, "3rdparty_{$table}_two_leftoff", $primary_index, $column_strings,
-        "3rdparty_{$table}_two_updated", "{$table} two table", $start_time, $last_processor, '', true, $filter_clause);
+        "3rdparty_{$table}_two_updated", "{$table} two table", $start_time, $last_processor, '', $non_user_adjustment, $filter_clause);
     }
     
     /**
@@ -475,7 +477,7 @@ class PrimeMoverBuddyPressCompat
         $filter_clause['where_clause'][] = ['field' => 'component_name', 'value' => 'groups'];
         
         return apply_filters('prime_mover_process_userid_adjustment_db', $ret, $table, 1, "3rdparty_{$table}_six_leftoff", $primary_index, $column_strings,
-        "3rdparty_{$table}_six_updated", "{$table} six table", $start_time, $last_processor, '', false, $filter_clause);
+        "3rdparty_{$table}_six_updated", "{$table} six table", $start_time, $last_processor, '', [], $filter_clause);
     }
     
     /**
@@ -514,7 +516,7 @@ class PrimeMoverBuddyPressCompat
         $filter_clause['where_clause'][] = ['field' => 'component_action', 'value' => 'bb_account_password'];
         
         return apply_filters('prime_mover_process_userid_adjustment_db', $ret, $table, 1, "3rdparty_{$table}_five_leftoff", $primary_index, $column_strings,
-        "3rdparty_{$table}_five_updated", "{$table} five table", $start_time, $last_processor, '', false, $filter_clause);
+        "3rdparty_{$table}_five_updated", "{$table} five table", $start_time, $last_processor, '', [], $filter_clause);
     }
     
     /**
@@ -549,9 +551,9 @@ class PrimeMoverBuddyPressCompat
         
         $filter_clause = [];
         $filter_clause['where_clause'][] = ['field' => 'component_name', 'value' => 'members'];
-
+        
         return apply_filters('prime_mover_process_userid_adjustment_db', $ret, $table, 1, "3rdparty_{$table}_four_leftoff", $primary_index, $column_strings,
-        "3rdparty_{$table}_four_updated", "{$table} four table", $start_time, $last_processor, '', false, $filter_clause);
+        "3rdparty_{$table}_four_updated", "{$table} four table", $start_time, $last_processor, '', [], $filter_clause);
     }
     
     /**
@@ -640,7 +642,7 @@ class PrimeMoverBuddyPressCompat
         $filter_clause['is_serialized'] = true;
         
         return apply_filters('prime_mover_process_userid_adjustment_db', $ret, $table, 1, "3rdparty_{$table}_leftoff", $primary_index, $column_strings,
-        "3rdparty_{$table}_updated", "{$table} table", $start_time, $last_processor, '', false, $filter_clause);
+        "3rdparty_{$table}_updated", "{$table} table", $start_time, $last_processor, '', [], $filter_clause);
     }
     
     /**
@@ -677,7 +679,7 @@ class PrimeMoverBuddyPressCompat
         $filter_clause['where_clause'][] = ['field' => 'meta_key', 'value' => 'starred_by_user'];
         
         return apply_filters('prime_mover_process_userid_adjustment_db', $ret, $table, 1, "3rdparty_{$table}_leftoff", $primary_index, $column_strings,
-        "3rdparty_{$table}_updated", "{$table} table", $start_time, $last_processor, '', false, $filter_clause);
+        "3rdparty_{$table}_updated", "{$table} table", $start_time, $last_processor, '', [], $filter_clause);
     }
     
     /**
@@ -716,9 +718,9 @@ class PrimeMoverBuddyPressCompat
         $filter_clause['where_clause'][] = ['field' => 'component_name', 'value' => 'messages', 'condition' => 'OR'];
         $filter_clause['where_clause'][] = ['field' => 'component_name', 'value' => 'forums', 'condition' => 'OR'];
         $filter_clause['where_clause'][] = ['field' => 'component_name', 'value' => 'activity'];
-        
+                
         return apply_filters('prime_mover_process_userid_adjustment_db', $ret, $table, 1, "3rdparty_{$table}_three_leftoff", $primary_index, $column_strings,
-        "3rdparty_{$table}_three_updated", "{$table} three table", $start_time, $last_processor, '', false, $filter_clause);
+        "3rdparty_{$table}_three_updated", "{$table} three table", $start_time, $last_processor, '', [], $filter_clause);
     }
     
     /**
@@ -754,9 +756,9 @@ class PrimeMoverBuddyPressCompat
 
         $filter_clause = [];
         $filter_clause['where_clause'][] = ['field' => 'component', 'value' => 'friends'];        
-        
+                
         return apply_filters('prime_mover_process_userid_adjustment_db', $ret, $table, 1, "3rdparty_{$table}_three_leftoff", $primary_index, $column_strings,
-        "3rdparty_{$table}_three_updated", "{$table} three table", $start_time, $last_processor, '', false, $filter_clause);
+        "3rdparty_{$table}_three_updated", "{$table} three table", $start_time, $last_processor, '', [], $filter_clause);
     }
     
     /**
@@ -794,7 +796,7 @@ class PrimeMoverBuddyPressCompat
         $filter_clause['where_clause'][] = ['field' => 'component', 'value' => 'friends'];        
         
         return apply_filters('prime_mover_process_userid_adjustment_db', $ret, $table, 1, "3rdparty_{$table}_two_leftoff", $primary_index, $column_strings,
-        "3rdparty_{$table}_two_updated", "{$table} two table", $start_time, $last_processor, '', false, $filter_clause);
+        "3rdparty_{$table}_two_updated", "{$table} two table", $start_time, $last_processor, '', [], $filter_clause);
     }
     
     /**
@@ -831,7 +833,7 @@ class PrimeMoverBuddyPressCompat
         $filter_clause['where_clause'][] = ['field' => 'component_name', 'value' => 'friends'];        
         
         return apply_filters('prime_mover_process_userid_adjustment_db', $ret, $table, 1, "3rdparty_{$table}_two_leftoff", $primary_index, $column_strings,
-        "3rdparty_{$table}_two_updated", "{$table} two table", $start_time, $last_processor, '', false, $filter_clause);
+        "3rdparty_{$table}_two_updated", "{$table} two table", $start_time, $last_processor, '', [], $filter_clause);
     }
     
     /**

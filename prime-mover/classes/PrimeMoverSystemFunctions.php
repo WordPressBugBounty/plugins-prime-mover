@@ -1433,17 +1433,9 @@ class PrimeMoverSystemFunctions
      */
     public function getExportPathOfThisSubsite($blog_id = 0)
     {
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
-            return;
-        }
-        $ret = '';
-        $blog_id = (int) $blog_id;
-        $export_path = $this->getSystemInitialization()->getMultisiteExportFolderPath();
-        if ($blog_id > 0 && $export_path) {
-            $ret= $export_path . $blog_id . DIRECTORY_SEPARATOR;
-        }
-        return $ret;
+        return $this->getSystemInitialization()->getExportPathOfThisSubsite($blog_id);
     }
+    
     /**
      * Check if directory is empty
      * @param string $path
@@ -1654,8 +1646,17 @@ class PrimeMoverSystemFunctions
         if ( ! $this->isWpFileSystemUsable($wp_filesystem)) {
             return;
         }
-        if (isset($ret['unzipped_directory']) && $wp_filesystem->exists($ret['unzipped_directory'])) {
-            $wp_filesystem->rmdir($ret['unzipped_directory'], true);
+        
+        $unzipped_directory = '';
+        if (isset($ret['unzipped_directory'])) {
+            $unzipped_directory = $ret['unzipped_directory'];
+            if (isset($ret['blog_id'])) {
+                $unzipped_directory = $this->getSystemInitialization()->getDynamicPathsPreviewDomains($unzipped_directory, $ret['blog_id']);
+            }
+        }       
+            
+        if ($unzipped_directory && $wp_filesystem->exists($unzipped_directory)) {
+            $wp_filesystem->rmdir($unzipped_directory, true);
         }
     }
     
@@ -4891,6 +4892,19 @@ class PrimeMoverSystemFunctions
             return true;
         }
         return false;
+    }
+
+    /**
+     * Compute dynamic paths for preview domains
+     * Applicable only to WPRIME package paths inside export directory of specific site [DYNAMIC] / wprime
+     * Or unzipped directory inside export or import directory [DYNAMIC] / unzipped_directory
+     * @param string $static
+     * @param number $blog_id
+     * @return string
+     */
+    public function computeDynamicPathsPreviewDomains($static = '', $blog_id = 0)
+    {
+        return $this->getSystemInitialization()->getDynamicPathsPreviewDomains($static, $blog_id);
     }
     
     /**

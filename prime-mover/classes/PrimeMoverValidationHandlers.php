@@ -361,6 +361,8 @@ class PrimeMoverValidationHandlers
         if ( ! $input_data || ! $blog_id) {
             return false;
         }
+        
+        $input_data = $this->getMultisteMigration()->getSystemFunctions()->computeDynamicPathsPreviewDomains($input_data, $blog_id);        
         if (is_file($input_data)) {
             return false;
         }
@@ -439,14 +441,18 @@ class PrimeMoverValidationHandlers
         if ( ! $filepath || ! $blog_id ) {
             return false;
         }        
+        
+        $filepath = $this->getMultisteMigration()->getSystemFunctions()->computeDynamicPathsPreviewDomains($filepath, $blog_id);
         if ( ! file_exists($filepath) || ! is_file($filepath) ) {
             do_action('prime_mover_log_processed_events', 'Package zip does not seem to exist', $blog_id, 'common', 'isMigrationPackage', $this);
             return false;
         }
+        
         if ( ! $this->getMultisteMigration()->getSystemFunctions()->isReallyValidFormat($filepath)) {
             do_action('prime_mover_log_processed_events', 'Package zip is not a zip file.', $blog_id, 'common', 'isMigrationPackage', $this);
             return false;
         }
+        
         $package_description = '';
         $tar_config = [];
         if ($this->getMultisteMigration()->getSystemFunctions()->isReallyTar($filepath)) {
