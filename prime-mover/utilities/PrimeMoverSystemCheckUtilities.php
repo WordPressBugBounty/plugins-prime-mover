@@ -1083,7 +1083,7 @@ class PrimeMoverSystemCheckUtilities
      * @return string[]|boolean[]|resource[]
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemCheckUtilities::itGetsResource() 
      */
-    protected function getResource($use_extract_to = false, ZipArchive $zip = null, $name = '', $resource = null)
+    protected function getResource($use_extract_to = false, $zip = null, $name = '', $resource = null)
     {
         if ( ! $use_extract_to ) {
             $resource = $zip->getStream($name);
@@ -1104,7 +1104,7 @@ class PrimeMoverSystemCheckUtilities
      * @param number $blogid
      * @return boolean[]|NULL[]|string[]|mixed[]
      */
-    protected function computeExtractionParameters($shell = false, $i = 0, ZipArchive $zip = null, $extraction_path = '', $blogid = 0)
+    protected function computeExtractionParameters($shell = false, $i = 0, $zip = null, $extraction_path = '', $blogid = 0)
     {    
         $this->maybeThrottleExtraction($shell);
         $result = false;

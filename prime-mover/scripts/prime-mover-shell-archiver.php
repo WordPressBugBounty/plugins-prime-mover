@@ -17,20 +17,20 @@ namespace Codexonics\PrimeMoverFramework\scripts;
  * @since 1.0.7
  */
 
-/** @var Type $argv Command Line arguments*/
-/** @var Type $argc Command Line arguments count*/
+/** @var mixed $argv Command Line arguments*/
+/** @var mixed $argc Command Line arguments count*/
 
 if ( ! primeMoverCLIModeReady($argv, $argc) ) {
     exit;
 }
 
 /**
- * @var Type $script_path CLI-script
- * @var Type $error_log Error log path
- * @var Type $loader_data Loader data
- * @var Type $raw_data Raw data
- * @var Type $exporter_auth Exporter auth
- * @var Type $file_auth File auth
+ * @var mixed $script_path CLI-script
+ * @var mixed $error_log Error log path
+ * @var mixed $loader_data Loader data
+ * @var mixed $raw_data Raw data
+ * @var mixed $exporter_auth Exporter auth
+ * @var mixed $file_auth File auth
  */
 list($script_path, $error_log, $loader_data, $raw_data, $exporter_auth, $file_auth) = $argv; 
 

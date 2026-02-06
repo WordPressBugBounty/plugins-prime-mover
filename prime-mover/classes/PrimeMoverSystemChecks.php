@@ -427,7 +427,7 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
      * @param array $ret
      * @return array
      */
-    protected function closeArchiveAndReturn($file = '', $blog_id = 0, $processed = [], ZipArchive $zip = null, $start_time = 0, $total_sizes = 0, $count = 0, $large_file = false, $filesize = 0, $batch_bytes = 0, $position = 0, $ret = [])
+    protected function closeArchiveAndReturn($file = '', $blog_id = 0, $processed = [], $zip = null, $start_time = 0, $total_sizes = 0, $count = 0, $large_file = false, $filesize = 0, $batch_bytes = 0, $position = 0, $ret = [])
     {
         if ( ! $file || ! $blog_id) {
             return;
@@ -509,7 +509,7 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
      * @param boolean $shell_mode
      * @return array
      */
-    protected function addEmptyDirectoryToArchive($source = '', $ret = [], $exporting_mode = '', $file = '', $returned_array = [], $count = 0, $key = '', $encrypt = false, ZipArchive $zip = null, $blog_id = 0, $shell_mode = false)
+    protected function addEmptyDirectoryToArchive($source = '', $ret = [], $exporting_mode = '', $file = '', $returned_array = [], $count = 0, $key = '', $encrypt = false, $zip = null, $blog_id = 0, $shell_mode = false)
     {
         $add_result = false;
         $directory = apply_filters('prime_mover_filter_basezip_folder', basename($source), $ret, $exporting_mode, $source, $shell_mode) . '/' . str_replace($source . '/', '', $file . '/');        
@@ -548,7 +548,7 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
      * @param string $entity
      * @param number $blog_id
      */
-    protected function maybeOptimizePerformanceForLargeFileInArchive($filesize = 0, ZipArchive $zip = null, $entity = '', $blog_id = 0)
+    protected function maybeOptimizePerformanceForLargeFileInArchive($filesize = 0, $zip = null, $entity = '', $blog_id = 0)
     {
         if ( ! $entity ) {
             return;
@@ -566,7 +566,7 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
      * @param ZipArchive $zip
      * @return boolean
      */
-    protected function addFileOnWindows($filename = '', $localname = '', $filesize = 0, ZipArchive $zip = null)
+    protected function addFileOnWindows($filename = '', $localname = '', $filesize = 0, $zip = null)
     {
         if (!$this->isWindows()) {
             return false;  

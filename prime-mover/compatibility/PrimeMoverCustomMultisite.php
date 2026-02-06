@@ -378,7 +378,7 @@ class PrimeMoverCustomMultisite
      * @param number $blog_id
      * @return string|wpdb
      */
-    public function setWpdBPrefixToGetUsersTableCorrectly($wpdb_prefix = '', wpdb $wpdb = null, $blog_id = 0)
+    public function setWpdBPrefixToGetUsersTableCorrectly($wpdb_prefix = '', $wpdb = null, $blog_id = 0)
     {
         if (!is_multisite()) {
             return $wpdb_prefix;

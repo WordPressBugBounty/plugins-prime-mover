@@ -109,18 +109,25 @@ class PrimeMoverHookedMethods
      */
     public function primeMoverAddNetworkColumn($column_headers = [])
     {
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
-            return;
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return $column_headers;
         }
+        
+        $is_activation_mode = $this->getSystemFunctions()->isActivationMode();
+        if ($is_activation_mode) {
+            return $column_headers;
+        }
+        
         /**
          * Add custom export/import columns if export folder created
+         * And when activation mode completed.
          */
         if (true === $this->getSystemChecks()->primeMoverEssentialRequisites()) {
             $column_headers['multisite_export_column']	=	esc_html__('Export Site', 'prime-mover');
             $column_headers['multisite_import_column'] 	=	esc_html__('Import Site', 'prime-mover');
         }
         
-        return $column_headers ;
+        return $column_headers;
     }
     
     /**
@@ -198,6 +205,12 @@ class PrimeMoverHookedMethods
         if (! $this->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
+        
+        $is_activation_mode = $this->getSystemFunctions()->isActivationMode();
+        if ($is_activation_mode) {
+            return;
+        }
+        
         if ( ! is_multisite() && ! $blog_id ) {
             $blog_id = 1;
         }
@@ -277,6 +290,12 @@ class PrimeMoverHookedMethods
         if (! $this->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
+        
+        $is_activation_mode = $this->getSystemFunctions()->isActivationMode();
+        if ($is_activation_mode) {
+            return;
+        }
+        
         if ( ! is_multisite() && ! $blog_id ) {
             $blog_id = 1;
         }
@@ -600,6 +619,11 @@ class PrimeMoverHookedMethods
      */
     public function addExportImportOptionsSingleSite()
     {
+        $is_activation_mode = $this->getSystemFunctions()->isActivationMode();
+        if ($is_activation_mode) {
+            return;
+        }
+        
         add_submenu_page( 'tools.php', esc_html__('Migration Tools', 'prime-mover'), 
             esc_html__('Migration Tools', 'prime-mover'),
             'manage_options', 'migration-tools', [$this, 'singleSiteMigrationCallBack']);

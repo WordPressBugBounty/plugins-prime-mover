@@ -394,7 +394,7 @@ class PrimeMoverUserFunctions
      * @param WP_Post $post
      * @return boolean
      */
-    protected function isPageTemplateOverwritten($original_template = '', WP_Post $post = null)
+    protected function isPageTemplateOverwritten($original_template = '', $post = null)
     {          
         $overwritten = false;
         $page_templates = wp_get_theme()->get_page_templates($post);            

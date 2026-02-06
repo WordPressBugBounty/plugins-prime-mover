@@ -351,7 +351,7 @@ class PrimeMoverErrorHandlers
             return $error_output;
         }
         /**
-         * @var Type $output phpinfo CLI output
+         * @var mixed $output phpinfo CLI output
          */
         if ('cli' === php_sapi_name()) {
             exec("php -i", $output);

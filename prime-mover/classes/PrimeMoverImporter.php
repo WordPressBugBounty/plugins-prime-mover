@@ -331,7 +331,7 @@ class PrimeMoverImporter implements PrimeMoverImport
         }
         $ret = apply_filters('prime_mover_get_import_progress', $ret, $blogid_to_import);
         
-        /** @var Type $previous_func Previous function*/
+        /** @var string $previous_func Previous function*/
         list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__, 'import');       
         
         $ret = $this->getUsersObject()->getUserUtilities()->getUserFunctions()->getSpecialUserMetaKeysFromJsonFile($ret, $blogid_to_import);        
@@ -532,7 +532,7 @@ class PrimeMoverImporter implements PrimeMoverImport
         }        
         
         /**
-         * @var Type $previous_func Previous function
+         * @var string $previous_func Previous function
          */
         list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__, 'import');
         if (isset($files_array['file'])) {
@@ -2254,7 +2254,7 @@ class PrimeMoverImporter implements PrimeMoverImport
         $ret = apply_filters('prime_mover_get_import_progress', $ret, $blogid_to_import);
        
         /**
-         * @var Type $next_func Next function
+         * @var string $next_func Next function
          */
         list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__, 'import');
         

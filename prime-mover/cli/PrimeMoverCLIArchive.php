@@ -306,7 +306,7 @@ class PrimeMoverCLIArchive
         $command = 'ps -p '. $process_id;
         
         /**
-         * @var Type $op output variable
+         * @var mixed $op output variable
          */
         
         exec($command,$op);

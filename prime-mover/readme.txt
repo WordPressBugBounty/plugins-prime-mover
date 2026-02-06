@@ -3,9 +3,9 @@ Contributors: codexonics, freemius
 Donate link: https://codexonics.com
 Tags: migrate wordpress, multisite migration, clone, backup
 Requires at least: 4.9.8
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 5.6
-Stable tag: 2.0.9
+Stable tag: 2.1.1
 License: GPLv3 or later
 License URI: https://codexonics.com
 
@@ -45,6 +45,7 @@ https://youtu.be/QAVVXcoQU8g
 *   Save and restore packages from and to Google Drive.
 *   Exclude plugins from the backup (or network-activated plugins if multisite).
 *   Exclude upload directory files from the backup to reduce the package size.
+*   Improved migrated site performance by excluding unused database tables created by inactive plugins.
 *   Create a new multisite subsite with a specific blog ID.
 *   Disable network maintenance in multisite so only the affected subsite is in maintenance mode.
 *   Configure migration parameters to optimize and tweak backup/migration packages.
@@ -104,26 +105,27 @@ Update now to get all the latest bug fixes, improvements, and features!
 
 == Changelog ==
 
+= 2.1.1 =
+
+* Fixed: Incompatibility issues with third-party salt implementation.  
+* Fixed: Runtime error when activating plugins during import.
+* Fixed: Insufficient memory errors during the search and replace process.
+* Fixed: Improved restore performance by reducing the search-and-replace batch size.
+* Fixed: Database export timeouts on servers with minimal resources.
+* Fixed: Updated the Freemius SDK to version 2.13.0.
+* Fixed: Updated the Freemius pricing page library to the latest version 1.3.0.
+* Compatibility: Tested with WordPress 6.9 release.
+
+= 2.1.0 =
+
+* Fixed: Deprecated notices in the PHP 8.4 latest version.
+* Fixed: Outdated libraries to work in PHP 8.4.
+* Fixed: Updated all third-party libraries to work from PHP 5.6 to PHP 8.4.
+* Fixed: Updated the Freemius SDK to version 2.12.2.
+
 = 2.0.9 =
 
 * Fixed: Added support for page builders using base64 encoded data.
 * Fixed: Compatibility issues with the preview domains setup.
-
-= 2.0.8 =
-
-* Usability: Block activation on WordPress sites using SQLite databases.
-* Fixed: Excluding Windows thumbs.db from export/import to prevent file permission issues.
-* Fixed: Multisite core global tables exported in single-site export.
-* Fixed: Exclude other site database tables in shared database export situation for single sites.
-* Fixed: Overwriting of database tables in WordPress sites sharing the same database.
-* Fixed: Updated the Freemius SDK to the latest version 2.12.1.
-* Fixed: Unidentified packages due to spaces in file names.
-* Fixed: Auto-exclude Advanced WordPress reset plugin to multisite import.
-
-= 2.0.7 =
-
-* Fixed: Malformed domain name due to edge case double search replace.
-* Feature: Added user difference check when migrating site to multisite main site.
-* Fixed: Removed cron jobs when the plugin is uninstalled.
 
 See the previous changelogs in changelog.txt.

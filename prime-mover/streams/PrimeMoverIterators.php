@@ -159,8 +159,8 @@ class PrimeMoverIterators extends SplHeap
         $dir_spl = new SplFixedArray(50);
         $files_spl = new SplFixedArray(50);
         
-        /** @var Type $index_dir directory index*/
-        /** @var Type $index_file file index*/
+        /** @var mixed $index_dir directory index*/
+        /** @var mixed $index_file file index*/
         list($dir_spl, $files_spl, $index_dir, $index_file) = $this->listFolderFiles($dir, $dir_spl, $files_spl, 0, 0, $excluded_dirs);
         
         if (empty($ret['total_media_files'])) {
@@ -230,7 +230,7 @@ class PrimeMoverIterators extends SplHeap
      * @mainsitesupport_affected
      * @return SplFixedArray[]
      */
-    protected function listFolderFiles($dir = '', SplFixedArray $dir_spl = null, SplFixedArray $files_spl = null, $index_dir = 0, $index_file = 0, $excluded_dirs = [])
+    protected function listFolderFiles($dir = '', $dir_spl = null, $files_spl = null, $index_dir = 0, $index_file = 0, $excluded_dirs = [])
     {
         if ($this->isDirectory($dir) && !$this->maybeExcludeDir($excluded_dirs, $dir)) {
             $ffs = scandir($dir);

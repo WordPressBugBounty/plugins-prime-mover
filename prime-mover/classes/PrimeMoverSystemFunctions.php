@@ -18,6 +18,7 @@ use WP_Screen;
 use WP_Error;
 use SplFixedArray;
 use wpdb;
+use Freemius;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -42,6 +43,15 @@ class PrimeMoverSystemFunctions
         $this->system_initialization = $system_initialization;
     }
 
+    /**
+     * Get Freemius instance
+     * @return Freemius
+     */
+    public function getFreemius()
+    {
+        return $this->getSystemAuthorization()->getFreemius();
+    }
+    
     /**
      * Get files to restore
      * @param number $blog_id
@@ -1751,7 +1761,7 @@ class PrimeMoverSystemFunctions
      * @return void|array|mixed[]
      * @mainsitesupport_affected
      */
-    public function cleanDbTablesForExporting($inputs = [], $blog_id = 0, wpdb $wpdb = null, $mode = 'export')
+    public function cleanDbTablesForExporting($inputs = [], $blog_id = 0, $wpdb = null, $mode = 'export')
     {
         if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return;
@@ -2828,7 +2838,7 @@ class PrimeMoverSystemFunctions
      * @param string $local_name
      * @codeCoverageIgnore
      */
-    protected function maybeUseStoreMode($store_mode = false, ZipArchive $ziparchive = null, $local_name = '')
+    protected function maybeUseStoreMode($store_mode = false, $ziparchive = null, $local_name = '')
     {
         if ( ! $store_mode || ! $ziparchive || ! $local_name) {
             return;
@@ -4491,7 +4501,7 @@ class PrimeMoverSystemFunctions
      * @param wpdb $wpdb
      * @param boolean $return_result
      */
-    public function dropTable($drop_query = '', $foreign_key_checks = true, wpdb $wpdb = null, $return_result = false)
+    public function dropTable($drop_query = '', $foreign_key_checks = true, $wpdb = null, $return_result = false)
     {
         if (!$this->getSystemAuthorization()->isUserAuthorized() || !$drop_query) {
             return;
@@ -4877,6 +4887,28 @@ class PrimeMoverSystemFunctions
         }
         
         return true;
+    }
+    
+    /**
+     * Checks if we are currently on activation mode
+     * @return boolean
+     */
+    public function isActivationMode()
+    {
+        $freemius = $this->getFreemius();
+        if (!is_object($freemius)) {
+            return false;
+        }
+        
+        if (!method_exists($freemius, 'is_activation_mode')) {
+            return false;
+        }
+        
+        $is_activation_mode = $this->getFreemius()->is_activation_mode();
+        if ($is_activation_mode) {
+            return true;
+        }
+        return false;
     }
     
     /**

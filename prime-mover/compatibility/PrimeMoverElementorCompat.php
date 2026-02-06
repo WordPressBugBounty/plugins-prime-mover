@@ -126,7 +126,7 @@ class PrimeMoverElementorCompat
     
     /**
      * Get Elementor instance if activated
-     * @return \Elementor\Plugin|NULL
+     * @return object
      */
     protected function getElementorInstance()
     {

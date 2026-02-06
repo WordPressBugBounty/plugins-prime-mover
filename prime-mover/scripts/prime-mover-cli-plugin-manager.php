@@ -155,6 +155,18 @@ final class PrimeMoverMustUsePluginManager
             define('PRIME_MOVER_MAX_MEMORY_LIMIT', '1G');
         }
         
+        if (!defined('PRIME_MOVER_LATE_HOOK_PRIORITY')) {
+            define('PRIME_MOVER_LATE_HOOK_PRIORITY', 10000);
+        }
+        
+        if (!defined('PRIME_MOVER_LAST_HOOK_PRIORITY')) {
+            define('PRIME_MOVER_LAST_HOOK_PRIORITY', 100000);
+        }
+        
+        if (!defined('PRIME_MOVER_ALLOW_CUSTOM_SALT')) {
+            define('PRIME_MOVER_ALLOW_CUSTOM_SALT', false);
+        }
+        
         $this->defineWPFSNetworkAdminConstant();
     }
     
@@ -339,13 +351,32 @@ final class PrimeMoverMustUsePluginManager
     {
         add_filter('option_active_plugins', [$this, 'loadOnlyPrimeMoverPlugin']);
         add_filter('site_option_active_sitewide_plugins', [$this, 'loadOnlyPrimeMoverPlugin']);
-        add_filter('content_url', [$this, 'maybeAdjustIfContentUrlIsRelative'], 10000, 1);
+        add_filter('content_url', [$this, 'maybeAdjustIfContentUrlIsRelative'], PRIME_MOVER_LATE_HOOK_PRIORITY, 1);
         
-        add_filter('stylesheet_directory', [$this, 'disableThemeOnPrimeMoverProcesses'], 10000);        
-        add_filter('template_directory', [$this, 'disableThemeOnPrimeMoverProcesses'], 10000); 
-        add_filter('admin_memory_limit', [$this, 'maybeAdjustAdminMemoryMaxLimit'], 100000, 1);
+        add_filter('stylesheet_directory', [$this, 'disableThemeOnPrimeMoverProcesses'], PRIME_MOVER_LATE_HOOK_PRIORITY);        
+        add_filter('template_directory', [$this, 'disableThemeOnPrimeMoverProcesses'], PRIME_MOVER_LATE_HOOK_PRIORITY); 
+        add_filter('admin_memory_limit', [$this, 'maybeAdjustAdminMemoryMaxLimit'], PRIME_MOVER_LAST_HOOK_PRIORITY, 1);
         
-        add_filter('upload_dir', [$this, 'maybeAdjustIfUploadUrlIsRelative'], 10000, 1);
+        add_filter('upload_dir', [$this, 'maybeAdjustIfUploadUrlIsRelative'], PRIME_MOVER_LATE_HOOK_PRIORITY, 1);
+        add_filter('option_active_plugins', [$this, 'arrayFormatOnly'], PRIME_MOVER_LAST_HOOK_PRIORITY, 1);
+        add_filter('site_option_active_sitewide_plugins', [$this, 'arrayFormatOnly'], PRIME_MOVER_LAST_HOOK_PRIORITY, 1);
+        
+        add_filter('default_option_active_plugins', [$this, 'arrayFormatOnly'], PRIME_MOVER_LAST_HOOK_PRIORITY, 1);
+        add_filter('default_site_option_active_sitewide_plugins', [$this, 'arrayFormatOnly'], PRIME_MOVER_LAST_HOOK_PRIORITY, 1);
+    }
+ 
+    /**
+    * Force an array return
+    * @param mixed $plugins
+    * @return array
+    */
+    public function arrayFormatOnly($plugins)
+    {
+        if (!is_array($plugins)) {
+          return [];
+        }
+      
+        return $plugins;
     }
     
     /**
@@ -478,7 +509,56 @@ final class PrimeMoverMustUsePluginManager
     public function initPluginsLoadedHook()
     {
         add_action('muplugins_loaded', [$this, 'primeMoverSwitchToBlog']);
-        add_action('plugins_loaded', [$this, 'primeMoverRestoreCurrentBlog']);
+        add_action('plugins_loaded', [$this, 'primeMoverRestoreCurrentBlog']); 
+        
+        add_action('plugins_loaded', [$this, 'useDefaultSalt'], 0);
+    }
+ 
+    /**
+     * Check if Prime Mover is activated for mu-processes
+     * @return boolean
+     */
+    protected function muCheckIsPrimeMoverActive()
+    {
+        $network_activated = null;
+        $multisite = false;
+        if (is_multisite()) {
+            $multisite = true;
+            $network_activated = get_site_option('active_sitewide_plugins');
+        }
+        
+        if ($multisite && is_array($network_activated) && isset($network_activated[PRIME_MOVER_DEFAULT_FREE_BASENAME])) {
+            return true;
+            
+        } elseif ($multisite && is_array($network_activated) && isset($network_activated[PRIME_MOVER_DEFAULT_PRO_BASENAME])) {
+            return true;
+            
+        } elseif (false === $multisite && in_array(PRIME_MOVER_DEFAULT_FREE_BASENAME, (array)get_option('active_plugins', []), true)) {
+            return true;
+            
+        } elseif (false === $multisite&& in_array(PRIME_MOVER_DEFAULT_PRO_BASENAME, (array)get_option('active_plugins', []), true)) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Use core salt implementation to avoid incompatibility issues.
+     */
+    public function useDefaultSalt()
+    {
+        if (true === PRIME_MOVER_ALLOW_CUSTOM_SALT) {
+            return;
+        }
+        
+        if (false === $this->muCheckIsPrimeMoverActive()) {
+            return;
+        }
+        
+        if (has_filter('salt')) {
+            remove_all_filters('salt');
+        }        
     }
     
     /**
@@ -531,8 +611,8 @@ final class PrimeMoverMustUsePluginManager
      */
     private function resetLocale()
     {
-        /** @var Type $locale locale*/
-        /** @var Type $wp_local_package*/
+        /** @var mixed $locale locale*/
+        /** @var mixed $wp_local_package*/
         global $locale, $wp_local_package;
         $locale = null;
         $wp_local_package = null;

@@ -1297,7 +1297,7 @@ class PrimeMoverImportUtilities
      * @param boolean $array_type
      * @return string[]|string[]|mixed[]
      */
-    private function analyzeZipPackageDescription($tmp_path = '', $blog_id = 0, $encrypted = false, ZipArchive $zip = null, $package_type = '', $blog_id_check = true, $array_type = false)
+    private function analyzeZipPackageDescription($tmp_path = '', $blog_id = 0, $encrypted = false, $zip = null, $package_type = '', $blog_id_check = true, $array_type = false)
     {
         $dir = trim($zip->getNameIndex(0), '/');
         $plugin_dir = $dir . "/plugins/";

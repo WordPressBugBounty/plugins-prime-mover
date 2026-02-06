@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PRIME_MOVER_VERSION', '2.0.9');
+define('PRIME_MOVER_VERSION', '2.1.1');
 define('PRIME_MOVER_PLUGIN_CODENAME', 'Prime Mover');
 define('PRIME_MOVER_PRO_PLUGIN_CODENAME', 'Prime Mover PRO');
 define('PRIME_MOVER_BACKUP_MARKUP_VERSION', '1.2.0');
@@ -25,7 +25,7 @@ define('PRIME_MOVER_EXPORT_DIR_SLUG', 'prime-mover-export-files');
 define('PRIME_MOVER_TMP_DIR_SLUG', 'prime-mover-tmp-downloads');
 define('PRIME_MOVER_LOCK_DIR_SLUG', 'prime-mover-lock-files');
 define('PRIME_MOVER_IMPORT_DIR_SLUG', 'prime-mover-import-files');
-define('PRIME_MOVER_SRCH_RLC_BATCH_SIZE', 25000);
+define('PRIME_MOVER_SRCH_RLC_BATCH_SIZE', 250);
 
 if (!defined('PRIME_MOVER_DONT_TRACK_USERIP')) {
     define('PRIME_MOVER_DONT_TRACK_USERIP', true);
@@ -240,7 +240,7 @@ if (!defined('PRIME_MOVER_CLI_TIMEOUT_SECONDS') ) {
 }
 
 if (!defined('PRIME_MOVER_PHPDUMP_BATCHSIZE') ) {
-    define('PRIME_MOVER_PHPDUMP_BATCHSIZE', 5000);
+    define('PRIME_MOVER_PHPDUMP_BATCHSIZE', 250);
 }
 
 if (!defined('PRIME_MOVER_THRESHOLD_BYTES_MEDIA') ) {

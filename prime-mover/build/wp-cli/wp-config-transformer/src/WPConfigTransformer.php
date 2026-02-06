@@ -37,13 +37,13 @@ class WPConfigTransformer
      *
      * @param string $wp_config_path Path to a wp-config.php file.
      */
-    public function __construct($wp_config_path)
+    public function __construct($wp_config_path, $read_only = \false)
     {
         $basename = \basename($wp_config_path);
         if (!\file_exists($wp_config_path)) {
             throw new \Exception("{$basename} does not exist.");
         }
-        if (!\is_writable($wp_config_path)) {
+        if (!$read_only && !\is_writable($wp_config_path)) {
             throw new \Exception("{$basename} is not writable.");
         }
         $this->wp_config_path = $wp_config_path;
@@ -202,8 +202,12 @@ class WPConfigTransformer
         if (!$this->exists($type, $name)) {
             return \false;
         }
-        $pattern = \sprintf('/(?<=^|;|<\\?php\\s|<\\?\\s)%s\\s*(\\S|$)/m', \preg_quote($this->wp_configs[$type][$name]['src'], '/'));
-        $contents = \preg_replace($pattern, '$1', $this->wp_config_src);
+        if ('constant' === $type) {
+            $pattern = \sprintf("/\\bdefine\\s*\\(\\s*['\"]%s['\"]\\s*,\\s*(('[^']*'|\"[^\"]*\")|\\s*(?:[\\s\\S]*?))\\s*\\)\\s*;\\s*/mi", \preg_quote($name, '/'));
+        } else {
+            $pattern = \sprintf('/^\\s*\\$%s\\s*=\\s*[\\s\\S]*?;\\s*$/mi', \preg_quote($name, '/'));
+        }
+        $contents = \preg_replace($pattern, '', $this->wp_config_src);
         return $this->save($contents);
     }
     /**

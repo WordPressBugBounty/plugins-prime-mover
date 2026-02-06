@@ -11,8 +11,6 @@ namespace Codexonics\PrimeMoverFramework\classes;
  * source code.
  */
 
-use Codexonics\PrimeMoverFramework\utilities\PrimeMoverValidationUtilities;
-
 if (! defined('ABSPATH')) {
     exit;
 }
@@ -39,7 +37,7 @@ class PrimeMoverValidationHandlers
      *
      * Constructor
      */
-    public function __construct(PrimeMover $prime_mover, $utilities = [], PrimeMoverValidationUtilities $validation_utilities = null) 
+    public function __construct(PrimeMover $prime_mover, $utilities = [], $validation_utilities = null) 
     {
         $this->prime_mover = $prime_mover;
         $this->import_utilities = $utilities['import_utilities'];

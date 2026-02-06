@@ -10,6 +10,7 @@ namespace Codexonics\PrimeMoverFramework\classes;
  * information, please view the LICENSE file which was distributed with this
  * source code.
  */
+use Freemius;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -51,6 +52,15 @@ class PrimeMover
         return $this->getHookedMethods()->getSystemAuthorization();
     }
 
+    /**
+     * Get Freemius
+     * @return Freemius
+     */
+    public function getFreemius()
+    {
+        return $this->getSystemAuthorization()->getFreemius();
+    }
+    
     /**
      * Gets hooked methods
      * @return \Codexonics\PrimeMoverFramework\classes\PrimeMoverHookedMethods
@@ -510,6 +520,11 @@ class PrimeMover
     public function initializeCliMustUsePlugin()
     {
         if (!$this->getSystemAuthorization()->isUserAuthorized()) {
+            return;
+        }
+        
+        $is_activation_mode = $this->getSystemFunctions()->isActivationMode();
+        if ($is_activation_mode) {
             return;
         }
         

@@ -689,7 +689,7 @@ class PrimeMoverUserQueries
      * @param string $index
      * @return boolean
      */
-    protected function dropIndexesConstraint($table = '', wpdb $wpdb = null, $index = '')
+    protected function dropIndexesConstraint($table = '', $wpdb = null, $index = '')
     {           
         if (1 === $this->indexExists($table, $wpdb, $index)) {
             $tbl = "{$wpdb->prefix}{$table}";
@@ -708,7 +708,7 @@ class PrimeMoverUserQueries
      * @param string $index
      * @return number|boolean
      */
-    protected function indexExists($table = '', wpdb $wpdb = null, $index = '')
+    protected function indexExists($table = '', $wpdb = null, $index = '')
     {
         $tbl = "{$wpdb->prefix}{$table}";        
         $res = $wpdb->query($wpdb->prepare("SHOW KEYS FROM `{$tbl}` WHERE Key_name=%s", $index));
@@ -1009,7 +1009,7 @@ class PrimeMoverUserQueries
      * @return array
      */
     protected function cleanUpRetArrayAfterCustomerIdProcessing($ret = [], $leftoff_identifier = '', $update_variable = '',
-        $last_processor = false, $handle_unique_constraint = '', $table = '', wpdb $wpdb = null, $non_user_adjustment = [], $set_foreign_key_checks = false)
+        $last_processor = false, $handle_unique_constraint = '', $table = '', $wpdb = null, $non_user_adjustment = [], $set_foreign_key_checks = false)
     {
         if (isset($ret[$leftoff_identifier])) {
             unset($ret[$leftoff_identifier]);
@@ -1057,7 +1057,7 @@ class PrimeMoverUserQueries
      * @param string $index
      * @param boolean $set_foreign_key_checks
      */
-    protected function enForceIndexesConstraint($table = '', wpdb $wpdb = null, $index = '', $set_foreign_key_checks = false)
+    protected function enForceIndexesConstraint($table = '', $wpdb = null, $index = '', $set_foreign_key_checks = false)
     {
         if ($set_foreign_key_checks) {
             $wpdb->query("SET FOREIGN_KEY_CHECKS=1");

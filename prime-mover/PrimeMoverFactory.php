@@ -128,6 +128,26 @@ class PrimeMoverFactory
     } 
     
     /**
+     * Load activation hook
+     */
+    public function loadActivationHook()
+    {
+        register_activation_hook(PRIME_MOVER_MAINPLUGIN_FILE, [$this, 'cleanUpMuScriptBeforeActivation']);
+    }
+    
+    /**
+     * Clean MU script before activation
+     */
+    public function cleanUpMuScriptBeforeActivation()
+    {
+        if (!current_user_can('delete_plugins')) {
+            return;
+        }
+        
+        $this->removePluginManagerOnUninstall();
+    }
+    
+    /**
      * Set user if needed
      * @param mixed $user
      * @return mixed
@@ -302,7 +322,7 @@ class PrimeMoverFactory
         $fcompat = new PrimeMoverFreemiusCompat($prime_mover, $utilities);
         $fcompat->registerHooks();
         
-        do_action( 'prime_mover_load_module_apps', $prime_mover, $utilities);         
+        do_action( 'prime_mover_load_module_apps', $prime_mover, $utilities);  
     }
     
     /**
@@ -419,7 +439,7 @@ class PrimeMoverFactory
      * @param number $user_id
      * @return array|array
      */
-    private function getPrimeMoverHashedOptions($table = '', $field = '', wpdb $wpdb = null, $user_id = 0)
+    private function getPrimeMoverHashedOptions($table = '', $field = '', $wpdb = null, $user_id = 0)
     {     
         $valid_tb = [$wpdb->options, $wpdb->usermeta];
         if (is_multisite()) {
@@ -578,12 +598,13 @@ $parameters = [];
 if ("cli" === php_sapi_name()) {
     $cli = true;
     
-    /** @var Type $argv Command Line arguments*/
+    /** @var mixed $argv Command Line arguments*/
     global $argv;
     $parameters = $argv;
 }
 
 $loaded_instance = new PrimeMoverFactory($cli, $parameters);
 $loaded_instance->initHook();
+$loaded_instance->loadActivationHook();
 
 pm_fs()->add_action('after_uninstall', [$loaded_instance, 'primeMoverCleanUpOnUninstall']);

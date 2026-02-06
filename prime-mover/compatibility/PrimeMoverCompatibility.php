@@ -769,7 +769,7 @@ class PrimeMoverCompatibility
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverCompatibility::itDoesNotRemoveInterimLoginScreenOtherPages()
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverCompatibility::itSkipsInterimLoginCheckOnMultisite()
      */
-    public function removeInterimLoginOnMigrationToolsScreen($show = true, WP_Screen $screen = null)
+    public function removeInterimLoginOnMigrationToolsScreen($show = true, $screen = null)
     {
         if (is_multisite()) {
             return $show;

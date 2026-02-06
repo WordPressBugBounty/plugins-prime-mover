@@ -295,12 +295,12 @@ class PrimeMoverCLIShellArchiver
         }
         
         /**
-         * @var Type $script_path CLI-script
-         * @var Type $error_log Error log path
-         * @var Type $loader_data Loader data
-         * @var Type $raw_data Raw data
-         * @var Type $exporter_auth Exporter auth
-         * @var Type $file_auth File auth
+         * @var mixed $script_path CLI-script
+         * @var mixed $error_log Error log path
+         * @var mixed $loader_data Loader data
+         * @var mixed $raw_data Raw data
+         * @var mixed $exporter_auth Exporter auth
+         * @var mixed $file_auth File auth
          */
         do_action('prime_mover_log_processed_events', "Successfully validated parameters for CLI archiving", 0, 'common', __FUNCTION__, $this);
         list($script_path, $error_log, $loader_data, $raw_data, $exporter_auth, $file_auth) = $valid_parameters;        
@@ -444,7 +444,7 @@ class PrimeMoverCLIShellArchiver
     {
         $ret = $this->getImporterExporterArray();   
         
-        /** @var Type $unzipped_directory Unzipped directory*/
+        /** @var mixed $unzipped_directory Unzipped directory*/
         list($file_path, $destination, $unzipped_directory, $mode) = $this->getImporter()->computeExtractVariables($ret);
         $blogid_to_import = $this->getBlogId();
         
@@ -615,12 +615,12 @@ class PrimeMoverCLIShellArchiver
         $parameters = $this->getParameters();             
                 
         /**
-         * @var Type $script_path CLI-script
-         * @var Type $error_log Error log path
-         * @var Type $loader_data Loader data
-         * @var Type $raw_data Raw data
-         * @var Type $exporter_auth Exporter auth
-         * @var Type $file_auth File auth
+         * @var mixed $script_path CLI-script
+         * @var mixed $error_log Error log path
+         * @var mixed $loader_data Loader data
+         * @var mixed $raw_data Raw data
+         * @var mixed $exporter_auth Exporter auth
+         * @var mixed $file_auth File auth
          */
         list($script_path, $error_log, $loader_data, $raw_data, $exporter_auth, $file_auth) = $parameters; 
         

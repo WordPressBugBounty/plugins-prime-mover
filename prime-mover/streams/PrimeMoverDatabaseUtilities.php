@@ -362,7 +362,7 @@ class PrimeMoverDatabaseUtilities
      * @param boolean $is_retry
      * @return string
      */
-    public function maybeRunDbRestoreHeaders($query = '', $ret = [], $q = 0,  wpdb $wpdb = null, $is_retry = false)
+    public function maybeRunDbRestoreHeaders($query = '', $ret = [], $q = 0,  $wpdb = null, $is_retry = false)
     {
         if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return $query;

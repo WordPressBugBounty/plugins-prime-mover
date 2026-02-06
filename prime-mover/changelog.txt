@@ -2,6 +2,23 @@
 
 **This is a list detailing changes for all Prime Mover releases.**
 
+= 2.0.8 =
+
+* Usability: Block activation on WordPress sites using SQLite databases.
+* Fixed: Excluding Windows thumbs.db from export/import to prevent file permission issues.
+* Fixed: Multisite core global tables exported in single-site export.
+* Fixed: Exclude other site database tables in shared database export situation for single sites.
+* Fixed: Overwriting of database tables in WordPress sites sharing the same database.
+* Fixed: Updated the Freemius SDK to the latest version 2.12.1.
+* Fixed: Unidentified packages due to spaces in file names.
+* Fixed: Auto-exclude Advanced WordPress reset plugin to multisite import.
+
+= 2.0.7 =
+
+* Fixed: Malformed domain name due to edge case double search replace.
+* Feature: Added user difference check when migrating site to multisite main site.
+* Fixed: Removed cron jobs when the plugin is uninstalled.
+
 = 2.0.6 =
 
 * Feature: Support was added to exclude database tables from export.

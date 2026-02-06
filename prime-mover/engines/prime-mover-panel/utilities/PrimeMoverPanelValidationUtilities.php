@@ -37,7 +37,7 @@ class PrimeMoverPanelValidationUtilities
      * @param PrimeMoverTroubleshooting $troubleshooting
      * @param PrimeMoverAutoBackupSetting $autobackp_setting
      */
-    public function __construct(PrimeMover $prime_mover, $utilities = [], PrimeMoverTroubleshooting $troubleshooting = null, PrimeMoverAutoBackupSetting $autobackp_setting = null)
+    public function __construct(PrimeMover $prime_mover, $utilities = [], $troubleshooting = null, $autobackp_setting = null)
     {
         $this->prime_mover = $prime_mover;
         $this->import_utilities = $utilities['import_utilities'];

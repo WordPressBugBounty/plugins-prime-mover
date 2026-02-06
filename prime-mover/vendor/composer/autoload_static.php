@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit368b6fde35050ae007aff0a90d135a24
+class ComposerStaticInit13ccde415249de5d5934c6d5dc37d38d
 {
     public static $classMap = array (
         'Codexonics\\PrimeMoverFramework\\advance\\PrimeMoverTroubleshooting' => __DIR__ . '/../..' . '/engines/prime-mover-panel/advance/PrimeMoverTroubleshooting.php',
@@ -172,7 +172,7 @@ class ComposerStaticInit368b6fde35050ae007aff0a90d135a24
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->classMap = ComposerStaticInit368b6fde35050ae007aff0a90d135a24::$classMap;
+            $loader->classMap = ComposerStaticInit13ccde415249de5d5934c6d5dc37d38d::$classMap;
 
         }, null, ClassLoader::class);
     }

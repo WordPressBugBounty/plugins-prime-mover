@@ -84,7 +84,7 @@ class PrimeMoverExporter implements PrimeMoverExport
             return $ret;
         }
         
-        /** @var Type $previous_func Previous function*/
+        /** @var string $previous_func Previous function*/
         list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);
         if (!$this->getUsersObject()->maybeExportUsers($ret)) {
             return apply_filters('prime_mover_save_return_export_progress', $ret, $blogid_to_export, $next_func, $current_func);;
@@ -119,7 +119,7 @@ class PrimeMoverExporter implements PrimeMoverExport
             return $ret;
         }
         
-        /** @var Type $previous_func Previous function*/
+        /** @var string $previous_func Previous function*/
         list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);
         if ( ! $this->getUsersObject()->maybeExportUsers($ret)) {
             return apply_filters('prime_mover_save_return_export_progress', $ret, $blogid_to_export, $next_func, $current_func);
@@ -150,7 +150,7 @@ class PrimeMoverExporter implements PrimeMoverExport
             return $ret;
         }
         
-        /** @var Type $previous_func previous function */
+        /** @var string $previous_func previous function */
         list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);        
         if ( ! $this->getUsersObject()->maybeExportUsers($ret)) {
             return apply_filters('prime_mover_save_return_export_progress', $ret, $blogid_to_export, $next_func, $current_func);
@@ -793,7 +793,7 @@ class PrimeMoverExporter implements PrimeMoverExport
         }
         
         /**
-         * @var Type $previous_func previous func
+         * @var string $previous_func previous func
          */        
         $ret = apply_filters('prime_mover_after_creating_tar_archive', $ret, $blogid_to_export);
         
@@ -2367,7 +2367,7 @@ class PrimeMoverExporter implements PrimeMoverExport
         }
         
         /**
-         *  @var Type $next_func Next function
+         *  @var string $next_func Next function
          */
         list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__);
         

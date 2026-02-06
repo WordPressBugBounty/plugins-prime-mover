@@ -1681,7 +1681,7 @@ class PrimeMoverSystemUtilities
      * @param mixed $connection_instance
      * @return number|mysqli_result|boolean|NULL
      */
-    protected function returnRestoreSQLQueryResult(wpdb $wpdb = null, $query = '', $connection_instance = null)
+    protected function returnRestoreSQLQueryResult($wpdb = null, $query = '', $connection_instance = null)
     {
         if (preg_match('/^\s*(create|alter|truncate|drop)\s/i', $query)) {
             $return_val = $wpdb->result;

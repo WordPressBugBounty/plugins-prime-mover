@@ -190,7 +190,7 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
      * @param PrimeMoverImporter $importer
      * @return boolean[][]
      */
-    private static function getColumnsDefinition($table, $dbh, $table_with_excluded_column = '', $excluded_column = '', $ret = [], PrimeMoverImporter $importer = null)
+    private static function getColumnsDefinition($table, $dbh, $table_with_excluded_column = '', $excluded_column = '', $ret = [], $importer = null)
     {
         do_action('prime_mover_log_processed_events', "Doing search replace on $table" , $ret['blog_id'], 'import', 'load', 'PrimeMoverSearchReplace');
         $columns = [];        
@@ -231,7 +231,7 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
      * @param PrimeMoverImporter $importer
      * @return boolean
      */
-    private static function isBinaryPrimaryKey($colType = [], PrimeMoverImporter $importer = null)
+    private static function isBinaryPrimaryKey($colType = [], $importer = null)
     {
         $datatype = $importer->getSystemFunctions()->parseDataType($colType);
         return (in_array($datatype, self::getBinaryTypes()));
@@ -243,7 +243,7 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
      * @param PrimeMoverImporter $importer
      * @return string
      */
-    private static function parseDataType($colType = [], PrimeMoverImporter $importer = null)
+    private static function parseDataType($colType = [], $importer = null)
     {        
         return $importer->getSystemFunctions()->parseDataType($colType);
     }
@@ -254,7 +254,7 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
      * @param PrimeMoverImporter $importer
      * @return boolean
      */
-    private static function isNumericPrimaryKey($colType = [], PrimeMoverImporter $importer = null)
+    private static function isNumericPrimaryKey($colType = [], $importer = null)
     {                
         $numTypes = self::getNumTypes();
         return $importer->getSystemFunctions()->isNumericKey($colType, $numTypes);
@@ -743,7 +743,7 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
      * @param PrimeMoverImporter $importer
      * @param array $list
      */
-    protected static function setInternalDomain(PrimeMoverImporter $importer = null, $list = [])
+    protected static function setInternalDomain($importer = null, $list = [])
     {
         if (!is_array($list)) {
             return;
@@ -784,7 +784,7 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
      * @return void|string|array
      * @codeCoverageIgnore
      */
-    public static function load($dbh, $list = [], $tables = [], $fullsearch = false, PrimeMoverImporter $importer = null, $excluded_columns = [], $start_time = 0, $ret = [])
+    public static function load($dbh, $list = [], $tables = [], $fullsearch = false, $importer = null, $excluded_columns = [], $start_time = 0, $ret = [])
     {
         if (!$importer->getSystemAuthorization()->isUserAuthorized() ) {
             return;

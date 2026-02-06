@@ -386,7 +386,7 @@ class DupxUpdateEngine
         if (preg_match("/s:[0-9]+:/", $data)) {
             if (!self::isSerialized($data)) {
                 $regex			 = '!(?<=^|;)s:(\d+)(?=:"(.*?)";(?:}|a:|s:|b:|d:|i:|o:|N;))!s';
-                /** @var Type $matches Matches*/
+                /** @var mixed $matches Matches*/
                 $serial_string	 = preg_match('/^s:[0-9]+:"(.*$)/s', trim($data), $matches);
                 //Nested serial string
                 if ($serial_string) {
