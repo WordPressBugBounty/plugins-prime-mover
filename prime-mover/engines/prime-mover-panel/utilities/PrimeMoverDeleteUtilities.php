@@ -145,6 +145,8 @@ class PrimeMoverDeleteUtilities
     private function deleteAllBackupsHelper()
     {
         $backup_path = $this->getPrimeMover()->getSystemInitialization()->getMultisiteExportFolderPath();
+        
+        $this->getPrimeMover()->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $dir = $wp_filesystem->dirlist($backup_path, false, false);
         if (empty($dir) && ! is_array($dir)) {

@@ -434,6 +434,7 @@ class PrimeMoverCLIArchive
      */
     public function maybeArchiveMediaByShell()
     {
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         
         if (! $this->getSystemAuthorization()->isUserAuthorized()) {
@@ -616,6 +617,8 @@ class PrimeMoverCLIArchive
             return $ret;
         }
         do_action('prime_mover_log_processed_events', "{$task} is now STOPPED in shell environment.", $blogid, $action, 'doShellArchivingTasks', $this);
+        
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $shell_runtime_error = trim($wp_filesystem->get_contents($media_tmp_file));
         $note = esc_html__('ERROR: Shell process terminated =', 'prime-mover');
@@ -642,6 +645,7 @@ class PrimeMoverCLIArchive
      */
     protected function maybeDeleteCliRestartTmpFile($action = '', $ret = [], $shell_progress_key = '')
     {
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $process_id = $this->getSystemInitialization()->getProcessIdBasedOnGivenAction($action);
         $cli_tmpname = $this->getSystemInitialization()->generateCliReprocessingTmpName($ret, $process_id, $shell_progress_key);

@@ -463,6 +463,7 @@ class PrimeMoverSystemCheckUtilities
      */
     public function getMySQLBaseDirExecutablePath($command = 'mysql', $is_windows = false)
     {
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $wpdb = $this->getSystemInitialization()->getWpdB();
         $executable = '';
@@ -513,6 +514,8 @@ class PrimeMoverSystemCheckUtilities
         if (!$source || !$destination) {
             return false;
         }
+        
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         
         $copy_result = false;
@@ -763,6 +766,7 @@ class PrimeMoverSystemCheckUtilities
     public function copyDir($from = '', $to = '', $skip_list = [], $excluded_filetypes = [], $copy_by_parts = false, $move = false, $start = 0, 
         $blog_id = 0, $processed = 0, $delete_source = true, $source_id = 'default', $resource = [], $ret = []) 
     {
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;        
         $dirlist = $wp_filesystem->dirlist($from);       
         
@@ -913,6 +917,7 @@ class PrimeMoverSystemCheckUtilities
      */
     protected function maybeSkipDirectoryCopying($source = '', $destination = '', $blog_id = 0, $start = 0, $ret = [])
     {
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $source = wp_normalize_path(untrailingslashit($source));
         $destination = wp_normalize_path(untrailingslashit($destination));
@@ -1349,6 +1354,8 @@ class PrimeMoverSystemCheckUtilities
         if ( ! $shell ) {
             return [$index, $bytes_offset];
         }
+        
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $cli_tmpname = $this->getSystemInitialization()->generateCliReprocessingTmpName($ret, $ret['process_id'], $ret['shell_progress_key']);
         if ( ! $this->getSystemFunctions()->nonCachedFileExists($cli_tmpname)) {
@@ -1476,5 +1483,73 @@ class PrimeMoverSystemCheckUtilities
         }
         
         return $count;
+    }
+    
+    /**
+     * Maybe compute stray core mu tables
+     * This applies to all types of imports (e.g. single site import, multisite import)
+     * As we need to get rid of stray tables
+     * @param array $ret
+     * @return array
+     */
+    public function maybeComputeStrayCoreMuTables($ret = [])
+    {        
+        if (!empty($ret['straycoremutables'])) {
+            return $ret;
+        }
+      
+        $origin_db_prefix = '';
+        if (!empty($ret['origin_db_prefix'])) {
+            $origin_db_prefix = $ret['origin_db_prefix'];
+        }
+     
+        if (!$origin_db_prefix) {
+            return $ret;
+        }
+       
+        $wpdb = $this->getSystemInitialization()->getWpdB();        
+        $global_core_mu_tables = array_values($wpdb->tables('ms_global', false, 0));
+        $blog_id = 0;
+        if (isset($ret['blog_id'])) {
+            $blog_id = $ret['blog_id'];
+        }        
+        
+        $exported_db_tables = [];        
+        if (isset($ret['imported_package_footprint']['exported_db_tables'])) {
+            $exported_db_tables = $ret['imported_package_footprint']['exported_db_tables'];
+        }
+        
+        if (!is_array($exported_db_tables) || !is_array($global_core_mu_tables)) {
+            return $ret;
+        }
+        
+        $haystack = [];
+        foreach ($global_core_mu_tables as $table) {
+            $temp = $origin_db_prefix . $table;
+            $haystack[$temp] = "`$temp`";
+        }
+        
+        if ($this->areExportedTablesClean($exported_db_tables, array_keys($haystack))) {
+            do_action('prime_mover_log_processed_events', 'EXPORTED DATABASE TABLES CHECK BEFORE IMPORT: OK', $blog_id, 'import', __FUNCTION__, $this);
+            $ret['straycoremutables'] = [];
+            return $ret;
+        }
+        
+        do_action('prime_mover_log_processed_events', 'EXPORTED DATABASE TABLES CHECK BEFORE IMPORT: CLEANUP NEEDED', $blog_id, 'import', __FUNCTION__, $this);        
+     
+        $ret['straycoremutables'] = array_values($haystack);
+        return $ret;
+    }
+    
+    /**
+     * Return TRUE if exported tables are clean
+     * Otherwise needs cleanup.
+     * @param array $exported_db_tables
+     * @param array $global_core_mu_tables
+     * @return boolean
+     */
+    protected function areExportedTablesClean($exported_db_tables = [], $global_core_mu_tables = [])
+    {
+        return ($exported_db_tables === array_diff($exported_db_tables, $global_core_mu_tables));
     }
 }

@@ -146,6 +146,54 @@ class PrimeMoverBackupMenus
         add_action('prime_mover_after_reallydeleting_package', [$this, 'maybeRemoveWipStatusOnError'], 10, 2);
         
         add_filter('prime_mover_excluded_options_db', [$this, 'excludeSomePrimeMoverOptionsInDump'], 1);
+        add_action('prime_mover_before_displaying_packages', [$this, 'maybeCheckForInnerBackupDirPermissions'], 10, 1);
+        add_action('prime_mover_single_site_package_manager_notices', [$this, 'outputPermissionErroSingleSiterMarkup'], 10, 1);
+    }
+    
+    /**
+     * Check for inner backup directory permissions.
+     * This prevents unwanted backup and restoration errors.
+     * Applies to both single-site and multisites package manager.
+     * @param number $blog_id
+     */
+    public function maybeCheckForInnerBackupDirPermissions($blog_id = 0)
+    {
+        if (!$blog_id) {
+            return;
+        }
+        
+        $backup_dir = $this->getSystemFunctions()->getExportDirectoryPermissionPathToFix($blog_id);        
+        if ($backup_dir) {            
+                add_action('prime_mover_package_manager_notices', function($blog_id = 0) use ($backup_dir) {
+                    $this->outputPermissionErrorMarkup($backup_dir);
+            }, 10, 1);
+
+        }        
+    }
+    
+    /**
+     * Output permission error for single sites markup
+     * @param string $backup_dir
+     */
+    public function outputPermissionErroSingleSiterMarkup($backup_dir = '')
+    {
+        if ($backup_dir) {
+            $this->outputPermissionErrorMarkup($backup_dir);               
+        } 
+    }
+    
+    /**
+     * Output permission error markup
+     * @param string $backup_dir
+     */
+    public function outputPermissionErrorMarkup($backup_dir = '')
+    {
+        ?>
+        <div class="notice notice-error"> 
+            <p><?php printf(esc_html__('%s No packages found and unable to export/import because %s is not writable.', 'prime-mover'), '<strong>' . 
+                esc_html__('ERROR!', 'prime__mover') . '</strong>', '<code>' . $backup_dir . '</code>'); ?>	    
+		</div>               
+        <?php   
     }
     
     /**
@@ -237,8 +285,8 @@ class PrimeMoverBackupMenus
      */
     public function maybeDisableHeartBeat()
     {
-        if ($this->isReallyBackupMenuPage()) {
-            wp_deregister_script( 'heartbeat' );
+        if ($this->isReallyBackupMenuPage()) {            
+            $this->getSystemFunctions()->maybeDeregisterHeartBeat();
         }
     }
     
@@ -601,7 +649,11 @@ class PrimeMoverBackupMenus
          <h1 class="wp-heading-inline"><?php echo apply_filters('prime_mover_filter_backuppage_heading', esc_html__('Prime Mover Package Manager', 'prime-mover'), $blog_id);?></h1>
          
          <p class="edit-site-actions prime-mover-edit-site-actions">
-             <?php echo $this->getAddNewBackupMarkup($blog_id, 'native'); ?>  
+             <?php
+             if (!$this->getSystemInitialization()->getRootBackupDirUnwritable($blog_id)) {
+                 echo $this->getAddNewBackupMarkup($blog_id, 'native'); 
+             }                 
+             ?>  
              <?php echo $this->getAddNewBackupMarkup($blog_id, 'automaticbackup'); ?>
              <?php echo $this->getAddNewBackupMarkup($blog_id, 'eventviewer'); ?>      
          </p>

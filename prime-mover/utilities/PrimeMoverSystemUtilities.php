@@ -630,6 +630,7 @@ class PrimeMoverSystemUtilities
      */
     public function computeTargetPluginStatus($status = '', $source_plugin_name = '', $source_version = '')
     {
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         if (! $source_plugin_name || ! $source_version) {
             return $status;

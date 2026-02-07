@@ -167,6 +167,10 @@ final class PrimeMoverMustUsePluginManager
             define('PRIME_MOVER_ALLOW_CUSTOM_SALT', false);
         }
         
+        if (!defined('PRIME_MOVER_TEMP_THEME')) {
+            define('PRIME_MOVER_TEMP_THEME', 'primemovertemptheme');
+        }
+        
         $this->defineWPFSNetworkAdminConstant();
     }
     
@@ -708,7 +712,7 @@ final class PrimeMoverMustUsePluginManager
      * @return string
      */
     public function disableThemeOnPrimeMoverProcesses($theme) {
-        return '';
+        return PRIME_MOVER_TEMP_THEME;
     }
 
     /**

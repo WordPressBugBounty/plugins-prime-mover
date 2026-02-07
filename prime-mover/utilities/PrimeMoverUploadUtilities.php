@@ -490,6 +490,8 @@ class PrimeMoverUploadUtilities
         
         $uploads = $this->getSystemInitialization()->getInitializedWpRootUploads();
         $target_file_path = $uploads['path'] . DIRECTORY_SEPARATOR . $fileName;
+        
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         
         $import_blog_id = $this->getSystemInitialization()->getImportBlogID();

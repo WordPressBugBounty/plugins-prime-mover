@@ -368,6 +368,7 @@ class PrimeMoverCLIShellArchiver
         $tmp_folderpath = $ret['temp_folder_path'];
         $blogid = $this->getBlogId();
         
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $delete_result = $wp_filesystem->rmdir($tmp_folderpath, true);        
         
@@ -683,6 +684,7 @@ class PrimeMoverCLIShellArchiver
             return;
         }
         
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         if ( ! $source ) {
             $exclusion_rules = $this->getExclusionRules();

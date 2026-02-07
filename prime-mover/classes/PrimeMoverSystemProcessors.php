@@ -250,6 +250,8 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
 
         if (isset($delete_tmpfile_post['prime_mover_deletetmpfile_nonce']) && isset($delete_tmpfile_post['temp_file_to_delete']) && $this->getSystemFunctions()->primeMoverVerifyNonce($delete_tmpfile_post['prime_mover_deletetmpfile_nonce'], 'prime_mover_deletetmpfile_nonce')) {
             // Get temp directory to delete
+            
+            $this->getSystemInitialization()->initializeFs(false);
             global $wp_filesystem;
             $temp_dir = $delete_tmpfile_post['temp_file_to_delete'];
             
@@ -394,6 +396,7 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
             
             $ret = $this->getUploadUtilities()->moveUploadedChunkToUploads($uploadedfile, $upload_overrides, $fileName);
             
+            $this->getSystemInitialization()->initializeFs(false);
             global $wp_filesystem;
             if (! isset($ret['file']) || ! $wp_filesystem->exists($ret['file'])) {
                 return wp_send_json($response);
@@ -520,6 +523,8 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
             $data_to_continue = json_decode($data_to_continue, true);
             
             if ((is_array($data_to_continue)) && (! empty($data_to_continue))) {
+                
+                $this->getSystemInitialization()->initializeFs(false);
                 global $wp_filesystem;
 
                 if (isset($data_to_continue['unzipped_directory']) && isset($data_to_continue['diff']) && isset($data_to_continue['blog_id'])) {

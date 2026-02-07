@@ -265,6 +265,9 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
     private $prime_mover_current_db_export_user;
     
     /** @var array */
+    private $root_backup_dir_unwritable;
+    
+    /** @var array */
     private $int_types;
         
     /**
@@ -434,6 +437,7 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
         $this->autobackup_off_tracker = 'prime_mover_autobackup_off_on_restore';
         $this->prime_mover_singlesite_upgraded_2 = 'prime_mover_singlesite_upgraded_2';
         $this->prime_mover_current_db_export_user = 0;
+        $this->root_backup_dir_unwritable = [];
         
         $this->int_types = [
             'tinyint',
@@ -445,6 +449,43 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
         ];
     }
 
+    /**
+     * Check if root backup directory permissions
+     * Returns true if unwritable
+     * @return boolean
+     */
+    public function getRootBackupDirUnwritable($blog_id = 0)
+    {
+        if (!$blog_id) {
+            return false;
+        }
+        
+        $unwritable = false;
+        $permission_checks = $this->root_backup_dir_unwritable;
+        if (isset($permission_checks[$blog_id])) {
+            $unwritable = $permission_checks[$blog_id];
+        }
+        
+        return $unwritable;
+    }
+    
+    /**
+     * Set root backup directory permissions
+     * @param number $blog_id
+     * @param boolean $unwritable
+     */
+    public function setRootBackupDirUnwritable($blog_id = 0, $unwritable = false)
+    {
+        if (!$blog_id) {
+            return;
+        }
+        
+        $permission_checks = $this->root_backup_dir_unwritable;
+        $permission_checks[$blog_id] = $unwritable;
+        
+        $this->root_backup_dir_unwritable = $permission_checks;
+    }
+    
     /**
      * Get int types
      * @return string[]
@@ -1279,6 +1320,8 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
             $path = $this->getMultisiteExportFolder($custom_path);
         }
         $dir = $path . $blog_id . DIRECTORY_SEPARATOR;
+        
+        $this->initializeFs(false);
         global $wp_filesystem;
         if ( $exist_check && ! $wp_filesystem->exists($dir) ) {
             return null;
@@ -1737,6 +1780,7 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
      */
     public function initializeExportDirectoryProtection()
     {
+        $this->initializeFs(false);
         global $wp_filesystem;
         $export_folder = $this->getMultisiteExportFolderPath();
         if (! $this->getSystemAuthorization()->isUserAuthorized() || ! $wp_filesystem->exists($export_folder)) {
@@ -1795,6 +1839,8 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
         if (!$export_folder) {
             return;
         }
+        
+        $this->initializeFs(false);
         global $wp_filesystem;
         $file = $export_folder . $filename;
         
@@ -1888,6 +1934,8 @@ Options -Indexes
         if ( ! $path ) {
             return;
         }
+        
+        $this->initializeFs(false);
         global $wp_filesystem;
         $file = $path . 'index.html';
         $this->putContents($wp_filesystem, $file, '<!DOCTYPE html><html lang="en"><title>Silence is gold</title>');
@@ -1928,6 +1976,7 @@ Options -Indexes
      */
     public function initializeExportDirIdentity()
     {
+        $this->initializeFs(false);
         global $wp_filesystem;
         $export_folder = $this->getMultisiteExportFolderPath();
         if (! $this->getSystemAuthorization()->isUserAuthorized() || ! $wp_filesystem->exists($export_folder)) {
@@ -1949,6 +1998,7 @@ Options -Indexes
      */
     public function initializeExportDbLock()
     {
+        $this->initializeFs(false);
         global $wp_filesystem;
         $lock_folder = $this->getLockFilesFolder();
         if (!$this->getSystemAuthorization()->isUserAuthorized() || !$wp_filesystem->exists($lock_folder)) {
@@ -2053,6 +2103,7 @@ Options -Indexes
      */
     protected function initializeLogsHelper($logtype = 'migration', $blog_id = 0, $file = '')
     {
+        $this->initializeFs(false);
         global $wp_filesystem;        
         if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return;
@@ -3864,5 +3915,34 @@ Options -Indexes
         }
         
         return $wpdb;  
+    }
+    
+    /**
+     * Initialize WP Filesystem if not usable.
+     * @param boolean $admin_check
+     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverInitialization::itInitializesFs()
+     */
+    public function initializeFs($admin_check = true)
+    {
+        if (is_admin() && $admin_check) {
+            return;
+        }
+        global $wp_filesystem;
+        if (!$this->isWpFileSystemUsable($wp_filesystem)) {
+            $this->multisiteInitializeWpFilesystemApiCli(false);
+        }
+    }
+    
+    /**
+     * Returns TRUE if wp_filesystem is usable, false otherwise
+     * @param $wp_filesystem
+     * @return boolean
+     */
+    public function isWpFileSystemUsable($wp_filesystem = null)
+    {
+        if (!is_object($wp_filesystem)) {
+            return false;
+        }
+        return true;
     }
 }

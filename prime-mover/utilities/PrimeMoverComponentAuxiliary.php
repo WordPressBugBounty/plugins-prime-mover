@@ -1009,6 +1009,7 @@ If you no longer need %s - please delete this via FTP or any file manager.', 'pr
 		</div>
     <?php 
     }
+    
     /**
      * Validate backups to be listed
      * @param array $backups
@@ -1035,7 +1036,12 @@ If you no longer need %s - please delete this via FTP or any file manager.', 'pr
         if (defined('PRIME_MOVER_PACKAGE_FORCE_REFRESH_PACKAGE') && PRIME_MOVER_PACKAGE_FORCE_REFRESH_PACKAGE) {
             $refresh = true;
         }        
-       
+        
+        do_action('prime_mover_before_displaying_packages', $blog_id, $backups, $current_backup_hash);         
+        if ($this->getSystemInitialization()->getRootBackupDirUnwritable($blog_id)) {
+            return [];
+        }
+        
         if ( ! $refresh && ! empty($backups_array[$blog_id]) ) {
             return reset($backups_array[$blog_id]);
         }

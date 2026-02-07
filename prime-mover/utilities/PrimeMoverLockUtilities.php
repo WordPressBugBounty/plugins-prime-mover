@@ -463,8 +463,8 @@ class PrimeMoverLockUtilities
      */
     public function maybeDisableHeartBeat()
     {
-        if ($this->getSystemFunctions()->isPrimeMoverPage()) {
-            wp_deregister_script( 'heartbeat' );
+        if ($this->getSystemFunctions()->isPrimeMoverPage()) {            
+            $this->getSystemFunctions()->maybeDeregisterHeartBeat();
         }        
     }
     
@@ -639,6 +639,7 @@ class PrimeMoverLockUtilities
         if ( ! $lock_file ) {
             return false;
         }
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         if ($render_absolute) {
             $lock_file_path = $wp_filesystem->abspath() . $lock_file;

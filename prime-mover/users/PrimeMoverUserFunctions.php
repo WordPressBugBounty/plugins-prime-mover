@@ -121,6 +121,8 @@ class PrimeMoverUserFunctions
         if ( ! $this->getSystemAuthorization()->isUserAuthorized()) {
             return $ret;
         }
+        
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         if (empty($ret['unzipped_directory'])) {
             return $ret;
@@ -502,6 +504,7 @@ class PrimeMoverUserFunctions
      */
     public function getUsersExportFilePath($unzipped_dir = '')
     {
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;                
         if ( ! $unzipped_dir || ! $wp_filesystem->exists($unzipped_dir)) {
             return false;
@@ -528,6 +531,7 @@ class PrimeMoverUserFunctions
      */
     public function getSpecialMetaKeysImportFile($unzipped_dir = '')
     {
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         if ( ! $unzipped_dir || ! $wp_filesystem->exists($unzipped_dir)) {
             return false;

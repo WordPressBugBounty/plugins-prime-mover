@@ -346,6 +346,7 @@ class PrimeMoverUserUtilities
      */
     public function processUserImport($ret = [], $blog_id = 0, $start_time = 0)
     {
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         
         if (!$this->getSystemAuthorization()->isUserAuthorized()) {
@@ -898,7 +899,7 @@ class PrimeMoverUserUtilities
             $user_max_id = (int)$user_max_id;
             $user_max_id = $user_max_id + 1;
         }
-        
+      
         if ($user_max_id > $size) {
             $size = $user_max_id;
         }
@@ -906,6 +907,10 @@ class PrimeMoverUserUtilities
         $total_user_count = 0;
         if (isset($ret['total_users_equivalence'])) {
             $total_user_count = $ret['total_users_equivalence'];
+        }
+             
+        if ($size > $user_max_id) {
+            $user_max_id = $size;
         }
         
         $method = $this->computeUserEquivalenceMethod($ret, $blog_id, $user_max_id, $total_user_count);

@@ -63,6 +63,8 @@ class PrimeMoverShutdownUtilities
         if ($process_initiated) {
             return;
         }
+        
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $error_log_file = $this->getSystemInitialization()->getErrorLogFile($blog_id);
         $error_log_path = $this->getPrimeMoverErrorPath($blog_id, $error_log_file);
@@ -140,6 +142,7 @@ class PrimeMoverShutdownUtilities
      */
     public function primeMoverErrorLogExist( $ret = false, $blogid = 0, $errorfilename = '' ) 
     {
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;        
         if ( ! $blogid ) {
             $blogid = $this->primeMoverGetProcessedID();

@@ -1122,6 +1122,7 @@ class PrimeMoverBuddyPressCompat
             return false;
         }
         
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $source_orig = $profile_dir . $old_id;
         $source_tmp = $profile_dir . "{$old_id}-tmp-{$mode}";

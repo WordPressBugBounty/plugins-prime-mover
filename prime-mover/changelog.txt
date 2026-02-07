@@ -2,6 +2,11 @@
 
 **This is a list detailing changes for all Prime Mover releases.**
 
+= 2.0.9 =
+
+* Fixed: Added support for page builders using base64 encoded data.
+* Fixed: Compatibility issues with the preview domains setup.
+
 = 2.0.8 =
 
 * Usability: Block activation on WordPress sites using SQLite databases.

@@ -52,12 +52,46 @@ class PrimeMoverGlobalDependencies
         }
         
         $wp_upload_dir = primeMoverGetUploadsDirectoryInfo();
-        if (!empty( $wp_upload_dir['basedir'] ) )  {
-            $required_paths[] = $wp_upload_dir['basedir'];
+        
+        $basedir = '';
+        $export_dir = '';
+        $import_dir = '';
+        $tmp_dir = '';
+        $lock_dir = '';
+        
+        if (!empty($wp_upload_dir['basedir'])) {
+            $basedir = $wp_upload_dir['basedir'];
+            $required_paths[] = $basedir;
         }
-        if (!empty( $wp_upload_dir['path'] ) )  {
+        
+        if (!empty($wp_upload_dir['path'] ) )  {
             $required_paths[] = $wp_upload_dir['path'];
         }
+        
+        if ($basedir) {
+            $basedir = trailingslashit($basedir);
+            $export_dir = wp_normalize_path($basedir . PRIME_MOVER_EXPORT_DIR_SLUG);
+            $import_dir = wp_normalize_path($basedir . PRIME_MOVER_IMPORT_DIR_SLUG);
+            $tmp_dir = wp_normalize_path($basedir . PRIME_MOVER_TMP_DIR_SLUG);
+            $lock_dir = wp_normalize_path($basedir . PRIME_MOVER_LOCK_DIR_SLUG);
+        }
+        
+        
+        if ($export_dir && is_dir($export_dir)) {
+            $required_paths[] = $export_dir;
+        }
+        
+        if ($import_dir && is_dir($import_dir)) {
+            $required_paths[] = $import_dir;
+        }
+        
+        if ($tmp_dir && is_dir($tmp_dir)) {
+            $required_paths[] = $tmp_dir;
+        }
+        
+        if ($lock_dir && is_dir($lock_dir)) {
+            $required_paths[] = $lock_dir;
+        }        
         
         $filesystem_dependency = new PrimeMoverFileSystemDependencies($required_paths);
         return new PrimeMoverRequirementsCheck($phpverdependency, $wpcoredependency, $phpfuncdependency, $filesystem_dependency, $foldernamedependency, $coresaltdependency);

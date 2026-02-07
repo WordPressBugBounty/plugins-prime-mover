@@ -215,6 +215,7 @@ class PrimeMoverHookedMethods
             $blog_id = 1;
         }
         $rendered = false;        
+        $disabled = $this->getSystemFunctions()->maybeDisableExportImportNoPermissions($blog_id);
         if (true === $this->getSystemChecks()->primeMoverEssentialRequisites()) {
             $button_text = $this->generateExportButtonText($blog_id);
             $blog_id	= intval($blog_id);
@@ -227,7 +228,12 @@ class PrimeMoverHookedMethods
                 }
                 $button_class = apply_filters('prime_mover_filter_button_class', $this->getSystemInitialization()->defaultButtonClasses(), $blog_id);
                 ?>
-			<input	name="prime_mover_exportbutton" 
+            <?php 
+            if ($disabled) {
+                $tooltip_button = $this->getSystemFunctions()->maybeShowPermissionIssuesOnToolTip($blog_id, 'export');
+            }
+            ?>
+			<input	<?php echo $disabled; ?> name="prime_mover_exportbutton" 
 					value="<?php echo $button_text; ?>" 
 					data-primemover-button-class="<?php echo esc_attr($button_class);?>"
 					class="<?php echo $button_class; ?> prime_mover_exportbutton js-prime_mover_exportbutton"
@@ -526,11 +532,20 @@ class PrimeMoverHookedMethods
 		<?php 
             
         if (false === $this->getSystemInitialization()->getMultisiteExportFolderCreated()) {
+            $export_folder = $this->getSystemFunctions()->getExportDirectoryPermissionPathToFix();
+            if ($export_folder) {
             ?>				
-			<p><?php echo esc_html__('Prime Mover plugin is not yet ready to use. Error: Unable to create its own export folder. 
+			<p><?php echo sprintf(esc_html__('%s: Unable to create Prime Mover plugin export folder: %s. 
+					Please make sure WordPress has permission for this path.', 'prime-mover'), '<strong>' . esc_html__('ERROR!', 'prime-mover') . '</strong>', '<code>' . $export_folder . '</code>'); ?></p>
+				
+			<?php
+            } else {
+            ?>
+            <p><?php echo esc_html__('Prime Mover plugin is not yet ready to use. Error: Unable to create its own export folder. 
 					This is required to export sites. Please make sure WordPress has permission to create folder in your uploads directory.', 'prime-mover'); ?></p>
 				
 			<?php
+            }
         }
             if (false === $this->getSystemInitialization()->getMultisiteWpFilesystemInitialized()) {
                 ?>			
@@ -567,10 +582,12 @@ class PrimeMoverHookedMethods
      */
     public function singleSiteMigrationCallBack()
     {
+        $backup_dir = $this->getSystemFunctions()->getExportDirectoryPermissionPathToFix(1); 
         $backups_menu_url = $this->getSystemFunctions()->getBackupMenuUrl();
     ?>
         <div class="wrap">
            <h1 class="wp-heading-inline"><?php esc_html_e( 'Migration Tools', 'prime-mover' ); ?></h1>
+           <?php do_action('prime_mover_single_site_package_manager_notices', $backup_dir); ?> 
            <a title="<?php esc_attr_e('Go to package manager', 'prime-mover');?>" href="<?php echo esc_url($backups_menu_url);?>" class="page-title-action"><?php esc_html_e('Go to Package Manager', 'prime-mover');?></a>
            <div class="card">              
                  <div class="prime_mover_exporter_block">  
@@ -580,8 +597,10 @@ class PrimeMoverHookedMethods
                              'prime-mover' ); 
                          ?></em></p>  
                      </div>                                      
-                     <?php                        
+                     <?php
+                     if (!$this->getSystemInitialization()->getRootBackupDirUnwritable(1)) {
                          do_action('prime_mover_exporter_block');
+                     }                         
                      ?>
                  </div>
           </div>    
@@ -594,7 +613,9 @@ class PrimeMoverHookedMethods
                          ?></em></p>                                               
                      </div>                                                                        
                       <?php 
+                      if (!$this->getSystemInitialization()->getRootBackupDirUnwritable(1)) {
                          do_action('prime_mover_importer_block');
+                      }
                       ?>
                 </div>       
 	       </div>

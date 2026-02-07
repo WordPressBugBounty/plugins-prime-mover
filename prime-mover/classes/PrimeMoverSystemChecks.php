@@ -305,6 +305,8 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
         $footprint = [];
         
         $activated_plugins_list = $this->getSystemFunctions()->getActivatedPlugins($blogid_to_export, $activated_plugins_list);        
+        
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         
         foreach ($activated_plugins_list as $plugin_to_check) {
@@ -794,7 +796,10 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
     protected function clearMediaList($ret = [])
     {
         if (isset($ret['copymedia_shell_tmp_list'])) {
-            global $wp_filesystem;
+            
+            $this->getSystemInitialization()->initializeFs(false);
+            global $wp_filesystem;            
+            
             $wp_filesystem->put_contents($ret['copymedia_shell_tmp_list'], '');
             $this->getSystemFunctions()->primeMoverDoDelete($ret['copymedia_shell_tmp_list']);
             unset($ret['copymedia_shell_tmp_list']);

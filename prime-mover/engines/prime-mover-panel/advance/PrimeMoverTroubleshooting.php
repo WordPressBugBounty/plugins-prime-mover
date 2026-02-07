@@ -254,6 +254,7 @@ class PrimeMoverTroubleshooting
         $clearlog = $this->getPrimeMoverSettings()->prepareSettings($response, 'clear_runtime_error_log_key',
             'prime_mover_clear_runtime_error_log_nonce', false, $this->getPrimeMover()->getSystemInitialization()->getPrimeMoverSanitizeStringFilter());
         
+        $this->getPrimeMover()->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $status = false;
         $message = esc_html__('Clear log error fails.', 'prime-mover');
@@ -331,6 +332,7 @@ class PrimeMoverTroubleshooting
         $clearlog = $this->getPrimeMoverSettings()->prepareSettings($response, 'clear_automatic_backup_log',
             'prime_mover_clear_automatic_backup_log_nonce', false, $this->getPrimeMover()->getSystemInitialization()->getPrimeMoverSanitizeStringFilter());
         
+        $this->getPrimeMover()->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $status = false;
         $message = esc_html__('Clear log error fails.', 'prime-mover');
@@ -667,6 +669,7 @@ class PrimeMoverTroubleshooting
         $clearlog = $this->getPrimeMoverSettings()->prepareSettings($response, 'clear_confirmation', 
             'prime_mover_clear_troubleshooting_settings_nonce', false, $this->getPrimeMover()->getSystemInitialization()->getPrimeMoverSanitizeStringFilter());
 
+        $this->getPrimeMover()->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $status = false;
         $message = esc_html__('Clear log error fails.', 'prime-mover');

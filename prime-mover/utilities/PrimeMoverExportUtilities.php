@@ -294,7 +294,7 @@ class PrimeMoverExportUtilities
         $themes_target_copy_path = $tmp_folderpath . $theme_foldername . DIRECTORY_SEPARATOR;        
         $make_directory_result = false;
         if (true === $shell_mode) {
-            
+            $this->getExporter()->getSystemInitialization()->initializeFs(false);
             global $wp_filesystem;
             $make_directory_result = $wp_filesystem->mkdir($themes_target_copy_path);                       
         }
@@ -351,6 +351,7 @@ class PrimeMoverExportUtilities
      */
     private function handleThemeCopyShell(array $stylesheet, $themes_target_copy_path = '', $export_data = [], $resource = [])
     {
+        $this->getExporter()->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $ret = false;
         $stylesheet_name = key($stylesheet);
@@ -418,6 +419,7 @@ class PrimeMoverExportUtilities
      */
     public function getPluginListForReprocessing($plugins_list = [], $cli_tmpname = '')
     {
+        $this->getExporter()->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         if ($this->getExporter()->getSystemFunctions()->nonCachedFileExists($cli_tmpname)) {            
             $json_string = $wp_filesystem->get_contents($cli_tmpname);
@@ -435,6 +437,7 @@ class PrimeMoverExportUtilities
      */
     public function getPluginsForExport($export_data = [], $resources = [])
     {
+        $this->getExporter()->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $blog_id = $this->getBlogIdFromExporterArray($export_data);
         if (! isset($export_data['export_system_footprint']['plugins'])) {
@@ -508,6 +511,7 @@ class PrimeMoverExportUtilities
      */
     public function primeMoverExportPluginsFunc($export_data = [])
     {
+        $this->getExporter()->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $resource = $this->getExporter()->getCliArchiver()->openMasterTmpFileResource($export_data, '', 'ab');
         list($plugins_list, $plugins_target_copy_path, $cli_tmpname) = $this->getPluginsForExport($export_data, $resource);  
@@ -808,6 +812,8 @@ class PrimeMoverExportUtilities
         if ( ! $folderpath || ! $blog_id ) {
             return;
         }
+        
+        $this->getExporter()->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $wp_filesystem->put_contents($folderpath . 'blogid.txt', $blog_id);      
         

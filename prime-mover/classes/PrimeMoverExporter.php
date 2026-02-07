@@ -741,7 +741,9 @@ class PrimeMoverExporter implements PrimeMoverExport
         }
         $ret['export_start_time'] = $start_time;
         $ret = apply_filters('prime_mover_inject_db_parameters', $ret, 'export');
-        $this->getSystemInitialization()->setSlowProcess();        
+        $this->getSystemInitialization()->setSlowProcess();
+        
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $blogid_to_export = (int) $blogid_to_export;
         if ($blogid_to_export < 1) {
@@ -2112,6 +2114,7 @@ class PrimeMoverExporter implements PrimeMoverExport
         $construct_message = json_encode($export_system_footprint);
         $ret['export_system_footprint'] = $export_system_footprint;
         
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $source = $tmp_folderpath . 'footprint.json'; 
         $put_results = $wp_filesystem->put_contents($source, $construct_message);

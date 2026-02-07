@@ -236,12 +236,18 @@ class PrimeMoverImportUtilities
             $mobile_class = 'prime_mover_is_mobile';
             $button_text = $target;
         }
+        
+        $disabled = $this->getSystemCheckUtilities()->getSystemFunctions()->maybeDisableExportImportNoPermissions($blog_id);
+        $title = '';
+        if ($disabled) {
+            $title = $this->getSystemCheckUtilities()->getSystemFunctions()->maybeShowPermissionIssuesOnToolTip($blog_id, 'import');
+        }
     ?>
-       <label for="js-prime_mover_importing_blog_<?php echo esc_attr($blog_id) ; ?>" id="js-prime-mover-browseupload-label-<?php echo esc_attr($blog_id) ; ?>" 
+       <label title="<?php echo esc_attr($title); ?>" <?php echo $disabled; ?> for="js-prime_mover_importing_blog_<?php echo esc_attr($blog_id) ; ?>" id="js-prime-mover-browseupload-label-<?php echo esc_attr($blog_id) ; ?>" 
        class="<?php echo apply_filters('prime_mover_filter_button_class', $this->getImporter()->getSystemInitialization()->defaultButtonClasses(), $blog_id); ?> prime-mover-fileupload-label">
            <?php echo $button_text; ?>
        </label>
-	    	<input name ="prime_mover_importbrowsefile" 
+	    	<input <?php echo $disabled; ?> name ="prime_mover_importbrowsefile" 
 	    			type ="file"
 	    			class = "prime_mover_importbrowsefile js-prime_mover_importbrowsefile <?php echo esc_attr($mobile_class);?>"
 	    			accept =".wprime, .zip"
@@ -535,6 +541,8 @@ class PrimeMoverImportUtilities
         $using_child_theme = $import_data['imported_package_footprint']['using_child_theme'];
         $template = key($import_data['imported_package_footprint']['template']);        
         $template_path_package = $include_themes . $template . DIRECTORY_SEPARATOR;
+        
+        $this->getImporter()->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         if (! $wp_filesystem->exists($template_path_package)) {           
             $import_data['copy_themes_done'] = true;
@@ -929,6 +937,7 @@ class PrimeMoverImportUtilities
      */
     protected function pluginExistsWritable($plugin_path_target = '')
     {
+        $this->getImporter()->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem; 
         $plugin_path_target = wp_normalize_path($plugin_path_target);
         
@@ -952,6 +961,7 @@ class PrimeMoverImportUtilities
     protected function loopPluginsToImport($plugins = [], $count = 0, $shell_mode = false, $include_plugins = '', $processed = 0,
         $cli_retry = false, $blog_id = 0, $import_data = [], $start = 0, $cli_tmpname = '')
     {
+        $this->getImporter()->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;    
         $this->startLog($blog_id, $plugins);
         foreach ($plugins as $k => $plugin) {
@@ -1112,6 +1122,7 @@ class PrimeMoverImportUtilities
     protected function copyDirectoryForPluginsImport($plugins_imported_package_path = '', $plugin_path_target = '', $shell_mode = false, $ds = '', $blog_id = 0, $import_data = [], 
         $plugins = [], $start = 0, $processed = 0)
     {
+        $this->getImporter()->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $copy_directory_result = '';
         do_action('prime_mover_log_processed_events', "COPYING: $plugins_imported_package_path TO: $plugin_path_target", $blog_id, 'import', 'primeMoverImportPluginsFunc', $this);
@@ -1212,6 +1223,8 @@ class PrimeMoverImportUtilities
     protected function checkIfPackageIncludeThemes($import_data = [])
     {
         $ret = '';
+        
+        $this->getImporter()->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $themes_package_path = $this->getThemespackagepath($import_data);
         if ($wp_filesystem->exists($themes_package_path)) {
@@ -1230,6 +1243,8 @@ class PrimeMoverImportUtilities
     protected function checkIfPackageIncludePlugins($import_data = [])
     {
         $ret = '';
+        
+        $this->getImporter()->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $plugins_package_path = $this->getPluginspackagepath($import_data);
         if ($wp_filesystem->exists($plugins_package_path)) {

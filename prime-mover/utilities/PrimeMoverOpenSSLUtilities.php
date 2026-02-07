@@ -150,6 +150,7 @@ class PrimeMoverOpenSSLUtilities
             return;
         }
         
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $path = $ret['temp_folder_path'];
         
@@ -248,6 +249,7 @@ class PrimeMoverOpenSSLUtilities
         
         $signature_file	= $unzipped_directory . $this->getSystemInitialization()->getSignatureFile();
         
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;        
         
         if ( ! $wp_filesystem->exists($signature_file)) {

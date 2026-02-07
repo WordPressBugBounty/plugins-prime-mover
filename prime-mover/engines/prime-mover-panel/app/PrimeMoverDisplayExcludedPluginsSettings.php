@@ -61,6 +61,15 @@ class PrimeMoverDisplayExcludedPluginsSettings
     {
         return $this->getPrimeMoverSettings()->getPrimeMover();
     }
+ 
+    /**
+     * Get system initialization
+     * @return \Codexonics\PrimeMoverFramework\classes\PrimeMoverSystemInitialization
+     */
+    public function getSystemInitialization()
+    {
+        return $this->getPrimeMover()->getSystemInitialization();
+    }
     
     /**
      * Get settings markup
@@ -76,6 +85,7 @@ class PrimeMoverDisplayExcludedPluginsSettings
      */
     protected function buildPluginsArray()
     {
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;        
         $plugins = get_plugins();
         $validated = [];

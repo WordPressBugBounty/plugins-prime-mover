@@ -597,6 +597,7 @@ class PrimeMoverImporter implements PrimeMoverImport
             return $ret;
         }
         
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         do_action('prime_mover_log_processed_events', "Extract main package..start", $blogid_to_import, 'import', $process_methods['current'], $this);         
         
@@ -937,7 +938,9 @@ class PrimeMoverImporter implements PrimeMoverImport
         
         if (isset($ret['error'])) {
             return $ret;
-        }        
+        }       
+        
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         if (isset($ret['unzipped_directory'])) {
             $unzipped_directory	= $ret['unzipped_directory'];
@@ -1069,6 +1072,7 @@ class PrimeMoverImporter implements PrimeMoverImport
         list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__, 'import');
         $is_extracting_tar = $ret['is_extracting_tar'];
         
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $unzipped_directory	= '';
         $is_extracting_tar = $ret['is_extracting_tar'];
@@ -1225,6 +1229,8 @@ class PrimeMoverImporter implements PrimeMoverImport
         
         $ret = apply_filters('prime_mover_get_import_progress', $ret, $blogid_to_import);
         list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__, 'import');
+        
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         
         $unzipped_directory	= '';
@@ -1368,6 +1374,8 @@ class PrimeMoverImporter implements PrimeMoverImport
         $ret = apply_filters('prime_mover_get_import_progress', $ret, $blogid_to_import); 
 
         list($current_func, $previous_func, $next_func) = $this->getSystemInitialization()->getProcessMethods(__FUNCTION__, 'import');        
+        
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         
         $unzipped_directory	= '';        
@@ -1778,6 +1786,13 @@ class PrimeMoverImporter implements PrimeMoverImport
         do_action('prime_mover_before_looping_restore_queries', $ret, $blogid_to_import);
         $ret['mysql_version'] = $wpdb->db_version();
         
+        $ret = $this->getSystemChecks()->getSystemCheckUtilities()->maybeComputeStrayCoreMuTables($ret);
+        
+        $tables_clean = true;
+        if (isset($ret['straycoremutables']) && !empty($ret['straycoremutables'])) {
+            $tables_clean = false;
+        }
+        
         $templine = '';
         $return = [];
         
@@ -1824,36 +1839,49 @@ class PrimeMoverImporter implements PrimeMoverImport
             
             $templine .= $line;
             $executed = false;
+            $query_ready = false;
+            
             if (substr(trim($line), -1, 1) == ';') {
+                $query_ready = true;
+            }
+            
+            if ($query_ready && false === $tables_clean && apply_filters('prime_mover_bailout_executable_query', false, $templine, $ret)) {
+                
+                $templine = '';
+                $q++;
+                $executed = true;
+                
+            } elseif ($query_ready) {
+                
                 $string_byte = mb_strlen($templine, '8bit');
                 $string_byte = (int)$string_byte;
                 if ($max_allowed_packet && $string_byte > $max_allowed_packet) {
-                    $max_allowed_packet_error = true;  
+                    $max_allowed_packet_error = true;
                     if (!empty($ret['max_allowed_packet_original']) && !empty($ret['max_allowed_packet_target']) && $max_allowed_packet === $ret['max_allowed_packet_original']) {
                         $max_allowed_packet_fix_rejected = true;
                         $max_allowed_package_target = $ret['max_allowed_packet_target'];
                         break;
                     }
                     
-                    $max_allowed_package_target = $this->getSystemUtilities()->maxAllowedPacketAdjustOnRunTime($wpdb, $db_super_user, $string_byte, $max_allowed_packet); 
+                    $max_allowed_package_target = $this->getSystemUtilities()->maxAllowedPacketAdjustOnRunTime($wpdb, $db_super_user, $string_byte, $max_allowed_packet);
                     if ($db_super_user) {
-                        fclose($handle);                        
+                        fclose($handle);
                         do_action('prime_mover_log_processed_events', "A retry is needed after MAX_ALLOWED_PACKET dynamic adjustment, $percent% done" , $blogid_to_import, 'import', __FUNCTION__, $this);
                         
                         $return['max_allowed_packet_original'] = $max_allowed_packet;
                         $return['max_allowed_packet_target'] = $max_allowed_package_target;
                         
-                        return $return;                          
+                        return $return;
                     } else {
                         break;
                     }
                 }
                 
-                $this->getSystemUtilities()->executeRestoreQuery($templine, $ret, $q, $is_retry);                
+                $this->getSystemUtilities()->executeRestoreQuery($templine, $ret, $q, $is_retry);
                 $templine = '';
                 $q++;
-                $executed = true;                
-            }            
+                $executed = true; 
+            }                       
             
             if ($executed) {
                 $return = $this->computeLastDbReadPositions($percent, $handle, $size);
@@ -1908,6 +1936,7 @@ class PrimeMoverImporter implements PrimeMoverImport
      */
     private function handleEncrypteddB($unzipped_path = '', $blogid_to_import = 0)
     {
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $import_path_sql = '';
         if ( ! $unzipped_path || ! $blogid_to_import ) {
@@ -2205,6 +2234,8 @@ class PrimeMoverImporter implements PrimeMoverImport
         $this->getSystemFunctions()->maybeForceDeleteOptionCaches('active_plugins', true, false);
         
         $active_plugins = $this->getSystemFunctions()->getOption('active_plugins', [], '', true, true);
+        
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $active_plugins_keys = array_keys($source_site_active_plugins);
         

@@ -454,6 +454,8 @@ class PrimeMoverArchiver
             $ret['error'] = esc_html__('Corrupted package configuration. Aborting.', 'prime-mover');
             return $ret;
         }
+        
+        $this->getSystemChecks()->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $config_written = $wp_filesystem->put_contents($tar_config, json_encode($config));  
         if (!$config_written) {

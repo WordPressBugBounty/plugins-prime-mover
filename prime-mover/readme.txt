@@ -5,7 +5,7 @@ Tags: migrate wordpress, multisite migration, clone, backup
 Requires at least: 4.9.8
 Tested up to: 6.9
 Requires PHP: 5.6
-Stable tag: 2.1.1
+Stable tag: 2.1.2
 License: GPLv3 or later
 License URI: https://codexonics.com
 
@@ -105,6 +105,15 @@ Update now to get all the latest bug fixes, improvements, and features!
 
 == Changelog ==
 
+= 2.1.2 =
+
+* Fixed: Stray core multisite tables inside the subsite database could corrupt restoration.
+* Fixed: Runtime errors associated with WP_FileSystem not being initialized.
+* Fixed: Insufficient memory error during the user import process when processing non-existing post authors.
+* Fixed: Handle remaining incorrect permissions that can cause export and import errors.
+* Fixed: Handle PHP notices when the open_basedir directive is enabled.
+* Fixed: Handle PHP notices caused by legacy code with new dependency checks added in WP 6.9.1.
+
 = 2.1.1 =
 
 * Fixed: Incompatibility issues with third-party salt implementation.  
@@ -122,10 +131,5 @@ Update now to get all the latest bug fixes, improvements, and features!
 * Fixed: Outdated libraries to work in PHP 8.4.
 * Fixed: Updated all third-party libraries to work from PHP 5.6 to PHP 8.4.
 * Fixed: Updated the Freemius SDK to version 2.12.2.
-
-= 2.0.9 =
-
-* Fixed: Added support for page builders using base64 encoded data.
-* Fixed: Compatibility issues with the preview domains setup.
 
 See the previous changelogs in changelog.txt.

@@ -81,6 +81,8 @@ class PrimeMoverSystemFunctions
     public function readPrimeMoverDirectory($blog_id = 0, $dir = '', $zips = [])
     {
         $files = $this->getSystemInitialization()->getDirectoryIteratorInstance($dir);
+        
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         
         $check_spaces = true;
@@ -762,6 +764,8 @@ class PrimeMoverSystemFunctions
         if (!$this->getSystemAuthorization()->isUserAuthorized() && $authorization_required) {
             return false;
         }
+        
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem; 
         if (empty($file)) {
             return false;
@@ -1360,10 +1364,7 @@ class PrimeMoverSystemFunctions
      */
     public function isWpFileSystemUsable($wp_filesystem = null)
     {
-        if ( ! is_object($wp_filesystem)) {
-            return false;
-        }
-        return true;
+        return $this->getSystemInitialization()->isWpFileSystemUsable($wp_filesystem);
     }
     
     /**
@@ -3463,7 +3464,9 @@ class PrimeMoverSystemFunctions
         if ($this->nonCachedFileExists($cli_tmpname)) {            
             return;
         }
-        $pending_to_process_string = json_encode($pending_to_process);        
+        $pending_to_process_string = json_encode($pending_to_process);
+        
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         $wp_filesystem->put_contents($cli_tmpname, $pending_to_process_string);            
     }
@@ -3723,6 +3726,8 @@ class PrimeMoverSystemFunctions
         if (! $theme) {
             return $fullpath;
         }
+        
+        $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
         if ($exist_check && ! $wp_filesystem->exists(PRIME_MOVER_THEME_CORE_PATH . DIRECTORY_SEPARATOR . $theme)) {
             return $fullpath;
@@ -3855,7 +3860,7 @@ class PrimeMoverSystemFunctions
             
             $regex = $escaped_like . '[0-9]+';
             $db = DB_NAME;
-            $db_search = $this->getMultisiteMainSiteTableQuery($db, $wpdb, $target_prefix, $regex);
+            $db_search = $this->getSiteTableQuery($db, $wpdb, $target_prefix, $regex);
             
             $all_tables = $wpdb->get_col($db_search);
             
@@ -3877,7 +3882,7 @@ class PrimeMoverSystemFunctions
      * @return string
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverSystemFunctions::itGetstMultisiteMainSiteTableQuery()
      */
-    public function getMultisiteMainSiteTableQuery($db = '', $wpdb = null, $target_prefix = '', $regex = '')
+    public function getSiteTableQuery($db = '', $wpdb = null, $target_prefix = '', $regex = '')
     {       
         return "SHOW TABLES FROM `{$db}` WHERE `Tables_in_{$db}`" . " " .  $wpdb->prepare("LIKE %s", $target_prefix) . " " .  "AND `Tables_in_{$db}`" . " " . $wpdb->prepare("NOT REGEXP %s", $regex);
     }
@@ -4172,13 +4177,7 @@ class PrimeMoverSystemFunctions
      */
     public function initializeFs($admin_check = true)
     {
-        if (is_admin() && $admin_check) {
-            return;
-        }
-        global $wp_filesystem;
-        if (!$this->isWpFileSystemUsable($wp_filesystem)) {
-            $this->getSystemInitialization()->multisiteInitializeWpFilesystemApiCli(false);
-        }
+        $this->getSystemInitialization()->initializeFs($admin_check);
     }
     
     /**
@@ -4940,6 +4939,149 @@ class PrimeMoverSystemFunctions
     }
     
     /**
+     * Maybe disabled export import buttons - no permissions mode.
+     * @param number $blog_id
+     * @return string
+     */
+    public function maybeDisableExportImportNoPermissions($blog_id = 0)
+    {
+        if (!$blog_id) {
+            return '';
+        }
+        
+        $backup_dir = $this->getExportDirectoryPermissionPathToFix($blog_id);
+        $disabled = '';
+        if ($backup_dir) {
+            $disabled = 'disabled';
+        }
+        
+        return $disabled;
+    }
+  
+    /**
+     * Maybe show permission issues on tooltip
+     * @param number $blog_id
+     * @param string $mode
+     * @return string
+     */
+    public function maybeShowPermissionIssuesOnToolTip($blog_id = 0, $mode = 'export')
+    {
+        if (!$blog_id || !$mode) {
+            return '';
+        }
+        
+        $backup_dir = $this->getExportDirectoryPermissionPathToFix($blog_id);
+        $tooltip_button = '';
+        if ($backup_dir) {
+            $tooltip_button = sprintf(esc_html__('Unable to %s because %s is not writable.', 'prime-mover'), $mode, $backup_dir);
+        }                
+        
+        return $tooltip_button;
+    }
+    
+    /**
+     * Return export directory path with permission issues to fix
+     * Empty string if nothing to fix
+     * @param number $blog_id
+     * @return string
+     */
+    public function getExportDirectoryPermissionPathToFix($blog_id = 0)
+    {
+        if (!$blog_id && !is_multisite()) {
+            $blog_id = 1;
+        }
+        
+        if (!$blog_id && is_multisite()) {
+            $blog_id = get_current_blog_id();
+        }
+        
+        $parent_dir = $this->getSystemInitialization()->getMultisiteExportFolder();
+        $child_dir = '';
+        if ($blog_id) {
+            $child_dir = $this->getExportPathOfThisSubsite($blog_id);
+        }        
+        
+        if ($parent_dir) {
+            $parent_dir = trailingslashit(wp_normalize_path($parent_dir));
+        }
+        
+        if ($child_dir) {
+            $child_dir = trailingslashit(wp_normalize_path($child_dir));
+        }
+       
+        $dirname = '';
+        if ($parent_dir) {
+            $dirname = dirname($parent_dir);
+        }
+        
+        if ($dirname) {
+            $dirname = trailingslashit(wp_normalize_path($dirname));
+        }
+        
+        if (!$child_dir && $parent_dir && $dirname) {
+            $child_dir = $parent_dir;
+            $parent_dir = $dirname;
+        }
+       
+        if (!$child_dir || !$parent_dir) {
+            return '';
+        }
+
+        if ($this->checkIfDirectoryHasPermissionIssues($parent_dir)) {    
+            $this->getSystemInitialization()->setRootBackupDirUnwritable($blog_id, true); 
+            return $parent_dir;
+        }
+        
+        if ($this->checkIfDirectoryHasPermissionIssues($child_dir)) {
+            $this->getSystemInitialization()->setRootBackupDirUnwritable($blog_id, true);
+            return $child_dir;
+        }
+
+        return '';
+    }
+    
+    /**
+     * Check if directory has permission issues
+     * @param string $path
+     * @return boolean
+     */
+    protected function checkIfDirectoryHasPermissionIssues($path = '')
+    {
+        return ($path && is_dir($path) && !wp_is_writable($path));
+    }
+    
+    /**
+     * Called only on a few Prime Mover pages where backward compatibility with legacy code is required.
+     */
+    public function maybeDeregisterHeartBeat()
+    {
+        add_filter('doing_it_wrong_trigger_error', function($ret, $function_name, $message, $version) {
+            if ('WP_Scripts::add' === $function_name && '6.9.1' === $version) {
+                return false;
+            }
+            return $ret;   
+        }, 10, 4);
+        wp_deregister_script('heartbeat');  
+    }
+    
+    /**
+     * Get subsite query regex that includes stray core mu tables
+     * @param wpdb $wpdb
+     * @param string $target_prefix
+     * @return string
+     */
+    protected function getSubsiteQueryRegEx($wpdb = null, $target_prefix = '')
+    {
+        $global_core_mu_tables = array_values($wpdb->tables('ms_global', false, 0));        
+        $regex_array = [];
+        foreach ($global_core_mu_tables as $table) {
+            $regex_array[] = $target_prefix . $table . '$';
+        }
+        
+        return implode("|", $regex_array);         
+    }
+    
+    /**
      * Clean Tables to export
      * @param number $blogid_to_export
      * @return array
@@ -4951,23 +5093,22 @@ class PrimeMoverSystemFunctions
         
         $wpdb = $this->getSystemInitialization()->getWpdB();
         $target_prefix = $wpdb->prefix;
+        $origin_target_prefix = $target_prefix;
+        
         $escaped_like = $wpdb->esc_like($target_prefix);
         $target_prefix = $escaped_like . '%';
-      
-        if ($this->isMultisiteMainSite($blogid_to_export, true) || !is_multisite()) {
+        $db = DB_NAME;
+        
+        if ($this->isMultisiteMainSite($blogid_to_export, true) || !is_multisite()) {            
+            $regex = $escaped_like . '[0-9]+';            
             
-            $regex = $escaped_like . '[0-9]+';
-            $db = DB_NAME;
-            $db_search = $this->getMultisiteMainSiteTableQuery($db, $wpdb, $target_prefix, $regex);
-            $tables_to_export = $wpdb->get_results($db_search, ARRAY_N);
-            
-        } else {
-            
-            $db_search = "SHOW TABLES LIKE %s";
-            $tables_to_export = $wpdb->get_results($wpdb->prepare($db_search, $target_prefix), ARRAY_N);
-            
+        } else {            
+            $regex = $this->getSubsiteQueryRegEx($wpdb, $origin_target_prefix);           
         }
             
+        $db_search = $this->getSiteTableQuery($db, $wpdb, $target_prefix, $regex);
+        $tables_to_export = $wpdb->get_results($db_search, ARRAY_N);
+        
         $this->restoreCurrentBlog();
         return $this->cleanDbTablesForExporting($tables_to_export, $blogid_to_export, $wpdb, 'export');
     }

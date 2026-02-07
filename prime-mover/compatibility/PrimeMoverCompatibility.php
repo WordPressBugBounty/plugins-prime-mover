@@ -163,7 +163,37 @@ class PrimeMoverCompatibility
         add_filter('prime_mover_filter_export_footprint', [$this, 'addThirdPartyPluginsProcessorToFootPrint'], 2500, 3);        
         add_action('prime_mover_after_db_processing', [$this, 'maybeScheduleThirdPartyProcessingOnImport'], 10, 2);
         add_filter('prime_mover_media_resource_is_excluded', [$this, 'maybeExcludeWindowsThumbsDb'], 10000, 6);
+        
+        add_filter('prime_mover_bailout_executable_query', [$this, 'maybeBypassIncompatibleCoreTables'], 100, 3);
     } 
+ 
+    /**
+     * Maybe bypass incompatible core tables for import
+     * These tables are stray core MU tables that could corrupt target installation
+     * @param boolean $return
+     * @param string $templine
+     * @param array $ret
+     * @return string
+     */
+    public function maybeBypassIncompatibleCoreTables($return = false, $templine = '', $ret = [])
+    {
+        if (!isset($ret['straycoremutables'])) {
+            return $return;
+        }
+      
+        $strays = $ret['straycoremutables'];
+        if (!is_array($strays)) {
+            return $return;
+        }
+        
+        foreach ($strays as $stray) {
+            if (str_contains($templine, $stray)) {
+                return true;
+            }
+        }
+        
+        return $return;
+    }
     
     /**
      * Maybe exclude Windows thumbs.db file
