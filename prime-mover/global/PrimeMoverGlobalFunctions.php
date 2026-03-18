@@ -20,24 +20,25 @@ if ( !function_exists( 'pm_fs' ) ) {
             // Include Freemius SDK.
             require_once PRIME_MOVER_MAINDIR . '/freemius/start.php';
             $pm_fs = fs_dynamic_init( array(
-                'id'             => '3826',
-                'slug'           => 'prime-mover',
-                'premium_slug'   => 'prime-mover-pro',
-                'type'           => 'plugin',
-                'public_key'     => 'pk_a69fd5401be20bf46608b1c38165b',
-                'is_premium'     => false,
-                'premium_suffix' => 'Pro',
-                'has_addons'     => false,
-                'has_paid_plans' => true,
-                'trial'          => array(
+                'id'               => '3826',
+                'slug'             => 'prime-mover',
+                'premium_slug'     => 'prime-mover-pro',
+                'type'             => 'plugin',
+                'public_key'       => 'pk_a69fd5401be20bf46608b1c38165b',
+                'is_premium'       => false,
+                'premium_suffix'   => 'Pro',
+                'has_addons'       => false,
+                'has_paid_plans'   => true,
+                'trial'            => array(
                     'days'               => 14,
                     'is_require_payment' => true,
                 ),
-                'menu'           => array(
+                'menu'             => array(
                     'slug'    => 'migration-panel-settings',
                     'network' => true,
                 ),
-                'is_live'        => true,
+                'is_live'          => true,
+                'is_org_compliant' => true,
             ) );
         }
         return $pm_fs;

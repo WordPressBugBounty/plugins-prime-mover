@@ -3,9 +3,9 @@ Contributors: codexonics, freemius
 Donate link: https://codexonics.com
 Tags: migrate wordpress, multisite migration, clone, backup
 Requires at least: 4.9.8
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 5.6
-Stable tag: 2.1.2
+Stable tag: 2.1.3
 License: GPLv3 or later
 License URI: https://codexonics.com
 
@@ -80,7 +80,7 @@ https://youtu.be/QAVVXcoQU8g
 * You won't have to mess with complicated migration settings; the free version has built-in settings. You can choose only a few options to export and migrate—that's it.
 * You can save, download, delete, and migrate packages using the management page.
 * No need to worry about PHP configuration and server settings. Compatible with most default PHP server settings, even in limited shared hosting.
-* Prime Mover works with modern PHP versions 5.6 to 8.4+ (Google Drive feature requires at least PHP 7.4).
+* Prime Mover works with modern PHP versions 5.6 to 8.5+ (Google Drive feature requires at least PHP 7.4).
 * The code follows PHP-fig coding standards (standard PHP coding guidelines).
 * The free version supports backup and restoration of non-UTF8 sites. However, you need the PRO version to migrate non-UTF8 to the UTF8 (utf8mb4) database charset and vice versa.
 * After migration, you don't need to worry about setting up users or changing passwords. It does not overwrite existing site users.
@@ -105,6 +105,16 @@ Update now to get all the latest bug fixes, improvements, and features!
 
 == Changelog ==
 
+= 2.1.3 =
+
+* Fixed: Edge case fatal error when activating or deactivating a license on the Freemius account page with specialized themes.
+* Fixed: Update MySQLdump library for compatibility with PHP 8.5.
+* Fixed: General compatibility fixes with PHP 8.5.
+* Fixed: Removed outdated, deprecated code.
+* Fixed: Removed the use of PHP shell functions.
+* Fixed: Updated Dropbox library for PHP 8.5 compatibility.
+* Fixed: Tested for compatibility with WordPress 7.0.
+
 = 2.1.2 =
 
 * Fixed: Stray core multisite tables inside the subsite database could corrupt restoration.
@@ -124,12 +134,5 @@ Update now to get all the latest bug fixes, improvements, and features!
 * Fixed: Updated the Freemius SDK to version 2.13.0.
 * Fixed: Updated the Freemius pricing page library to the latest version 1.3.0.
 * Compatibility: Tested with WordPress 6.9 release.
-
-= 2.1.0 =
-
-* Fixed: Deprecated notices in the PHP 8.4 latest version.
-* Fixed: Outdated libraries to work in PHP 8.4.
-* Fixed: Updated all third-party libraries to work from PHP 5.6 to PHP 8.4.
-* Fixed: Updated the Freemius SDK to version 2.12.2.
 
 See the previous changelogs in changelog.txt.

@@ -1000,13 +1000,8 @@ class PrimeMoverExporter implements PrimeMoverExport
             do_action('prime_mover_log_processed_events', 'Starting MySQLdump using PHP', $blogid_to_export, 'export', $current_func, $this);
             
             $this->getSystemFunctions()->temporarilyIncreaseMemoryLimits();
-            $dump_result = $this->executeDumpUsingPHP($filter_export_data, $target_path, $clean_tables, $ret, $start_time, $blogid_to_export);
-            
-        } else {
-            do_action('prime_mover_log_processed_events', 'Starting MySQLdump using native shell command.', $blogid_to_export, 'export', $current_func, $this);
-            $this->getSystemFunctions()->temporarilyIncreaseMemoryLimits();
-            $dump_result = $this->doMySqlDumpUsingShell($clean_tables, $filter_export_data, $target_path, $blogid_to_export, $ret, $start_time);
-        }
+            $dump_result = $this->executeDumpUsingPHP($filter_export_data, $target_path, $clean_tables, $ret, $start_time, $blogid_to_export);            
+        } 
         
         return $dump_result;
     }
@@ -1041,30 +1036,6 @@ class PrimeMoverExporter implements PrimeMoverExport
     }
     
     /**
-     * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverExporter::itChecksWhetherToUseMySQLDumpPHP() 
-     * Maybe use MySQL Dump PHP if shell isn't supported
-     * @param array $ret
-     * @return boolean
-     * @deprecated
-     */
-    protected function maybeUseMySQLDumpPhp($ret = [])
-    {
-        $use_mysqldump_php = true;
-        if ( ! empty($ret['force_dbdump_in_php'] ) ) {
-            return $use_mysqldump_php;
-        }
-        
-        $shell_support = $this->getCliArchiver()->maybeArchiveMediaByShell();       
-        $mysqldump_path = $this->getSystemChecks()->getMySqlDumpPath();
-       
-        if ($mysqldump_path && is_array($shell_support)) {
-            $use_mysqldump_php = false;
-        }
-        
-        return $use_mysqldump_php;
-    }
-    
-    /**
      * Checks if dump is in progress
      * @param array $ret
      * @return boolean
@@ -1078,143 +1049,6 @@ class PrimeMoverExporter implements PrimeMoverExport
         }
         $this->getSystemInitialization()->setSlowProcess();
         return $dump_in_progress;
-    }
-    
-    /**
-     * MySQL dump using shell
-     * @param array $tables_to_dumped_shell
-     * @param boolean $filter_export_data
-     * @param string $target_path
-     * @param number $blogid_to_export
-     * @param array $ret
-     * @param number $db_dump_start
-     * @return boolean
-     */
-    private function doMySqlDumpUsingShell($tables_to_dumped_shell = [], $filter_export_data = false, $target_path = '', $blogid_to_export = 0, $ret = [], $db_dump_start = 0)
-    {        
-        if ( ! empty($ret['shell_db_dump_clean_tables']) ) {
-            
-            $tables_to_dumped_shell = $ret['shell_db_dump_clean_tables'];            
-            unset($ret['shell_db_dump_clean_tables']);
-        }        
-        
-        $original_tables_count = count($tables_to_dumped_shell);
-        if ( ! empty($ret['shell_db_dump_original_table_counts']) ) {
-            
-            $original_tables_count = $ret['shell_db_dump_original_table_counts'];
-            unset($ret['shell_db_dump_original_table_counts']);
-        }        
-                
-        foreach ($tables_to_dumped_shell as $key => $table_shell_dumped) {            
-            $limit = 500000;     
-            
-            $offset = 0;
-            if ( ! empty($ret['shell_db_dump_index_to_resume']) ) {
-                $offset = $ret['shell_db_dump_index_to_resume'];
-                unset($ret['shell_db_dump_index_to_resume']);
-            }
-            
-            $create_table = true;
-            if (isset($ret['shell_db_dump_create_tables'])) {
-                $create_table = $ret['shell_db_dump_create_tables'];
-                unset($ret['shell_db_dump_create_tables']);
-            }
-            
-            while ($shell_dump_res = $this->executeDumpUsingShellFunctions($filter_export_data, $target_path, $blogid_to_export, $table_shell_dumped, $offset, $ret, $limit,
-                $original_tables_count, $tables_to_dumped_shell, $create_table)) {
-                    if ( ! empty($shell_dump_res['error']) ) {
-                        $ret['error'] = $shell_dump_res['error'];
-                        break;
-                    }                    
-                    $offset = $limit + $offset;
-                    $create_table = false;
-                    $retry_timeout = apply_filters('prime_mover_retry_timeout_seconds', PRIME_MOVER_RETRY_TIMEOUT_SECONDS, 'doMySqlDumpUsingShell');
-                    if (microtime(true) - $db_dump_start > $retry_timeout) {
-                    
-                        do_action('prime_mover_log_processed_events', "$retry_timeout seconds time out hits while dumping database. Offset to resume: $offset, Table to resume: $table_shell_dumped", $blogid_to_export, 'export', __FUNCTION__, $this);
-                    
-                        $count_ongoing_tables_for_dumping = count($tables_to_dumped_shell);
-                        $completed_dumped = $original_tables_count - $count_ongoing_tables_for_dumping;
-                        $percent = round(($completed_dumped / $original_tables_count) * 100, 0) . '%';
-                    
-                        $ret['dump_percent_progress'] = $percent;                    
-                        $ret['shell_db_dump_clean_tables'] = $tables_to_dumped_shell;
-                        $ret['shell_db_dump_index_to_resume'] = $offset;
-                        $ret['shell_db_dump_original_table_counts'] = $original_tables_count;
-                        $ret['shell_db_dump_create_tables'] = $create_table;
-                        $ret = $this->getSystemInitialization()->maybeAutomaticBackupTimeout($ret);
-                        
-                        return $ret;
-                }
-            }
-            if ( ! empty($ret['error']) ) {
-                return $ret;
-            }
-            unset($tables_to_dumped_shell[$key]);
-        }
-        
-        if (isset($ret['shell_db_dump_index_to_resume']))  {
-            unset($ret['shell_db_dump_index_to_resume']);
-        }
-        return $ret;
-    }
-    
-    /**
-     * Execute dump in shell if supported
-     * @param string $command
-     * @param boolean $filter_export_data
-     * @param string $target_path
-     * @return array
-     * 
-     */
-    private function executeDumpUsingShellFunctions($filter_export_data = false, $target_path = '', $blogid_to_export = 0, $table_shell_dumped = [], $offset = 0,
-        $ret = [], $limit = 0, $original_tables_count = 0, $clean_tables = [], $create_table = true)
-    {
-        $delete_sql_if_exist = false;
-        $clean_tables_count = count($clean_tables);
-        if ($clean_tables_count === $original_tables_count && 0 === $offset) {
-            $delete_sql_if_exist = true;
-        }
-        $command = $this->generateMySQLDumpShellCommand($ret, $blogid_to_export, [$table_shell_dumped], $limit, $offset, $create_table);
-        $dump_ret = [];
-        if ( ! $command || ! $target_path ) {
-            $dump_ret['error'] = esc_html__('Undefined execute dump in shell parameters.', 'prime-mover');
-            return $dump_ret;
-        }
-        if (is_array($command) && isset($command['error'])) {
-            $dump_ret['error'] = $command['error'];
-            return $dump_ret;
-        }
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
-            $dump_ret['error'] = esc_html__('Unauthorized dump.', 'prime-mover');
-            return $dump_ret;
-        }
-        $handle = popen("($command)","r");
-        if (false === $handle) {
-            $dump_ret['error'] = esc_html__('Error in MySQLdump shell using popen.', 'prime-mover');
-            return $dump_ret;
-        }
-        
-        if ($delete_sql_if_exist) {
-            $this->getSystemFunctions()->primeMoverDoDelete($target_path);
-        }
-        
-        $bytes_written = 0;
-        while(!feof($handle)){            
-            $line = fgets($handle);
-            
-            if (false === $line) {
-                break;
-            }            
-            if ($filter_export_data) {
-                $line = apply_filters('prime_mover_filter_export_db_data', $line);
-                $line = $line . PHP_EOL;
-            }
-            $bytes_written += file_put_contents($target_path, $line, FILE_APPEND);
-        }
-        
-        pclose($handle);               
-        return $bytes_written;
     }
 
     /**
@@ -1386,105 +1220,6 @@ class PrimeMoverExporter implements PrimeMoverExport
         
         $dump_ret['result'] = true;
         return $dump_ret;
-    }
-    
-    /**
-     * Generate MySQL dump shell command
-     * @param array $ret
-     * @param number $blogid_to_export
-     * @param array $clean_tables
-     * @return mixed
-     * 
-     */
-    private function generateMySQLDumpShellCommand($ret = [], $blogid_to_export = 0, $clean_tables = [], $limit = 100, $offset = 0, $create_table = true)
-    {
-        $no_password = false;
-        if (empty(DB_PASSWORD)) {
-            $no_password = true;
-        }
-        
-        $db_username = escapeshellarg(DB_USER);
-        $db_password = escapeshellarg(DB_PASSWORD);
-        $db_name = escapeshellarg(DB_NAME);
-        
-        if (empty($clean_tables)) {
-            $ret['error'] = esc_html__('Unable to dump database, please check that your database is not empty or these tables exists.', 'prime-mover');
-            return $ret;
-        }
-        $tables	= implode(" ", $clean_tables);
-        $mysqldump_path = $this->getSystemChecks()->getMySqlDumpPath();
-        if (! $mysqldump_path) {
-            $ret['error'] = esc_html__('Unable to get correct MySQLdump command.', 'prime-mover');
-            return $ret;
-        }
-        $mysqldump_path = escapeshellarg($mysqldump_path);
-        $password_phrase = ' ';
-        if (false === $no_password) {
-            $password_phrase = ' -p'. $db_password;
-            $password_phrase = apply_filters('prime_mover_passwordless_dump', $password_phrase);
-        }
-        
-        $db_host = $this->getSystemFunctions()->parsedBHostForPDO();
-        if ( ! $db_host ) {            
-            $ret['error'] = esc_html__('Unable to parse DB_HOST for MySQL command execution.', 'prime-mover');
-            return $ret;
-        }
-        if (empty($db_host['host'])) {            
-            $ret['error'] = esc_html__('Error, no known DB host to connect.', 'prime-mover');
-            return $ret;
-        }
-        
-        $db_hostname = $db_host['host'];
-        $db_hostname = escapeshellarg($db_hostname);
-        
-        $port = '';
-        if ( ! empty($db_host['port'] ) &&  $db_host['port'] > 0) {
-            $port = (int)$db_host['port'];
-            $port = escapeshellarg($port);
-        }
-        
-        $socket = '';
-        if ( ! empty($db_host['socket'] )) {
-            $socket = $db_host['socket'];
-        }
-        
-        $port_phrase = ' ';
-        if ($port) {
-            $port_phrase = ' -P '. $port;
-        }
-        
-        $socket_phrase = ' ';
-        if ($socket) {
-            $socket_phrase = ' -S '. $socket;
-        }
-        
-        $limit = (int)$limit;
-        $offset = (int)$offset;
-        
-        $limit_phrase = "--where=1 limit $offset, $limit";
-        $limit_phrase = escapeshellarg($limit_phrase);
-        
-        $create_info_phrase = '';
-        
-        $compact_phrase = '';
-        if ( ! $create_table) {
-            $create_info_phrase = "--no-create-info";
-            $compact_phrase = "--compact";
-        }       
-        
-        $dump_command = $mysqldump_path . ' '.
-            $password_phrase .
-            ' -u' . $db_username .
-            ' -h'. $db_hostname . ' ' .
-            $port_phrase . ' ' .
-            $socket_phrase . ' ' .
-            $limit_phrase . ' ' .
-            $create_info_phrase . ' ' .
-            $compact_phrase . ' ' .
-            $db_name . ' ' .
-            $tables;
-            
-        return $dump_command;
     }
     
     /**

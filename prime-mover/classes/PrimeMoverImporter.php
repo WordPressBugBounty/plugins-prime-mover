@@ -601,22 +601,13 @@ class PrimeMoverImporter implements PrimeMoverImport
         global $wp_filesystem;
         do_action('prime_mover_log_processed_events', "Extract main package..start", $blogid_to_import, 'import', $process_methods['current'], $this);         
         
-        $copymediabyshell = $this->getCliArchiver()->maybeArchiveMediaByShell(); 
         $extracting_tar = false;
         if (!empty($ret['file']) && $wp_filesystem->exists($ret['file']) && $this->getSystemFunctions()->hasTarExtension($ret['file'])) {
             $extracting_tar = true;
         }
         $ret['is_extracting_tar'] = $extracting_tar;
         $shell_progress_key = 'unzipping_main_directory_started';        
-        $error_log_path = $this->getSystemInitialization()->getTroubleShootingLogPath('migration');
-        
-        if ( ! isset($ret[$shell_progress_key])) {
-            $media_tmp_file = $this->createTmpShellFile($extracting_tar);
-        } else {
-            $media_tmp_file = $ret['media_tmp_file'];
-        }
-              
-        $task = esc_html__('Processing', 'prime-mover');        
+            
         if ( ! isset($ret['file'] ) || ! $wp_filesystem->exists($ret['file'])) {
             if (! isset($ret[$shell_progress_key]) && !$extracting_tar) {
                 $ret['error'] = esc_html__('Import file does not seem to exist.', 'prime-mover');
@@ -648,14 +639,8 @@ class PrimeMoverImporter implements PrimeMoverImport
             $ret['unzipped_directory'] = $unzipped_directory;
         }
         
-        $this->getSystemInitialization()->setTemporaryImportPackagePath($unzipped_directory);
-        
-        if (is_array($copymediabyshell) && !$extracting_tar) {            
-            
-            return $this->getCliArchiver()->doShellArchivingTasks($copymediabyshell, $ret, $shell_progress_key, $blogid_to_import, false, '', 'extraction', '',
-                $error_log_path, $media_tmp_file, $process_methods, false, [], $task, 'import');
-            
-        } elseif (!$extracting_tar) {            
+        $this->getSystemInitialization()->setTemporaryImportPackagePath($unzipped_directory);        
+        if (!$extracting_tar) {            
             if (empty($ret['media_zip_last_index'])) {
                 $ret['media_zip_last_index'] = 0;
             }

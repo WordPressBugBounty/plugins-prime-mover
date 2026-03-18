@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit13ccde415249de5d5934c6d5dc37d38d
+class ComposerStaticInitfd3fb9e59f54f0ffca2971b8e1818a7c
 {
     public static $classMap = array (
         'Codexonics\\PrimeMoverFramework\\advance\\PrimeMoverTroubleshooting' => __DIR__ . '/../..' . '/engines/prime-mover-panel/advance/PrimeMoverTroubleshooting.php',
@@ -72,7 +72,6 @@ class ComposerStaticInit13ccde415249de5d5934c6d5dc37d38d
         'Codexonics\\PrimeMoverFramework\\classes\\PrimeMoverUsers' => __DIR__ . '/../..' . '/classes/PrimeMoverUsers.php',
         'Codexonics\\PrimeMoverFramework\\classes\\PrimeMoverValidationHandlers' => __DIR__ . '/../..' . '/classes/PrimeMoverValidationHandlers.php',
         'Codexonics\\PrimeMoverFramework\\cli\\PrimeMoverCLIArchive' => __DIR__ . '/../..' . '/cli/PrimeMoverCLIArchive.php',
-        'Codexonics\\PrimeMoverFramework\\cli\\PrimeMoverCLIShellArchiver' => __DIR__ . '/../..' . '/cli/PrimeMoverCLIShellArchiver.php',
         'Codexonics\\PrimeMoverFramework\\compatibility\\PrimeMoverBuddyPressCompat' => __DIR__ . '/../..' . '/compatibility/PrimeMoverBuddyPressCompat.php',
         'Codexonics\\PrimeMoverFramework\\compatibility\\PrimeMoverCachingCompat' => __DIR__ . '/../..' . '/compatibility/PrimeMoverCachingCompat.php',
         'Codexonics\\PrimeMoverFramework\\compatibility\\PrimeMoverCleanUp' => __DIR__ . '/../..' . '/compatibility/PrimeMoverCleanUp.php',
@@ -172,7 +171,7 @@ class ComposerStaticInit13ccde415249de5d5934c6d5dc37d38d
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->classMap = ComposerStaticInit13ccde415249de5d5934c6d5dc37d38d::$classMap;
+            $loader->classMap = ComposerStaticInitfd3fb9e59f54f0ffca2971b8e1818a7c::$classMap;
 
         }, null, ClassLoader::class);
     }

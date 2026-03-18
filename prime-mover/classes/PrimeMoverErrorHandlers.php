@@ -350,16 +350,8 @@ class PrimeMoverErrorHandlers
         if ( ! is_array($error_output) ) {
             return $error_output;
         }
-        /**
-         * @var mixed $output phpinfo CLI output
-         */
-        if ('cli' === php_sapi_name()) {
-            exec("php -i", $output);
-            $phpinfoarray = $output;
-        } else {
-            $phpinfoarray = $this->getShutDownUtilities()->phpinfo2array();
-        }        
         
+        $phpinfoarray = $this->getShutDownUtilities()->phpinfo2array();        
         $error_output = array_merge($error_output, $phpinfoarray);        
         
         return $error_output;

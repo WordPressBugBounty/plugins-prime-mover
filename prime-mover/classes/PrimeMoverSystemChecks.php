@@ -946,53 +946,6 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
         }
         return $actions;
     }
-    
-    /**
-     * Analyze the most correct MySQL dump path based on the system this plugin is running.
-     * Inspired by https://wordpress.org/plugins/duplicator/
-     * @return boolean|string|
-     * @compatible 5.6
-     * @tested PrimeMoverFramework\Tests\TestMigrationSystemChecks::itGetsMySQLDumpPath() 
-     * @tested PrimeMoverFramework\Tests\TestMigrationSystemChecks::itReturnsFalseIfNoSystemForMySQLDump() 
-     * @tested PrimeMoverFramework\Tests\TestMigrationSystemChecks::itReturnsNullIfNotAuthorizedToDump()
-     * @tested PrimeMoverFramework\Tests\TestMigrationSystemChecks::itReturnsFalseWhenNoMySQLDumpHandler() 
-     * @tested PrimeMoverFramework\Tests\TestMigrationSystemChecks::itGetsMySQLDumpPathInWindows()
-     * @tested PrimeMoverFramework\Tests\TestMigrationSystemChecks::itReturnsFalseWhenNoMySQLDumpHandlerInWindows()
-     */
-    public function getMySqlDumpPath()
-    {
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
-            return;
-        }
-        //Is system() possible
-        if (! $this->hasSystem()) {
-            return false;
-        }
-        $is_windows = false;
-        
-        if ($this->isWindows()) {
-            $is_windows = true;            
-            
-        } 
-        $paths = [];
-        
-        /**
-         * Using MySQL environment variable(this wont go wrong)
-         */
-        $binary_executable = $this->getSystemCheckUtilities()->getMySQLBaseDirExecutablePath('mysqldump', $is_windows);
-        if ($binary_executable && ! in_array($binary_executable, $paths)) {
-            $paths[] = $binary_executable;
-        }
-        
-        // Find the one which works
-        foreach ($paths as $path) {
-            if ($this->isExecutable($path)) {
-                return $path;
-            }
-        }
-        
-        return false;
-    }    
         
     /**
      * Checks if executable
@@ -1002,37 +955,6 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
     {
         return @is_executable($path);
     }    
-        
-    /**
-     * Can system() be called on this server
-     * Modified from Snap Creek | https://wordpress.org/plugins/duplicator/
-     * @return bool Returns true if system() can be called on server
-     * @compatible 5.6
-     *
-     */
-    public function hasSystem()
-    {        
-        if (! $this->getSystemAuthorization()->isUserAuthorized()) {
-            return;
-        }
-        $cmds = $this->getSystemInitialization()->getCoreSystemFunctions();
-        if (array_intersect($cmds, array_map('trim', explode(',', @ini_get('disable_functions'))))) {
-            return false;
-        }
-        
-        if (extension_loaded('suhosin')) {
-            $suhosin_ini = @ini_get("suhosin.executor.func.blacklist");
-            if (array_intersect($cmds, array_map('trim', explode(',', $suhosin_ini)))) {
-                return false;
-            }
-        }
-        
-        if (! @shell_exec('echo multisite migration')) {
-            return false;
-        }
-        
-        return true;
-    }
   
     /**
      * Checks if WAMP server

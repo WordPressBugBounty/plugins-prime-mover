@@ -41,7 +41,6 @@ use Codexonics\PrimeMoverFramework\utilities\PrimeMoverFreemiusIntegration;
 use Codexonics\PrimeMoverFramework\compatibility\PrimeMoverCompatibility;
 use Codexonics\PrimeMoverFramework\streams\PrimeMoverResumableDownloadStream;
 use Codexonics\PrimeMoverFramework\streams\PrimeMoverIterators;
-use Codexonics\PrimeMoverFramework\cli\PrimeMoverCLIShellArchiver;
 use Codexonics\PrimeMoverFramework\cli\PrimeMoverCLIArchive;
 use Codexonics\PrimeMoverFramework\menus\PrimeMoverBackupMenus;
 use Codexonics\PrimeMoverFramework\menus\PrimeMoverAutoBackupEventViewer;
@@ -75,56 +74,13 @@ if (! defined('ABSPATH')) {
  *  Instantiate new plugin object and uninstallation methods.
  */
 class PrimeMoverFactory
-{
-
-    /**
-     * Mode of execution, CLI or normal
-     * @var boolean
-     */
-    private $cli = false;
-    
-    /**
-     * Parameters passed, $argv for CLI
-     * @var array
-     */
-    private $parameters = [];
-    
-    /**
-     * Constructor
-     * @param boolean $cli
-     * @param array $parameters
-     */
-    public function __construct($cli = false, $parameters = [])
-    {
-        $this->cli = $cli;
-        $this->parameters = $parameters; 
-    } 
-        
-    /**
-     * Get Cli
-     * @return boolean
-     */
-    public function getCli()
-    {
-        return $this->cli;
-    }
-    
-    /**
-     * Get parameters
-     * @return array
-     */
-    public function getParameters()
-    {
-        return $this->parameters;
-    }
-        
+{        
     /**
      * Initialize hook
      */
     public function initHook()
     {
         add_action('init', [$this, 'composeObjects'], 0);
-        add_filter( 'determine_current_user', [$this, 'setUser'], 10, 1 );
     } 
     
     /**
@@ -145,19 +101,6 @@ class PrimeMoverFactory
         }
         
         $this->removePluginManagerOnUninstall();
-    }
-    
-    /**
-     * Set user if needed
-     * @param mixed $user
-     * @return mixed
-     */
-    public function setUser($user)
-    {
-        if ($this->getCli() && defined('PRIME_MOVER_COPY_MEDIA_SHELL_USER') && defined('PRIME_MOVER_DOING_SHELL_ARCHIVE') && PRIME_MOVER_DOING_SHELL_ARCHIVE) {
-            return PRIME_MOVER_COPY_MEDIA_SHELL_USER;
-        }        
-        return $user;        
     }
     
     /**
@@ -305,13 +248,7 @@ class PrimeMoverFactory
         $migration_options->initHooks();
         
         $db_utilities = new PrimeMoverDatabaseUtilities($prime_mover, $utilities);
-        $db_utilities->initHooks();
-        
-        if ($this->getCli()) {
-            $parameters = $this->getParameters();
-            $cli = new PrimeMoverCLIShellArchiver($prime_mover, $utilities, $parameters);
-            $cli->initHooks();
-        }       
+        $db_utilities->initHooks();    
                
         $backup_menu = new PrimeMoverBackupMenus($prime_mover, $utilities);
         $backup_menu->initHooks();
@@ -590,20 +527,8 @@ class PrimeMoverFactory
 
 /**
  * Instantiate
- * @var \Codexonics\PrimeMoverFactory $loaded_instance
  */
-$cli = false;
-$parameters = [];
-
-if ("cli" === php_sapi_name()) {
-    $cli = true;
-    
-    /** @var mixed $argv Command Line arguments*/
-    global $argv;
-    $parameters = $argv;
-}
-
-$loaded_instance = new PrimeMoverFactory($cli, $parameters);
+$loaded_instance = new PrimeMoverFactory();
 $loaded_instance->initHook();
 $loaded_instance->loadActivationHook();
 

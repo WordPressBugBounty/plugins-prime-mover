@@ -71,7 +71,6 @@ return array(
     'Codexonics\\PrimeMoverFramework\\classes\\PrimeMoverUsers' => $baseDir . '/classes/PrimeMoverUsers.php',
     'Codexonics\\PrimeMoverFramework\\classes\\PrimeMoverValidationHandlers' => $baseDir . '/classes/PrimeMoverValidationHandlers.php',
     'Codexonics\\PrimeMoverFramework\\cli\\PrimeMoverCLIArchive' => $baseDir . '/cli/PrimeMoverCLIArchive.php',
-    'Codexonics\\PrimeMoverFramework\\cli\\PrimeMoverCLIShellArchiver' => $baseDir . '/cli/PrimeMoverCLIShellArchiver.php',
     'Codexonics\\PrimeMoverFramework\\compatibility\\PrimeMoverBuddyPressCompat' => $baseDir . '/compatibility/PrimeMoverBuddyPressCompat.php',
     'Codexonics\\PrimeMoverFramework\\compatibility\\PrimeMoverCachingCompat' => $baseDir . '/compatibility/PrimeMoverCachingCompat.php',
     'Codexonics\\PrimeMoverFramework\\compatibility\\PrimeMoverCleanUp' => $baseDir . '/compatibility/PrimeMoverCleanUp.php',

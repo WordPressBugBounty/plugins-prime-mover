@@ -90,9 +90,6 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
     /** @var boolean is_legacy */
     private $is_legacy;
     
-    /** @var array coresystem_functions */
-    private $coresystem_functions;
-    
     /** @var string base backup directory */
     private $basebackupdir;
     
@@ -306,8 +303,7 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
         $this->basebackupdir = '';
         $this->export_zip_path =  '';
         $this->site_specific_export_folder_created = '';
-        $this->is_legacy =  false;
-        $this->coresystem_functions = ['escapeshellarg', 'escapeshellcmd', 'shell_exec', 'extension_loaded', 'popen', 'exec'];
+        $this->is_legacy =  false;        
         $this->download_url = '';
         
         $this->js_body_class = 'js-prime-mover-sites-page';
@@ -1359,18 +1355,7 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
     {
         return $this->download_url;
     }
-    
-    /**
-     * Gets core system functions required
-     * @return array
-     * @compatible 5.6
-     * @tested Codexonics\PrimeMoverFramework\Tests\TestMigrationSystemInitialization::itGetsCoreSystemFunctions() 
-     */
-    public function getCoreSystemFunctions() 
-    {
-        return $this->coresystem_functions;
-    }
-    
+        
     /**
      * Get System authorization
      * @return \Codexonics\PrimeMoverFramework\classes\PrimeMoverSystemAuthorization

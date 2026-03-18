@@ -340,6 +340,18 @@ class PrimeMoverFreemiusCompat
         
         $freemius->add_filter('pricing_url', [$this, 'filterUpgradeUrl'], 10, 1);
         $freemius->add_filter('show_trial', [$this, 'maybehideTrial'], 10, 1);
+        $freemius->add_action('account_page_load_before_departure', [$this, 'maybeRestoreCurrentBlog']);
+    }
+    
+    /**
+     * Hotfix for Freemius switching blogs during account edits, but never called restore current blog. 
+     * Ideally, this permanent fix should be added to Freemius.
+     */
+    public function maybeRestoreCurrentBlog()
+    {
+        if (is_multisite() && is_network_admin() && ms_is_switched()) {
+            restore_current_blog();
+        }
     }
     
     /**

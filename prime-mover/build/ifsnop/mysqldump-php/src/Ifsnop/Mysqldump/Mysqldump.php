@@ -151,9 +151,22 @@ class Mysqldump
         $this->user = $user;
         $this->pass = $pass;
         $this->parseDsn($dsn);
-        // This drops MYSQL dependency, only use the constant if it's defined.
+        $is_dbtype_mysql = \false;
         if ("mysql" === $this->dbType) {
-            $pdoSettingsDefault[PDO::MYSQL_ATTR_USE_BUFFERED_QUERY] = \false;
+            $is_dbtype_mysql = \true;
+        }
+        $buffered_query = '';
+        // PHP 8.5 COMPATIBILITY - USE NEW CONSTANT IF SET
+        if ($is_dbtype_mysql && \defined('Pdo\\Mysql::ATTR_USE_BUFFERED_QUERY')) {
+            $buffered_query = Pdo\Mysql::ATTR_USE_BUFFERED_QUERY;
+        }
+        //BACKWARD COMPATBILITY TO PREVIOUS PHP VERSIONS - FALLBACK TO ORIGINAL IF NOT YET SET
+        if ($is_dbtype_mysql && empty($buffered_query)) {
+            $buffered_query = PDO::MYSQL_ATTR_USE_BUFFERED_QUERY;
+        }
+        // This drops MYSQL dependency, only use the constant if it's defined.
+        if ($is_dbtype_mysql && $buffered_query) {
+            $pdoSettingsDefault[$buffered_query] = \false;
         }
         $this->pdoSettings = self::array_replace_recursive($pdoSettingsDefault, $pdoSettings);
         $this->dumpSettings = self::array_replace_recursive($dumpSettingsDefault, $dumpSettings);
