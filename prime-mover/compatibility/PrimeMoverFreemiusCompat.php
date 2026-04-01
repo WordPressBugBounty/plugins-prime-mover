@@ -12,9 +12,6 @@ namespace Codexonics\PrimeMoverFramework\compatibility;
  */
 
 use Codexonics\PrimeMoverFramework\classes\PrimeMover;
-use FS_Options;
-use FS_Plugin;
-use WP_Site;
 use Freemius;
 
 if (! defined('ABSPATH')) {
@@ -140,7 +137,6 @@ class PrimeMoverFreemiusCompat
     public function registerHooks()
     {        
         register_deactivation_hook(PRIME_MOVER_MAINPLUGIN_FILE, [$this, 'deactivationHook']);
-        add_action('admin_init', [$this, 'activationHook'], 0);
         
         add_filter('network_admin_plugin_action_links_' . PRIME_MOVER_DEFAULT_PRO_BASENAME , [$this, 'userFriendlyActionLinks'], PHP_INT_MAX, 1);
         add_filter('plugin_action_links_' . PRIME_MOVER_DEFAULT_PRO_BASENAME , [$this, 'userFriendlyActionLinks'], PHP_INT_MAX, 1);
@@ -151,12 +147,7 @@ class PrimeMoverFreemiusCompat
         add_filter('prime_mover_filter_ret_after_rename_table', [$this, 'injectFreemiusOptionsForSrchRplcExclusion'], 10, 2); 
         
         add_action('network_admin_notices', [$this, 'maybeShowMainSiteOnlyMessage'] );
-        add_action( 'init', [$this, 'maybeUpdateIfUserReadMessage']);
-        add_action('prime_mover_load_module_apps', [$this, 'maybeResetFreemiusOnIssues'], -1); 
-        
-        add_action('admin_head', [$this, 'jSUpgrade'], 100);
-        add_action('admin_head', [$this, 'filterPrimeMoverSlug'], 50);
-        add_action('prime_mover_load_module_apps', [$this, 'removeVerifiedMeta'], 1000);                
+        add_action( 'init', [$this, 'maybeUpdateIfUserReadMessage']);             
         
         $this->injectFreemiusHooks();
     }
@@ -286,57 +277,17 @@ class PrimeMoverFreemiusCompat
         $this->getSystemFunctions()->restoreCurrentBlog();
         return $affected_options;
     }
-    
-    /**
-     * Checks if upgraded user already verified
-     * @return boolean
-     */
-    protected function isUpgradedUserVerified()
-    {
-        return ('yes' === $this->getPrimeMover()->getSystemFunctions()->getSiteOption(self::ON_UPGRADE_USER_VERIFIED, false, true, false, '', true, true));
-    }
-    
-    /**
-     * Filter Prime Mover slug in menu
-     */
-    public function filterPrimeMoverSlug()
-    {
-        $verified = false;
-        if ($this->isUpgradedUserVerified()) {
-            $verified = true;
-        }
         
-        if (false === $verified && false === $this->maybeUpgradeComplete(false)) {
-            return;
-        }
-        
-        global $menu;
-        foreach ($menu as $k => $v) {
-            if (isset($v[2]) && 'migration-panel-settings' === $v[2]) {
-                if ($verified) {
-                    $menu[$k][2] = 'admin.php?page=migration-panel-settings&prime-mover-upgrade-complete=yes';
-                } else {
-                    $menu[$k][2] = 'admin.php?page=migration-panel-settings&prime-mover-upgrade-complete=yes&_wpnonce=' . $this->getSystemFunctions()->primeMoverCreateNonce('prime-mover-upgrade-complete'); 
-                }                               
-            }
-        }
-    }
-    
     /**
      * Add Freemius customization hooks
      */
     protected function injectFreemiusHooks()
     {
-        $freemius = $this->getFreemius();
-        $freemius->add_filter('connect-header_on-update', [$this, 'filterHeader']);       
-        $freemius->add_filter('connect_message_on_update', [$this, 'filterMessage']); 
-        
-        $freemius->add_action('connect/after_message', [$this, 'filterActionButtons']);
-        $freemius->add_filter('connect-message_on-premium', [$this, 'filterUpgradeMessage']);
-        $freemius->add_action('after_premium_version_activation', [$this, 'removeVerifiedMeta']);
+        $freemius = $this->getFreemius();       
         
         $freemius->add_filter('pricing/show_annual_in_monthly', '__return_false');
         $freemius->add_filter('freemius_pricing_js_path', [$this, 'setCustomPricingPath'], 10, 1);
+        $freemius->add_filter('show_delegation_option', '__return_false');
         
         $freemius->add_filter('pricing_url', [$this, 'filterUpgradeUrl'], 10, 1);
         $freemius->add_filter('show_trial', [$this, 'maybehideTrial'], 10, 1);
@@ -484,245 +435,6 @@ class PrimeMoverFreemiusCompat
         }
         
         return $path;
-    }
-    
-    /**
-     * Remove verified meta upon premium activation
-     */
-    public function removeVerifiedMeta()
-    {
-        if (!$this->getPrimeMover()->getSystemAuthorization()->isUserAuthorized()) {
-            return;
-        }
-        
-        if (true === apply_filters('prime_mover_is_loggedin_customer', false)) {
-            $this->getSystemFunctions()->deleteSiteOption(self::ON_UPGRADE_USER_VERIFIED, false, '', true, true); 
-        }               
-    }
-    
-    /**
-     * Filter message
-     * @param string $message
-     * @return string
-     */
-    public function filterUpgradeMessage($message = '')
-    {
-        if (false === $this->maybeUpgradeComplete(false)) {
-            return $message;
-        }
-        
-        $message = '';
-        $message .= sprintf(esc_html__('Thank you for upgrading to %s! To get started - please check your email to get details of your Freemius account and license key:', 'prime-mover'),
-            '<b>' . PRIME_MOVER_PRO_PLUGIN_CODENAME . '</b>');
-        $message .= '<ol>';
-        $message .= '<li>' . sprintf(esc_html__('Login to your %s', 'prime-mover'),
-            '<a target="_blank" class="prime-mover-external-link" href="https://users.freemius.com/login">' . esc_html__('Freemius account', 'prime-mover') . '</a>.</li>');
-        
-        $message .= '<li>' . sprintf(esc_html__('Inside your Freemius account - %s', 'prime-mover'),
-            '<a target="_blank" class="prime-mover-external-link" href="https://codexonics.com/prime_mover/prime-mover/prime-mover-pro-how-to-deactivate-licenses-inside-your-freemius-account/">' . esc_html__('deactivate license', 'prime-mover') . '</a>.</li>');
-        
-        $message .= '<li>' . esc_html__('Click the "License" tab - copy your license key.', 'prime-mover') . '</li>';
-        
-        $message .= '<li>' . esc_html__('Please enter your license key in the box below.', 'prime-mover') . '</li>';
-        $message .= '<li>' . esc_html__('Optionally - please confirm your email if you have received confirmation link.', 'prime-mover') . '</li>';
-        $message .= '</ol>';
-        
-        return $message;
-    }
-    
-    /**
-     * Filter action buttons
-     */
-    public function filterActionButtons()
-    {
-        if (false === $this->maybeUpgradeComplete()) {
-            return;
-        }
-    ?>
-        <p><a target="_blank" href="https://users.freemius.com/login" class="button button-hero"><?php esc_html_e('Download Prime Mover PRO', 'prime-mover'); ?></a></p>    
-    <?php      
-    }
-    
-    /**
-     * Filter message
-     * @param string $message
-     * @return string
-     */
-    public function filterMessage($message = '')
-    {
-        if (false === $this->maybeUpgradeComplete()) {
-            return $message;
-        }
-        
-        $message = '';
-        $message .= esc_html__('To get started - please check your email to get details of your Freemius account and license key:', 'prime-mover');
-        $message .= '<ol>';
-        $message .= '<li>' . sprintf(esc_html__('Login to your %s', 'prime-mover'), 
-            '<a target="_blank" class="prime-mover-external-link" href="https://users.freemius.com/login">' . esc_html__('Freemius account', 'prime-mover') . '</a>.</li>');
-        $message .= '<li>' . esc_html__('Download latest Prime Mover PRO.', 'prime-mover') . '</li>';
-        $message .= '<li>' . sprintf(esc_html__('Inside your Freemius account - %s', 'prime-mover'),
-            '<a target="_blank" class="prime-mover-external-link" href="https://codexonics.com/prime_mover/prime-mover/prime-mover-pro-how-to-deactivate-licenses-inside-your-freemius-account/">' . esc_html__('deactivate license', 'prime-mover') . '</a>.</li>');
-        $message .= '<li>' . esc_html__('Upload and install Prime Mover PRO to this site.', 'prime-mover') . '</li>';
-        $message .= '<li>' . esc_html__('Deactivate Prime Mover FREE version.', 'prime-mover') . '</li>';
-        $message .= '<li>' . esc_html__('Activate Prime Mover PRO and enter license key.', 'prime-mover') . '</li>';
-        $message .= '<li>' . esc_html__('Optionally - please confirm your email if you have received confirmation link.', 'prime-mover') . '</li>';
-        $message .= '</ol>';
-        
-        return $message;
-    }
-    
-    /**
-     * Filter upgrade header
-     * @param string $header
-     * @return string
-     */
-    public function filterHeader($header = '')
-    {
-        if (false === $this->maybeUpgradeComplete()) {
-            return $header;
-        } 
-        
-        return '<h2>' . esc_html__('Thank you for upgrading to Prime Mover PRO!', 'prime-mover') . '</h2>';        
-    }
-    
-    /**
-     * Maybe upgrade complete
-     * @param boolean $procheck
-     * @return boolean
-     */
-    protected function maybeUpgradeComplete($procheck = true)
-    {
-        $current =basename(PRIME_MOVER_PLUGIN_PATH) . '/' . PRIME_MOVER_PLUGIN_FILE;
-        if ($procheck && PRIME_MOVER_DEFAULT_PRO_BASENAME === $current) {
-            return false;
-        }
-        
-        if (!$this->getPrimeMover()->getSystemAuthorization()->isUserAuthorized()) {
-            return false;
-        }
-        
-        $args = [
-            'prime-mover-upgrade-complete' => $this->getSystemInitialization()->getPrimeMoverSanitizeStringFilter(),
-            '_wpnonce' => $this->getSystemInitialization()->getPrimeMoverSanitizeStringFilter(),
-        ];
-        
-        $get = $this->getPrimeMover()->getSystemInitialization()->getUserInput('get', $args, '', '', 0, true, true);
-        
-        if (!isset($get['prime-mover-upgrade-complete'])) {
-            return false;
-        }
-        
-        if ('yes' !== $get['prime-mover-upgrade-complete']) {
-            return false;
-        }
-        
-        if (!$this->isUpgradedUserVerified() && !$this->getSystemFunctions()->primeMoverVerifyNonce($get['_wpnonce'], 'prime-mover-upgrade-complete')) {
-            return false;
-        }    
-        
-        return true;
-    }
-    
-    /**
-     * On multisite network admin interface
-     * No need to show the Freemius delegate link
-     * Since the plugin is for network administrators only.
-     */
-    public function jSUpgrade()
-    {
-        if (false === $this->maybeUpgradeComplete()) {
-            return;
-        }        
-        ?>
-        <script>
-        window.onload = function() {
-        	if (jQuery('#fs_connect .fs-actions').length) {
-        		jQuery('#fs_connect .fs-actions').remove();
-        	}
-        	if (jQuery('#fs_connect .fs-multisite-options-container').length) {
-        		jQuery('#fs_connect .fs-multisite-options-container').remove();
-        	}
-        	if (jQuery('#fs_connect .fs-permissions').length) {
-        		jQuery('#fs_connect .fs-permissions').remove();
-        	}
-        }
-        </script>
-    <?php
-    }
-    
-    /**
-     * Maybe reset Freemius on issues
-     */
-    public function maybeResetFreemiusOnIssues()
-    {
-        if (wp_doing_ajax() || wp_doing_cron()) {            
-            return;
-        }
-        
-        $freemius = $this->getFreemius();
-        if (!is_object($freemius)) {            
-            return;
-        }
-        
-        if (!$this->getPrimeMover()->getSystemAuthorization()->isUserAuthorized()) {            
-            return;
-        }
-        
-        if (!$freemius->is_anonymous()) {            
-            return;
-        }
-        
-        $args = [
-            'plugin_id' => FILTER_SANITIZE_NUMBER_INT,
-            'fs_action' => $this->getSystemInitialization()->getPrimeMoverSanitizeStringFilter(),
-            'page' => $this->getSystemInitialization()->getPrimeMoverSanitizeStringFilter(),
-            '_wpnonce' => $this->getSystemInitialization()->getPrimeMoverSanitizeStringFilter(),
-        ];
-        
-        $get = $this->getPrimeMover()->getSystemInitialization()->getUserInput('get', $args, '', '', 0, true, true);
-        $keys = array_keys($args);
-        foreach($keys as $key) {
-            if (empty($get[$key])) {                
-                return;
-            }
-        }
-        
-        if ($get['plugin_id'] !== $freemius->get_id()) {            
-            return;
-        }
-        
-        $freemius_action = $freemius->get_unique_affix() . '_sync_license';
-        if ($get['fs_action'] !== $freemius_action) {            
-            return;
-        }
-        
-        if ('migration-panel-settings-account' !== $get['page']) {            
-            return;
-        }        
-        
-        if (!wp_verify_nonce($get['_wpnonce'], $get['fs_action'])) {            
-            return;
-        }      
-        
-        $freemius->add_filter('connect_url', [$this, 'setActivationUrl']);
-        $this->freemiusAllCleanedUp(true); 
-        fs_redirect($freemius->get_activation_url());
-    }
-   
-    /**
-     * Set activation URL
-     * @param string $url
-     * @return string
-     */
-    public function setActivationUrl($url = '')
-    {       
-        $url = add_query_arg(
-            [
-                'prime-mover-upgrade-complete' => 'yes',
-                '_wpnonce' => $this->getSystemFunctions()->primeMoverCreateNonce('prime-mover-upgrade-complete')
-            ], $url);
-        
-        return esc_url_raw($url);
     }
     
     /**
@@ -893,35 +605,7 @@ class PrimeMoverFreemiusCompat
         
         return array_merge($core, $freemius, $prime_mover);
     }
-    
-    /**
-     * Deactivation hook
-     */
-    public function activationHook()
-    {
-        if (wp_doing_ajax()) {
-            return;
-        }
-        $current =basename(PRIME_MOVER_PLUGIN_PATH) . '/' . PRIME_MOVER_PLUGIN_FILE;
-        if (PRIME_MOVER_DEFAULT_FREE_BASENAME === $current) {
-            return;
-        }
-        if (!$this->getSystemAuthorization()->isUserAuthorized() ) {
-            return;
-        }
         
-        $activation_params = $this->getSystemInitialization()->getUserInput('get',
-            [
-                'activate' => $this->getSystemInitialization()->getPrimeMoverSanitizeStringFilter()
-            ], 'prime_mover_activate_validate');
-        
-        if ($this->getSystemFunctions()->getSiteOption($this->getAutoDeactivationOption(), false, true, false, '', true, true) && isset($activation_params['activate']) && 'true' === $activation_params['activate']) {
-            $this->getSystemFunctions()->deleteSiteOption($this->getAutoDeactivationOption(), false, '', true, true);
-            $this->freemiusAllCleanedUp();
-            $this->setRedirectTransient(false);
-        }
-    }
-    
     /**
      * Deactivation hook
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverFreemiusCompat::itRunsDeactivationHooks()
@@ -929,243 +613,6 @@ class PrimeMoverFreemiusCompat
     public function deactivationHook()
     {      
         do_action('prime_mover_deactivated');
-        $current =basename(PRIME_MOVER_PLUGIN_PATH) . '/' . PRIME_MOVER_PLUGIN_FILE;
-        if (PRIME_MOVER_DEFAULT_PRO_BASENAME === $current) {
-            return;
-        }
-       
-        if (!$this->getSystemAuthorization()->isUserAuthorized() ) {
-            return;
-        }
-          
-        if ($this->deactivationUserInitiated()) {
-            return;
-        }
-        
-        if ($this->deactivationNotProVersionInitiated()) {
-            return;
-        }
-       
-        if ($this->moreThanOneFreemiusModules()) {
-            return;
-        }
-      
-        $this->freemiusAllCleanedUp(); 
-        $this->setRedirectTransient(true);
-    }
-    
-    /**
-     * Set redirect transient
-     */
-    protected function setRedirectTransient($update_option = false)
-    {
-        $transient = "fs_{$this->getFreemius()->get_module_type()}_{$this->getFreemius()->get_slug()}_activated";
-        delete_transient($transient);
-        set_transient($transient, true, 60);
-        if ($update_option) {
-            $this->getSystemFunctions()->updateSiteOption($this->getAutoDeactivationOption(), true, false, '', true, true);
-        }        
-    }
-    
-    /**
-     * Clean up Freemius option
-     * @param boolean $network
-     */
-    protected function freemiusCleanup($network = false)
-    {
-        foreach ($this->getFreemiusOptions() as $option) {
-            if ($network) {
-                delete_site_option($option);
-            } else {
-                delete_option($option);
-            }            
-        }
-    }
-    
-    /**
-     * Clean up all Freemius options
-     */
-    protected function freemiusAllCleanedUp($nonce_verified = false) 
-    {
-        if (is_multisite()) {            
-            if (wp_is_large_network()) {
-                return;
-            }
-            
-            $sites = get_sites();            
-            foreach ( $sites as $site ) {
-                $blog_id = ($site instanceof WP_Site) ?
-                $site->blog_id :
-                $site['blog_id'];
-                
-                switch_to_blog($blog_id );                
-                $this->freemiusCleanup(false);
-                restore_current_blog();
-            }            
-            $this->freemiusCleanup(true);            
-        } else {          
-            $this->freemiusCleanup(false);
-        }
-        
-        if ($nonce_verified && $this->getSystemAuthorization()->isUserAuthorized()) {
-            $this->getPrimeMover()->getSystemFunctions()->updateSiteOption(self::ON_UPGRADE_USER_VERIFIED, 'yes', true, '', true, true);
-        }
-        
-        do_action('prime_mover_log_processed_events', "Prime Mover successfully executes Freemius Fixer", 0, 'common', __FUNCTION__ , $this);
-    }
-    
-    /**
-     * Checks if more than one Freemius modules
-     * @return boolean
-     */
-    protected function moreThanOneFreemiusModules()
-    {
-        if (!$this->isFreemiusLoaded()) {
-            return true;
-        }
-        
-        $fs_options = FS_Options::instance(WP_FS__ACCOUNTS_OPTION_NAME, true);
-        if (!is_object($fs_options)) {
-            return true;
-        }
-        
-        $modules = fs_get_entities($fs_options->get_option('plugins'), FS_Plugin::get_class_name());
-        if (!is_array($modules)) {
-            return true;
-        }
-        
-        $active = $this->getActiveModules($modules);
-        $counted = count($active);
-        
-        return ($counted > 0);
-    }
-    
-    /**
-     * Get active Freemius modules
-     * @param array $modules
-     * @return []
-     */
-    protected function getActiveModules($modules = [])
-    {
-        $active = [];
-        foreach ($modules as $module) {
-            if (!isset($module->file)) {
-                continue;
-            }
-            
-            $file = $module->file;
-            if (!$file) {
-                continue;
-            }
-            
-            $file = strtolower($file);
-            if (in_array($file, $this->getCoreModules())) {
-                continue;
-            }
-            
-            if ($this->isPluginActive($file)) {
-                $active[] = $file;
-            }
-        }
-               
-        return $active;
-    }
-    
-    /**
-     * Checks if plugin is active
-     * Multisite or single site compatible
-     * @param string $file
-     * @return boolean
-     */
-    protected function isPluginActive($file = '')
-    {
-        if (!$file) {
-            return false;
-        }
-        
-        if (is_multisite() && $this->getSystemFunctions()->isPluginActive($file, true)) {
-            return true;
-        } elseif ($this->getSystemFunctions()->isPluginActive($file)) {
-            return true;
-        }
-        return false;
-    }
-    
-    /**
-     * Checks if Freemius classes loaded
-     * @return boolean
-     */
-    protected function isFreemiusLoaded()
-    {
-        return (class_exists('FS_Options') && defined('WP_FS__ACCOUNTS_OPTION_NAME') && function_exists('fs_get_entities') && class_exists('FS_Plugin'));       
-    }
-    
-    /**
-     * Returns FALSE if deactivation is pro version initiated
-     * @return boolean
-     */
-    protected function deactivationNotProVersionInitiated()
-    {
-        $action = '';
-        $plugin = '';
-        $nonce = '';
-        list($action, $plugin, $nonce) = $this->getDeactivationParams(); 
-        
-        if (!$action || !$plugin || !$nonce) {
-            return true;
-        }
-        
-        if ('activate' === $action && PRIME_MOVER_DEFAULT_PRO_BASENAME === $plugin && $this->getSystemFunctions()->primeMoverVerifyNonce( $nonce, 'activate-plugin_' . PRIME_MOVER_DEFAULT_PRO_BASENAME, true)) {
-            return false;
-        }
-        
-        return true;        
-    }
-
-    /**
-     * Returns TRUE if deactivation is user initiated
-     * @return boolean
-     */
-    protected function deactivationUserInitiated()
-    {        
-        $action = '';
-        $plugin = '';
-        $nonce = '';
-        
-        list($action, $plugin, $nonce) = $this->getDeactivationParams();        
-        return ('deactivate' === $action && PRIME_MOVER_DEFAULT_FREE_BASENAME === $plugin && $this->getSystemFunctions()->primeMoverVerifyNonce($nonce, 'deactivate-plugin_' . PRIME_MOVER_DEFAULT_FREE_BASENAME, true));
-    }
-    
-    /**
-     * Get deactivation parameters
-     * @return string[]|
-     */
-    protected function getDeactivationParams()
-    {
-        $queried = $this->getSystemInitialization()->getUserInput('get',
-            [
-                'action' => $this->getSystemInitialization()->getPrimeMoverSanitizeStringFilter(),
-                'plugin' => $this->getSystemInitialization()->getPrimeMoverSanitizeStringFilter(),
-                '_wpnonce' => $this->getSystemInitialization()->getPrimeMoverSanitizeStringFilter()
-            ], 'prime_mover_free_deactivation');
-        
-        $action = '';
-        $plugin = '';
-        $nonce = '';
-        
-        if (!empty($queried['action'])) {
-            $action = $queried['action'];
-        }
-        
-        if (!empty($queried['plugin'])) {
-            $plugin = $queried['plugin'];
-        }
-        
-        if (!empty($queried['_wpnonce'])) {
-            $nonce = $queried['_wpnonce'];
-        }
-        
-        return [$action, $plugin, $nonce];
     }
     
     /**

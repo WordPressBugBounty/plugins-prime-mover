@@ -336,7 +336,6 @@ class PrimeMoverConfigUtilities
         
         $search = $replaceable_attachments['search'];
         $replace = $replaceable_attachments['replace'];
-        $replace = str_replace('https://', 'http://', $replace);
         
         return ['search' => $search, 'replace' => $replace ];
     }

@@ -122,13 +122,11 @@ class PrimeMoverFreemiusIntegration
     {      
         add_action('prime_mover_shutdown_actions', [$this, 'restoreFreemiusSettingsOnError']);       
         add_action('prime_mover_before_db_processing', [$this, 'backupFreemiusOptionsImport'], 10, 2);
-        add_action('admin_init', [$this, 'removeOneStepAway'], 999);
         
         add_action('prime_mover_after_db_processing', [$this, 'restoreFremiusOptionsImportMultisite'], 10, 2);
         add_action('prime_mover_before_only_activated', [$this, 'restoreFreemiusOptions'], 10, 1);
         
-        add_filter('prime_mover_multisite_blog_is_licensed', [$this, 'maybeBlogIDLicensed'], 10, 2);        
-        add_action('admin_head', [$this, 'networkLevelOnlyNoDelegate'], 99);  
+        add_filter('prime_mover_multisite_blog_is_licensed', [$this, 'maybeBlogIDLicensed'], 10, 2);         
         add_filter('prime_mover_filter_upgrade_pro_text', [$this, 'appendCartIcon'], 9999, 3);
         
         add_action('prime_mover_dashboard_content', [$this, 'showGettingStartedOnFreeUsers'], 1); 
@@ -858,32 +856,6 @@ class PrimeMoverFreemiusIntegration
     }
     
     /**
-     * On multisite network admin interface
-     * No need to show the Freemius delegate link
-     * Since the plugin is for network administrators only.
-     */
-    public function networkLevelOnlyNoDelegate()
-    {
-        if (!is_multisite() || !is_network_admin()) {
-            return;
-        }
-        if ($this->isCustomer()) {
-            return;
-        }
-    ?>
-        <script>
-        window.onload = function() {
-            if (window.jQuery) {                 
-            	if (jQuery('#delegate_to_site_admins').length) {
-            		jQuery('#delegate_to_site_admins').remove();
-            	}
-            } 
-        }
-        </script>
-    <?php
-    }
-    
-    /**
      * Restore freemius settings on error
      */
     public function restoreFreemiusSettingsOnError()
@@ -1081,42 +1053,7 @@ class PrimeMoverFreemiusIntegration
             $this->getSystemFunctions()->restoreCurrentBlog();
         }        
         delete_user_meta($current_user_id, self::FREEMIUS_USERKEY);
-    }
-    
-    /**
-     * Remove one step away message (not needed in multisite admin pages)
-     */
-    public function removeOneStepAway()
-    {
-        if (!is_multisite()) {
-            return;
-        }
-        $authorized = false;
-        if ($this->getSystemAuthorization()->isUserAuthorized() || (!is_network_admin() & current_user_can('manage_options'))) {
-            $authorized = true;
-        }
-        if (!$authorized) {
-            return;    
-        }
-        $freemius = $this->getFreemius();
-        $plugin_name = $freemius->get_plugin_name();
-        $target = ['Prime Mover', 'Prime Mover PRO'];
-        if (!in_array($plugin_name, $target)) {
-            return;
-        }
-        $message = sprintf(
-            $freemius->get_text_inline( 'You are just one step away - %s', 'you-are-step-away' ),
-            sprintf( '<b><a href="%s">%s</a></b>',
-                $freemius->get_activation_url( [], ! $freemius->is_delegated_connection() ),
-                sprintf( $freemius->get_text_x_inline( 'Complete "%s" Activation Now',
-                    '%s - plugin name. As complete "PluginX" activation now', 'activate-x-now' ), $freemius->get_plugin_name() )
-                )
-            );
-        
-        $id = md5( '' . ' ' . $message . ' ' . 'update-nag' );
-        $freemius->remove_sticky($id );
-    }    
- 
+    } 
     
     /**
      * Maybe set object cache
