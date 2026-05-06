@@ -340,40 +340,62 @@
          /**
      	 * AJAX request helper
      	 */
- 	    doAjaxRequest: function(data, spinner_selector, data_selector) {
-             if (typeof(data_selector) === 'undefined') {
-             	var data_selector = '';
-             }
-             PrimeMoverControlPanel.doing_ajax[spinner_selector] = true;
- 	         $.post(ajaxurl, data, function( response ) {                 
- 		         $(spinner_selector).html(response.message);
-                 if ( 'saved_settings' in response && data_selector) {
-                      var saved_settings = response.saved_settings;  
-                      PrimeMoverControlPanel.executeOtherAfterSavedHooks(data_selector, saved_settings);
-                      $(data_selector).val(saved_settings);
-                 }
- 		        if ( response.save_status) {                     
-                      $(spinner_selector).addClass('notice notice-success');		   
- 		        } else if (saved_settings)  {                     
-                      $(spinner_selector).addClass('notice notice-warning');
-                } else {                                        
-                      $(spinner_selector).addClass('notice notice-error');
-                }
-                PrimeMoverControlPanel.doing_ajax[spinner_selector] = false;                   
-                if ('reload' in response && true === response.reload) {
-  				    location.reload();
-  				}                 
- 	       }).fail(function(xhr, status, error) {	    	       
- 	    	    var error_text = prime_mover_control_panel_renderer.prime_mover_panel_error;
- 	    	    if (error && status) {
- 	    	      var status = status.toUpperCase();
- 	    	      error_text = status + ': ' + error;  
- 	    	    }	    	       
-                $(spinner_selector).html(error_text);
-                $(spinner_selector).addClass('notice notice-error');
-                PrimeMoverControlPanel.doing_ajax[spinner_selector] = false; 	           
- 	       });		
- 	     },        
+		 doAjaxRequest: function(data, spinner_selector, data_selector) {
+		     if (typeof(data_selector) === 'undefined') {
+		         var data_selector = '';
+		     }
+
+		     PrimeMoverControlPanel.doing_ajax[spinner_selector] = true;
+
+		     var executeRequest = function() {
+		         $.post(ajaxurl, data, function(response) {
+
+		             if ('retry' in response && response.retry === true) {						 
+		                 
+						 data.retry = 'yes';						 
+						 $(spinner_selector).html(PrimeMoverControlPanel.spinner + ' ' + response.message);
+						 $(spinner_selector).addClass('notice notice-information');
+						 
+		                 executeRequest(); 
+		                 return; 
+		             }
+
+					 $(spinner_selector).html('');
+		             $(spinner_selector).html(response.message);
+		             
+		             if ('saved_settings' in response && data_selector) {
+		                 var saved_settings = response.saved_settings;
+		                 PrimeMoverControlPanel.executeOtherAfterSavedHooks(data_selector, saved_settings);
+		                 $(data_selector).val(saved_settings);
+		             }
+
+					 $(spinner_selector).removeClass('notice notice-information');
+		             if (response.save_status) {						
+		                 $(spinner_selector).addClass('notice notice-success');
+		             } else if (response.saved_settings) {
+		                 $(spinner_selector).addClass('notice notice-warning');
+		             } else {
+		                 $(spinner_selector).addClass('notice notice-error');
+		             }
+
+		             PrimeMoverControlPanel.doing_ajax[spinner_selector] = false;
+
+		             if ('reload' in response && response.reload === true) {
+		                 location.reload();
+		             }
+		         }).fail(function(xhr, status, error) {
+		             var error_text = prime_mover_control_panel_renderer.prime_mover_panel_error;
+		             if (error && status) {
+		                 error_text = status.toUpperCase() + ': ' + error;
+		             }
+		             $(spinner_selector).html(error_text);
+		             $(spinner_selector).addClass('notice notice-error');
+		             PrimeMoverControlPanel.doing_ajax[spinner_selector] = false;
+		         });
+		     };
+
+		     executeRequest();
+		 },       
     	/**
     	 * Doing ajax property
     	 */
@@ -559,12 +581,12 @@
     	/**
     	 * Trigger saving processing
     	 */
+		spinner: '<img src="' + prime_mover_control_panel_renderer.prime_mover_settings_ajax_spinner_gif + '" />',
         triggerProcessing: function(spinner_selector) {
-	        var spinner = '<img src="' + prime_mover_control_panel_renderer.prime_mover_settings_ajax_spinner_gif + '" />'
-	        $(spinner_selector).html(spinner);
+	        $(spinner_selector).html(this.spinner);
 	        $(spinner_selector).removeClass('notice notice-error');
-                $(spinner_selector).removeClass('notice notice-success');
-                $(spinner_selector).removeClass('notice notice-warning');
+            $(spinner_selector).removeClass('notice notice-success');
+            $(spinner_selector).removeClass('notice notice-warning');
         },
     	/**
     	 * Compute backup dir size

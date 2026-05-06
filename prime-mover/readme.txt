@@ -5,7 +5,7 @@ Tags: migrate wordpress, multisite migration, clone, backup
 Requires at least: 4.9.8
 Tested up to: 7.0
 Requires PHP: 5.6
-Stable tag: 2.1.4
+Stable tag: 2.1.5
 License: GPLv3 or later
 License URI: https://codexonics.com
 
@@ -105,6 +105,11 @@ Update now to get all the latest bug fixes, improvements, and features!
 
 == Changelog ==
 
+= 2.1.5 =
+
+* Fixed: Interrupted copying of backups to the custom directory on resource-limited servers.  
+* Fixed: Runtime error during differential restore when data contains double quotes. 
+
 = 2.1.4 =
 
 * Fixed: Refactored Freemius integration code for stability.
@@ -122,14 +127,5 @@ Update now to get all the latest bug fixes, improvements, and features!
 * Fixed: Removed the use of PHP shell functions.
 * Fixed: Updated Dropbox library for PHP 8.5 compatibility.
 * Fixed: Tested for compatibility with WordPress 7.0.
-
-= 2.1.2 =
-
-* Fixed: Stray core multisite tables inside the subsite database could corrupt restoration.
-* Fixed: Runtime errors associated with WP_FileSystem not being initialized.
-* Fixed: Insufficient memory error during the user import process when processing non-existing post authors.
-* Fixed: Handle remaining incorrect permissions that can cause export and import errors.
-* Fixed: Handle PHP notices when the open_basedir directive is enabled.
-* Fixed: Handle PHP notices caused by legacy code with new dependency checks added in WP 6.9.1.
 
 See the previous changelogs in changelog.txt.

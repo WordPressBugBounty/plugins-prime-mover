@@ -3899,10 +3899,37 @@ class PrimeMoverSystemFunctions
             return false;
         }
         
-        $input_data	= html_entity_decode($input_data, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML401);
+        $input_data	= $this->htmlEntityDecodeForJson($input_data);
         
         json_decode($input_data);
         return (json_last_error() == JSON_ERROR_NONE);   
+    }
+    
+    /**
+     * Html entity decode for JSON
+     * @param string $input_data
+     * @param boolean $decode
+     * @return array|string|NULL
+     */
+    public function htmlEntityDecodeForJson($input_data = '', $decode = false)
+    {
+        $input_data = html_entity_decode($input_data, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML401);        
+        $input_data = preg_replace_callback(
+            '/(?<=:)\s*"(.*?)"(?=\s*[,}])/su',
+            function ($matches) {
+                // $matches[1] is the captured string between quotes
+                // str_replace is binary-safe and notice-free across all versions
+                $escapedValue = str_replace('"', '\"', $matches[1]);
+                return '"' . $escapedValue . '"';
+            },
+            $input_data
+            );
+
+        if ($decode) {
+            $input_data  = json_decode($input_data , true);
+        }
+        
+        return $input_data;
     }
     
     /**

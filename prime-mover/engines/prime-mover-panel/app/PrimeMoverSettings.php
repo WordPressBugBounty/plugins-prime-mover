@@ -438,13 +438,12 @@ class PrimeMoverSettings
             $blog_id = $settings_post['prime_mover_panel_js_blogid'];
         }
         
-        $blog_id = (int)$blog_id;        
-        if ($blog_id) {   
-            return [$blog_id => trim($settings_post[$setting_string])];   
-            
+        $blog_id = (int)$blog_id;             
+        if ($blog_id) {
+            return [$blog_id => trim((string)$settings_post[$setting_string])];
         } else {
-            return trim($settings_post[$setting_string]);  
-        }             
+            return trim((string)$settings_post[$setting_string]);
+        }        
     }
     
     /**
@@ -469,6 +468,9 @@ class PrimeMoverSettings
         }
         if (isset($result['reload'])) {
             $response['reload'] = $result['reload'];
+        }
+        if (isset($result['retry'])) {
+            $response['retry'] = $result['retry'];
         }
         wp_send_json($response);        
     }
@@ -989,4 +991,73 @@ class PrimeMoverSettings
         }
         return $changed;
     }
+    
+    /**
+     * Get progress handlers
+     * @return \Codexonics\PrimeMoverFramework\classes\PrimeMoverProgressHandlers
+     */
+    public function getProgressHandlers()
+    {
+        return $this->getPrimeMover()->getHookedMethods()->getProgressHandlers();    
+    }
+    
+    /**
+     * Save settings to retry
+     * @param array $res
+     * @param number $blog_id
+     * @param string $identifier
+     * @return array
+     */
+    public function saveSettingsRetryToUser($res = [], $blog_id = 0, $identifier = '')
+    {
+        if (!$this->getPrimeMover()->getSystemAuthorization()->isUserAuthorized() ) {
+            return $res;
+        }
+        
+        if (!$blog_id) {
+            $blog_id = 1;    
+        }
+        
+        $user_id = $this->getPrimeMover()->getSystemInitialization()->getCurrentUserId();
+        if (!$user_id) {
+            return $res;
+        }
+        
+        $meta_key = $this->getProgressHandlers()->generateTrackerId($blog_id, $identifier);
+        wp_cache_delete($user_id, 'user_meta' );
+        do_action('prime_mover_update_user_meta', $user_id, $meta_key, $res);
+        
+        return $res;
+    }
+    
+    /**
+     * Get in-progress tracker for settings retry processing
+     * @param number $blog_id
+     * @param string $identifier
+     * @return array|mixed
+     */
+    public function getSettingsRetryToUser($blog_id = 0, $identifier = '')
+    {
+        if (!$this->getPrimeMover()->getSystemAuthorization()->isUserAuthorized()) {
+            return [];
+        }
+        
+        if (!$blog_id) {
+            $blog_id = 1;
+        }
+        
+        $user_id = $this->getPrimeMover()->getSystemInitialization()->getCurrentUserId();
+        if (!$user_id) {
+            return [];
+        }
+        
+        $meta_key = $this->getProgressHandlers()->generateTrackerId($blog_id, $identifier);       
+        $progress_data = get_user_meta($user_id, $meta_key, true);
+        if (!is_array($progress_data)) {
+            return [];
+        }
+        
+        delete_user_meta($user_id, $meta_key);
+        return $progress_data;
+    }    
 }

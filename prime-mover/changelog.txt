@@ -2,6 +2,15 @@
 
 **This is a list detailing changes for all Prime Mover releases.**
 
+= 2.1.2 =
+
+* Fixed: Stray core multisite tables inside the subsite database could corrupt restoration.
+* Fixed: Runtime errors associated with WP_FileSystem not being initialized.
+* Fixed: Insufficient memory error during the user import process when processing non-existing post authors.
+* Fixed: Handle remaining incorrect permissions that can cause export and import errors.
+* Fixed: Handle PHP notices when the open_basedir directive is enabled.
+* Fixed: Handle PHP notices caused by legacy code with new dependency checks added in WP 6.9.1.
+
 = 2.1.1 =
 
 * Fixed: Incompatibility issues with third-party salt implementation.  

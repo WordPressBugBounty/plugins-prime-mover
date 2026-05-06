@@ -519,8 +519,7 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
             $import_initiated = $initiating_variables['process_initiated'];
 
             $data_to_continue = $continue_import_post['data_to_continue'];
-            $data_to_continue = html_entity_decode($data_to_continue, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML401);            
-            $data_to_continue = json_decode($data_to_continue, true);
+            $data_to_continue = $this->getSystemFunctions()->htmlEntityDecodeForJson($data_to_continue, true);           
             
             if ((is_array($data_to_continue)) && (! empty($data_to_continue))) {
                 
