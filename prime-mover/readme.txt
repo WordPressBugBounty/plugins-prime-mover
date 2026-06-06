@@ -5,7 +5,7 @@ Tags: migrate wordpress, multisite migration, clone, backup
 Requires at least: 4.9.8
 Tested up to: 7.0
 Requires PHP: 5.6
-Stable tag: 2.1.5
+Stable tag: 2.1.6
 License: GPLv3 or later
 License URI: https://codexonics.com
 
@@ -105,6 +105,12 @@ Update now to get all the latest bug fixes, improvements, and features!
 
 == Changelog ==
 
+= 2.1.6 =
+
+* Compatibility: Better compatibility with multisite parallel import and restore. 
+* Fixed: Uncaught TypeError mysqli_num_rows(): Argument #1 ($result) must be of type mysqli_result during search replace. 
+* Fixed: Missing or corrupted Freemius data after simultaneous restore. 
+
 = 2.1.5 =
 
 * Fixed: Interrupted copying of backups to the custom directory on resource-limited servers.  
@@ -117,15 +123,5 @@ Update now to get all the latest bug fixes, improvements, and features!
 * Fixed: Site restored with debugging package; switches images to the http:// protocol in the SSL environment.
 * Fixed: Potential performance issues upon plugin activation affecting customized multisites.
 * Fixed: Outdated Freemius pricing app library.
-
-= 2.1.3 =
-
-* Fixed: Edge case fatal error when activating or deactivating a license on the Freemius account page with specialized themes.
-* Fixed: Update MySQLdump library for compatibility with PHP 8.5.
-* Fixed: General compatibility fixes with PHP 8.5.
-* Fixed: Removed outdated, deprecated code.
-* Fixed: Removed the use of PHP shell functions.
-* Fixed: Updated Dropbox library for PHP 8.5 compatibility.
-* Fixed: Tested for compatibility with WordPress 7.0.
 
 See the previous changelogs in changelog.txt.

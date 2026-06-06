@@ -30,7 +30,6 @@ class PrimeMoverFreemiusIntegration
     private $pricing_page_ids;
     
     const FREEMIUS_USERKEY = '_freemius_usermeta';
-    const FREEMIUS_NETWORKUSERKEY = '_freemius_network_usermeta';
     
     /**
      * Constructor
@@ -141,10 +140,7 @@ class PrimeMoverFreemiusIntegration
         
         add_filter('prime_mover_filter_config_after_diff_check', [$this, 'primeMoverAlwaysExcludeItselfInDiff'], 10, 1);
         add_filter('prime_mover_input_footprint_package_array', [$this, 'addBothPrimeMoverVersionsToPlugins'], 35, 1);
-        add_filter('prime_mover_ajax_rendered_js_object', [$this, 'correctUpgradeMessageBrowserLimit'], 10, 1);
-        
-        add_action('prime_mover_before_db_processing', [$this, 'backupFreemiusNetworkOptionsImport'], 13);
-        add_action('prime_mover_after_db_processing', [$this, 'restoreFremiusNetworkOptionsImport'], 13);
+        add_filter('prime_mover_ajax_rendered_js_object', [$this, 'correctUpgradeMessageBrowserLimit'], 10, 1);      
         
         $this->injectFreemiusHooks();
     }
@@ -300,66 +296,7 @@ class PrimeMoverFreemiusIntegration
         </div>            
     <?php     
     }
-    
-    /**
-     * Restore Freemius network options on import.
-     * Multisite only
-     */
-    public function restoreFremiusNetworkOptionsImport()
-    {
-        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
-            return;
-        }
         
-        if (!is_multisite()) {
-            return;
-        }
-        
-        $current_user_id = $this->getSystemFunctions()->getLockedSettingsUser();
-        $current_settings = get_user_meta($current_user_id, self::FREEMIUS_NETWORKUSERKEY, true);
-        if (empty($current_settings)) {
-            return;
-        }
-        $blog_id = get_current_blog_id();
-        $this->deleteAllFreemiusOptions($blog_id, true);
-        
-        foreach ($current_settings as $option_name => $option_value) {
-            $this->getSystemFunctions()->updateSiteOption($option_name, $option_value, true, '', true, true);            
-        }
-        delete_user_meta($current_user_id, self::FREEMIUS_NETWORKUSERKEY);
-    }
-    
-    /**
-     * Backup Freemius network options on import
-     * Multisite only
-     */
-    public function backupFreemiusNetworkOptionsImport()
-    {        
-        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
-            return;
-        }
-        
-        if (!is_multisite()) {
-            return;
-        }
-        
-        $settings_array = [];
-        $current_user_id = $this->getSystemFunctions()->getLockedSettingsUser();        
-        $blog_id = get_current_blog_id();
-        
-        $current_options = $this->getAllFreemiusSDKOptions($blog_id, true);
-        if (!is_array($current_options)) {
-            return;
-        }
-        
-        $this->setFreemiusOptions($current_options);
-        foreach ($current_options as $option) {
-            $settings_array[$option] = $this->getSystemFunctions()->getSiteOption($option, false, true, true, '', true, true);
-        }
-        
-        do_action('prime_mover_update_user_meta', $current_user_id, self::FREEMIUS_NETWORKUSERKEY, $settings_array);         
-    }
-    
     /**
      * Append cart icon
      * @param string $markup
@@ -950,8 +887,9 @@ class PrimeMoverFreemiusIntegration
             $settings_array[$option] = get_option($option);
             $this->getSystemFunctions()->restoreCurrentBlog();
         }
-                
-        do_action('prime_mover_update_user_meta', $current_user_id, self::FREEMIUS_USERKEY, $settings_array); 
+        
+        $meta_key = $this->getFreemiusMetaKey(self::FREEMIUS_USERKEY, $blog_id, $current_user_id);
+        do_action('prime_mover_update_user_meta', $current_user_id, $meta_key, $settings_array); 
     }
 
     /**
@@ -1041,7 +979,9 @@ class PrimeMoverFreemiusIntegration
         }
         
         $current_user_id = $this->getSystemFunctions()->getLockedSettingsUser();
-        $current_settings = get_user_meta($current_user_id, self::FREEMIUS_USERKEY, true);
+        $meta_key = $this->getFreemiusMetaKey(self::FREEMIUS_USERKEY, $blog_id, $current_user_id);
+        
+        $current_settings = get_user_meta($current_user_id, $meta_key, true);
         if (empty($current_settings)) {
             return;
         }
@@ -1052,7 +992,7 @@ class PrimeMoverFreemiusIntegration
             update_option($option_name, $option_value);
             $this->getSystemFunctions()->restoreCurrentBlog();
         }        
-        delete_user_meta($current_user_id, self::FREEMIUS_USERKEY);
+        delete_user_meta($current_user_id, $meta_key);
     } 
     
     /**
@@ -1206,4 +1146,20 @@ class PrimeMoverFreemiusIntegration
         
         return in_array($id, $this->getPricingPageIds());        
     }
+    
+    /**
+     * Get Freemius meta key
+     * @param string $meta_key
+     * @param number $blog_id
+     * @param number $user_id
+     * @return string
+     */
+    private function getFreemiusMetaKey($meta_key = '', $blog_id = 0, $user_id = 0)
+    {
+        if (!is_multisite()) {
+            $blog_id = 1;    
+        }
+
+        return "{$meta_key}_b{$blog_id}_u{$user_id}";
+    }        
 }

@@ -2,6 +2,16 @@
 
 **This is a list detailing changes for all Prime Mover releases.**
 
+= 2.1.3 =
+
+* Fixed: Edge case fatal error when activating or deactivating a license on the Freemius account page with specialized themes.
+* Fixed: Update MySQLdump library for compatibility with PHP 8.5.
+* Fixed: General compatibility fixes with PHP 8.5.
+* Fixed: Removed outdated, deprecated code.
+* Fixed: Removed the use of PHP shell functions.
+* Fixed: Updated Dropbox library for PHP 8.5 compatibility.
+* Fixed: Tested for compatibility with WordPress 7.0.
+
 = 2.1.2 =
 
 * Fixed: Stray core multisite tables inside the subsite database could corrupt restoration.

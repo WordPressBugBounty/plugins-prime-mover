@@ -14,6 +14,8 @@ namespace Codexonics\PrimeMoverFramework\utilities;
 use Codexonics\PrimeMoverFramework\classes\PrimeMoverImporter;
 use SplFixedArray;
 use Error;
+use Exception;
+use mysqli_result;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -181,7 +183,7 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
     }
     
     /**
-     * 
+     * Get columns definition
      * @param string $table
      * @param resource $dbh
      * @param string $table_with_excluded_column
@@ -199,7 +201,8 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
         if (!empty($ret['srch_rplc_table_definition'][$table]) && !empty($ret['srch_rplc_table_definition'][$table]['columns']) && !empty($ret['srch_rplc_table_definition'][$table]['pk'])) {            
             return [$ret['srch_rplc_table_definition'][$table]['columns'], $ret['srch_rplc_table_definition'][$table]['pk'], $ret];
         }
-        $fields = mysqli_query($dbh, 'DESCRIBE '. "`{$table}`");
+        
+        $fields = self::mysqliQuery('DESCRIBE '. "`{$table}`", $ret, $importer);
         while ($column = mysqli_fetch_array($fields)) {
             $primary_key = false;
             if ('PRI' === $column['Key']) {
@@ -265,17 +268,19 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
      * @param array $ret
      * @param string $table
      * @param resource $dbh
+     * PrimeMoverImporter $importer
      * @return int
      */
-    private static function getRowsCount($ret, $table, $dbh)
+    private static function getRowsCount($ret, $table, $dbh, $importer)
     {
         if (isset($ret['main_search_replace_tables_rows_count'][$table])) {
             
             $rows = (int)$ret['main_search_replace_tables_rows_count'][$table];
             return $rows;
             
-        } else {
-            $row_count = mysqli_query($dbh, "SELECT COUNT(*) FROM `{$table}`");
+        } else {            
+            
+            $row_count = self::mysqliQuery("SELECT COUNT(*) FROM `{$table}`", $ret, $importer);            
             $rows_result = mysqli_fetch_array($row_count);
             @mysqli_free_result($row_count);
             
@@ -433,8 +438,9 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
      * @param string $table
      * @param array $upd_sql
      * @param resource $dbh
+     * @param PrimeMoverImporter $importer
      */
-    private static function runDbUpdate($upd, $where_sql, $column, $ret, $table, $upd_sql, $dbh)
+    private static function runDbUpdate($upd, $where_sql, $column, $ret, $table, $upd_sql, $dbh, $importer)
     {
         $run_update_query = false;
         if ($upd && !empty($where_sql)) {
@@ -443,8 +449,8 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
             do_action('prime_mover_log_processed_events', "DONE QUERY: $sql" , $ret['blog_id'], 'import', 'load', 'PrimeMoverSearchReplace', true);  
             $run_update_query = true;
         }
-        if ($run_update_query && apply_filters('prime_mover_process_srchrplc_query_update', true, $ret, $table, $where_sql)) {
-            mysqli_query($dbh, $sql);
+        if ($run_update_query && apply_filters('prime_mover_process_srchrplc_query_update', true, $ret, $table, $where_sql)) {            
+            self::mysqliQuery($sql, $ret, $importer);            
         } elseif (isset($sql)) {  
             do_action('prime_mover_log_processed_events', "EXCLUDED SRCH REPLACE UPDATE QUERY: $sql" , $ret['blog_id'], 'import', 'load', 'PrimeMoverSearchReplace'); 
         }
@@ -801,7 +807,7 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
             foreach ($tables as $key => $table) {  
                 list($columns, $primary_keys, $ret) = self::getColumnsDefinition($table, $dbh, $table_with_excluded_column, $excluded_column, $ret, $importer);
                 $tbl_primary_keys = array_keys($primary_keys);
-                $row_count = self::getRowsCount($ret, $table, $dbh);                
+                $row_count = self::getRowsCount($ret, $table, $dbh, $importer);                
                 if (0 === $row_count) {
                     unset($tables[$key]);                      
                     do_action('prime_mover_log_processed_events', "Table $table is skipped" , $ret['blog_id'], 'import', 'load', 'PrimeMoverSearchReplace');
@@ -820,14 +826,14 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
                     if (empty($sql)) {
                         continue;
                     }
-                    $data = self::getRowsDataFromDb($ret, $sql, $dbh);
+                    $data = self::getRowsDataFromDb($ret, $sql, $dbh, $importer);
                                       
                     list($datacount, $monitornumrows) = self::initializeTotalDataCount($data);
                     while ($row = mysqli_fetch_array($data)) { 
                         
                         list($upd_sql, $where_sql, $upd, $serial_err, $is_unkeyed) = self::initializeRowParams($columns);                  
                         list($upd, $where_sql, $upd_sql, $column) = self::processColumns($columns, $row, $is_unkeyed, $dbh, $list, $serial_err, $upd_sql, $where_sql, $upd);                        
-                        self::runDbUpdate($upd, $where_sql, $column, $ret, $table, $upd_sql, $dbh);                         
+                        self::runDbUpdate($upd, $where_sql, $column, $ret, $table, $upd_sql, $dbh, $importer);                         
                         list($current_row, $total_rows_processed, $monitornumrows) = self::monitorRowsProgress($current_row, $total_rows_processed, $monitornumrows);   
                         
                         if (self::isTimeOut($start_time, $ret)) {
@@ -926,14 +932,15 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
      * @param array $ret
      * @param string $sql
      * @param resource $dbh
+     * @param PrimeMoverImporter $importer
      * @return mixed
      */
-    private static function getRowsDataFromDb($ret, $sql, $dbh)
+    private static function getRowsDataFromDb($ret, $sql, $dbh, $importer)
     {
         do_action('prime_mover_log_processed_events', "Running this select query for page transaction: " , $ret['blog_id'], 'import', 'load', 'PrimeMoverSearchReplace');
         do_action('prime_mover_log_processed_events', $sql , $ret['blog_id'], 'import', 'load', 'PrimeMoverSearchReplace');
-        
-        return mysqli_query($dbh, $sql);  
+
+        return self::mysqliQuery($sql, $ret, $importer);
     }
     
     /**
@@ -1301,5 +1308,62 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
     protected static function isValidStringEntity($given = '')
     {
         return (is_string($given) && !self::restrictedEntity($given));       
-    }
+    }    
+    
+    /**
+     * MySQLi query wrapper specific for automated search and replace
+     * Returns object on success and false on failure
+     * @param string $sql
+     * @param array $ret
+     * @param PrimeMoverImporter $importer
+     * @return mysqli_result|boolean|boolean
+     */
+    private static function mysqliQuery($sql, $ret, $importer)
+    {
+        $wpdb = $importer->getSystemInitialization()->getWpdB();
+        $retryCount = PRIME_MOVER_MYSQLI_QUERY_RETRY_COUNT;
+        $baseDelayMs = PRIME_MOVER_MYSQLI_QUERY_DELAY_MS;
+       
+        $blog_id = (is_array($ret) && !empty($ret['blog_id'])) ? $ret['blog_id'] : 0;
+        
+        for ($i = 0; $i < $retryCount; $i++) {
+            /**
+             * Re-establish connection if it was killed or timed out
+             */ 
+            $wpdb->check_connection(false);
+            
+            try { 
+                /**
+                 * Use $wpdb->dbh to ensure we use the handle refreshed by check_connection()
+                 */
+                $result = mysqli_query($wpdb->dbh, $sql);
+                if ($result !== false) {
+                    return $result;
+                }
+            } catch (Exception $e) {}
+            
+            /**
+             * Always check the current wpdb handle for errors
+             */
+            $errorCode = mysqli_errno($wpdb->dbh);
+            
+            if (in_array($errorCode, array(1317, 2006, 2013))) {
+                $delay = ($baseDelayMs * ($i + 1)) + rand(0, 500);
+                do_action('prime_mover_log_processed_events', "Query killed/lost (Error $errorCode). Waiting {$delay}ms to dodge killer." , $blog_id, 'import', 'load', 'mysqliQuery');
+                usleep($delay * 1000);
+            } else {
+                /**
+                 * Exit early on syntax or permission errors
+                 */
+                break;
+            }
+        }
+        
+        /**
+         * Final failure log
+         */
+        $finalError = mysqli_error($wpdb->dbh);
+        do_action('prime_mover_log_processed_events', "ERROR - Final DB Failure after $retryCount tries. Error: $finalError. SQL: $sql" , $blog_id, 'import', 'load', 'mysqliQuery');
+        return false;
+    }    
 }
