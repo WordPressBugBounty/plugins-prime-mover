@@ -73,12 +73,19 @@ class PrimeMoverPHPVersionDependencies
         ?>
         <div class="error">
             <p>
-            <?php 
-            printf( esc_html__( 'The %s plugin cannot run on PHP versions older than %s. Please contact your host and ask them to upgrade.', 'prime-mover'),
-                '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>', $this->php ); 
+            <?php            
+            printf( 
+                wp_kses(
+                /* translators: %1$s: Formatted plugin title codename, %2$s: The exact minimum required PHP version string number value */
+                    __( 'The %1$s plugin cannot run on PHP versions older than %2$s. Please contact your host and ask them to upgrade.', 'prime-mover' ), 
+                    [ 'strong' => [] ]
+                ),
+                '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>', 
+                esc_html($this->php) 
+            ); 
             ?>
             </p>
         </div>
         <?php 
-    }
+    }    
 }

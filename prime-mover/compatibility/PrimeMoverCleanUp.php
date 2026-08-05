@@ -138,7 +138,7 @@ class PrimeMoverCleanUp
         if (!empty($export_system_footprint['plugins']) && is_array($export_system_footprint['plugins'])) {
             $keys = array_keys($export_system_footprint['plugins']);
             foreach ($keys as $plugin) {
-                if (str_contains($plugin, 'advanced-wp-reset.php') && isset($export_system_footprint['plugins'][$plugin])) {
+                if (prime_mover_str_contains($plugin, 'advanced-wp-reset.php') && isset($export_system_footprint['plugins'][$plugin])) {
                     unset($export_system_footprint['plugins'][$plugin]);
                     break;
                 }
@@ -456,9 +456,9 @@ class PrimeMoverCleanUp
            <p><?php echo esc_html__('Prime Mover plugin detected incorrectly placed backup packages for this subsite. 
 Please move WPRIME packages FROM: ', 'prime-mover');?></p>
 
-           <p><strong><?php echo $incorrect; ?></strong></p>           
+           <p><strong><?php echo esc_html($incorrect); ?></strong></p>           
            <p><?php echo esc_html__('TO :', 'prime-mover');?></p>           
-           <p><strong><?php echo $correct; ?></strong></p>
+           <p><strong><?php echo esc_html($correct); ?></strong></p>
            <p><?php echo esc_html__('If you do not need these packages, please delete them. 
 Prime Mover plugin will auto-delete this wrong export directory. Thank you!', 'prime-mover'); ?></p> 
         </div>    

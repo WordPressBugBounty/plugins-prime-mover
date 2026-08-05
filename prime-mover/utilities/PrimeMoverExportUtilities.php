@@ -13,6 +13,7 @@ namespace Codexonics\PrimeMoverFramework\utilities;
 
 use Codexonics\PrimeMoverFramework\classes\PrimeMoverExporter;
 use WP_Error;
+use Codexonics\PrimeMoverBridgeIO;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -471,7 +472,7 @@ class PrimeMoverExportUtilities
         }
             
         if ($directory_created && is_resource($dir_resource)) {
-            fwrite($dir_resource, $plugins_target_copy_path . PHP_EOL);
+            PrimeMoverBridgeIO::call('fwrite', $dir_resource, $plugins_target_copy_path . PHP_EOL);
         }        
         
         $plugins = apply_filters('prime_mover_exclude_plugins_in_export', $plugins, $export_data);
@@ -710,16 +711,24 @@ class PrimeMoverExportUtilities
      * @return array
      */
     public function setExportProcessError( array $args )
-    {        
-        $args['prime_mover_exportprocess_error_message'] = esc_js(
-            "<p>" . sprintf(__('Export process fails for site ID : {{BLOGID}}. Retry is attempted but still fails after %s seconds.', 'prime-mover'), '<strong>{{RETRYSECONDS}}</strong>') . "</p>" .
-            "<p>" . '<strong>' . __('Server Error : {{PROGRESSSERVERERROR}}', 'prime-mover') . '</strong>' . "</p>" .
-            "<p>" . __('Error occurs while processing', 'prime-mover') . ' ' . "<strong>{{EXPORTMETHODWITHERROR}}</strong>" . ' ' . __('method.', 'prime-mover') . "</p>" . 
-            "<p><strong>" . sprintf(__('Can you try increasing the web server timeout beyond %s', 'prime-mover'), '<strong>{{FIXEDSECONDS}}</strong>') . ' ' . __('seconds', 'prime-mover') ."?</strong></p>" .
-            "<p>" . __('This might help resolve this issue when exporting large sites.', 'prime-mover') . "</p>"
-                );
+    {
+        $error_html = "<p>" . __( 'Export process fails for site ID : {{BLOGID}}. Retry is attempted but still fails after <strong>{{RETRYSECONDS}}</strong> seconds.', 'prime-mover' ) . "</p>" .
+            "<p><strong>" . __( 'Server Error : {{PROGRESSSERVERERROR}}', 'prime-mover' ) . "</strong></p>" .
+            "<p>" . __( 'Error occurs while processing <strong>{{EXPORTMETHODWITHERROR}}</strong> method.', 'prime-mover' ) . "</p>" .
+            "<p><strong>" . __( 'Can you try increasing the web server timeout beyond {{FIXEDSECONDS}} seconds?', 'prime-mover' ) . "</strong></p>" .
+            "<p>" . __( 'This might help resolve this issue when exporting large sites.', 'prime-mover' ) . "</p>";
         
-        $args['prime_mover_unknown_export_process_error'] = esc_js(__('unknown', 'prime-mover')); 
+        $args['prime_mover_exportprocess_error_message'] = esc_js(
+            wp_kses(
+                $error_html,
+                [
+                    'p'      => [],
+                    'strong' => [],
+                ]
+                )
+            );
+        
+        $args['prime_mover_unknown_export_process_error'] = esc_js( __( 'unknown', 'prime-mover' ) );
         
         return $args;
     }
@@ -853,12 +862,12 @@ class PrimeMoverExportUtilities
     {
         ?>
         <div style="display:none;" id="js-prime-mover-export-dialog-confirm-<?php echo esc_attr($blog_id); ?>" 
-        	title="<?php echo apply_filters('prime_mover_filter_export_dialog_title', esc_attr__('Export Options', 'prime-mover'), $blog_id) ?>" >            
+        	title="<?php echo esc_attr(apply_filters('prime_mover_filter_export_dialog_title', esc_attr__('Export Options', 'prime-mover'), $blog_id)) ?>" >            
             	    <?php do_action('prime_mover_before_export_options', $blog_id); ?>
             	<?php if (is_multisite()) {?>
             	<p>
             	<?php 
-            	esc_html_e('Please select the export options for blog ID', 'prime-mover'); ?>: <strong><?php echo $blog_id; 
+            	esc_html_e('Please select the export options for blog ID', 'prime-mover'); ?>: <strong><?php echo esc_html($blog_id); 
             	?>
             	</strong>
             	</p>

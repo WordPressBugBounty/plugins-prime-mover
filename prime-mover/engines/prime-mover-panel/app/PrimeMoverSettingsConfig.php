@@ -498,11 +498,23 @@ class PrimeMoverSettingsConfig
      */
     protected function getUserFriendEnabling()
     {
-        $settings_page_url = '<a href="' . $this->getPrimeMover()->getSystemFunctions()->getScheduledBackupSettingsUrl() . '">' . esc_html__('Scheduled backup', 'prime-mover') . '</a>';
-        $sprintf = sprintf(esc_html__('%s - Please configure site-specific backup settings via %s', 'prime-mover'), '<strong>' . esc_html__('enabled', 'prime-mover') . '</strong>', $settings_page_url);
+        $settings_page_url = $this->getPrimeMover()->getSystemFunctions()->getScheduledBackupSettingsUrl();        
+        
+        $sprintf = sprintf(
+            wp_kses(
+                /* translators: %s: Scheduled backup settings page URL address string path value */
+                __( '<strong>enabled</strong> - Please configure site-specific backup settings via <a href="%s">Scheduled backup</a>', 'prime-mover' ),
+                [
+                    'strong' => [],
+                    'a'      => [ 'href' => true ],
+                ]
+            ),
+            esc_url($settings_page_url)
+        );
         
         return $sprintf;
     }
+
     
     /**
      * Get Prime Mover instance

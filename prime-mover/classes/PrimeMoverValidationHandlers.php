@@ -133,60 +133,75 @@ class PrimeMoverValidationHandlers
     {        
         if (is_array($protocol) && ! in_array($input_data, $protocol, true)) {
             $serialized = maybe_serialize($protocol);
-            $validation_errors[$input_parameter] = print_r(sprintf(esc_html__("%s of %s array parameter is an invalid data", 'prime-mover'), maybe_serialize($input_data), $serialized) , true);            
+            /* translators: %1$s: Maybe serialize output, %2$s: Serialized data */
+            $validation_errors[$input_parameter] = sprintf(esc_html__('%1$s of %2$s array parameter is an invalid data', 'prime-mover'), maybe_serialize($input_data), $serialized);            
             
         } elseif ('nonce' === $protocol && ! ctype_alnum($input_data)) {
-            $validation_errors[$input_parameter] = print_r(sprintf(esc_html__("%s is not a valid nonce format", 'prime-mover'), maybe_serialize($input_data)) , true);            
+            /* translators: %s: Maybe serialize output */
+            $validation_errors[$input_parameter] = sprintf(esc_html__("%s is not a valid nonce format", 'prime-mover'), maybe_serialize($input_data));            
             
         } elseif('positive_int' === $protocol && ! filter_var($input_data, FILTER_VALIDATE_INT, ["options" => ["min_range"=> 1]] ) ) {
-            $validation_errors[$input_parameter] = print_r(sprintf(esc_html__("%s is not a positive integer", 'prime-mover'), maybe_serialize($input_data)) , true);           
+            /* translators: %s: Maybe serialize output */
+            $validation_errors[$input_parameter] = sprintf(esc_html__("%s is not a positive integer", 'prime-mover'), maybe_serialize($input_data));           
             
         } elseif('migration_package' === $protocol && ! $this->isValidMigrationPackage($input_data, $blog_id)) {
-            $validation_errors[$input_parameter] = print_r(sprintf(esc_html__("%s is not a valid migration package", 'prime-mover'), maybe_serialize($input_data)) , true);                  
+            /* translators: %s: Maybe serialize output */
+            $validation_errors[$input_parameter] = sprintf(esc_html__("%s is not a valid migration package", 'prime-mover'), maybe_serialize($input_data));                  
             
         } elseif('diff_json' === $protocol && ! $this->isValidJson($input_data)) {
-            $validation_errors[$input_parameter] = print_r(esc_html__("Diff data is not a valid json format", 'prime-mover'), true);             
+            $validation_errors[$input_parameter] = esc_html__("Diff data is not a valid json format", 'prime-mover');             
             
         } elseif('migration_dir' === $protocol && ! $this->isMigrationFolder($input_data, $blog_id, $mode)) {
-            $validation_errors[$input_parameter] = print_r(sprintf(esc_html__("%s is not a directory", 'prime-mover'), maybe_serialize($input_data)) , true);              
+            /* translators: %s: Maybe serialize output  */
+            $validation_errors[$input_parameter] = sprintf(esc_html__("%s is not a directory", 'prime-mover'), maybe_serialize($input_data));              
             
         } elseif('sha256' === $protocol && ! $this->getDownloadUtilities()->isShaString($input_data, 256)) {
-            $validation_errors[$input_parameter] = print_r(sprintf(esc_html__("%s is not a sha256 string", 'prime-mover'), maybe_serialize($input_data)) , true);            
+            /* translators: %s: Maybe serialize output */
+            $validation_errors[$input_parameter] = sprintf(esc_html__("%s is not a sha256 string", 'prime-mover'), maybe_serialize($input_data));            
             
         } elseif('boolean' === $protocol && ! is_bool($input_data)) {
-            $validation_errors[$input_parameter] = print_r(sprintf(esc_html__("%s is not boolean", 'prime-mover'), maybe_serialize($input_data)) , true);            
+            /* translators: %s: Maybe serialize output */
+            $validation_errors[$input_parameter] = sprintf(esc_html__("%s is not boolean", 'prime-mover'), maybe_serialize($input_data));            
             
         } elseif('sha512' === $protocol && ! $this->getDownloadUtilities()->isShaString($input_data, 512)) {
-            $validation_errors[$input_parameter] = print_r(sprintf(esc_html__("%s is not a sha512 string", 'prime-mover'), maybe_serialize($input_data)) , true);            
+            /* translators: %s: Maybe serialize output */
+            $validation_errors[$input_parameter] = sprintf(esc_html__("%s is not a sha512 string", 'prime-mover'), maybe_serialize($input_data));            
             
         } elseif('url' === $protocol && false === filter_var($input_data, FILTER_VALIDATE_URL)) {
-            $validation_errors[$input_parameter] = print_r(sprintf(esc_html__("%s is not valid URL", 'prime-mover'), maybe_serialize($input_data)) , true);
+            /* translators: %s: Maybe serialize output */
+            $validation_errors[$input_parameter] = sprintf(esc_html__("%s is not valid URL", 'prime-mover'), maybe_serialize($input_data));
             
         } elseif('float' === $protocol && ! filter_var($input_data, FILTER_VALIDATE_FLOAT) ) {
-            $validation_errors[$input_parameter] = print_r(sprintf(esc_html__("%s is not a valid float", 'prime-mover'), maybe_serialize($input_data)) , true);
+            /* translators: %s: Maybe serialize output */
+            $validation_errors[$input_parameter] = sprintf(esc_html__("%s is not a valid float", 'prime-mover'), maybe_serialize($input_data));
             
         } elseif('any_migration_package' === $protocol && ! $this->isAnyMigrationPackage($input_data, $blog_id)) {
-            $validation_errors[$input_parameter] = print_r(sprintf(esc_html__("%s is not a migration package format", 'prime-mover'), maybe_serialize($input_data)) , true);
+            /* translators: %s: Maybe serialize output */
+            $validation_errors[$input_parameter] = sprintf(esc_html__("%s is not a migration package format", 'prime-mover'), maybe_serialize($input_data));
             
         } elseif('prime_mover_valid_request_method' === $protocol && ! (in_array(strtoupper($input_data), ['GET','HEAD', 'POST']))) {
-            $validation_errors[$input_parameter] = print_r(sprintf(esc_html__("%s is not a valid request method", 'prime-mover'), maybe_serialize($input_data)) , true);
+            /* translators: %s: Maybe serialize output */
+            $validation_errors[$input_parameter] = sprintf(esc_html__("%s is not a valid request method", 'prime-mover'), maybe_serialize($input_data));
             
         } elseif('prime_mover_signature' === $protocol) {
             $signature_test = $this->verifyPrimeMoverPackageSignature($input_data, $blog_id);
             $test_result = $signature_test['result'];
             if ( ! $test_result && ! empty($signature_test['error'])) {
                 $error_msg = $signature_test['error'];
-                $validation_errors[$input_parameter] = print_r($error_msg, true);    
+                $validation_errors[$input_parameter] = $error_msg;
             }
                     
         } elseif('tmp_dir_file' === $protocol && ! $this->isFileInTmpDir($input_data)) {
-            $validation_errors[$input_parameter] = print_r(sprintf(esc_html__("%s is not a file inside tmp directory", 'prime-mover'), maybe_serialize($input_data)) , true); 
+            /* translators: %s: Maybe serialize output */
+            $validation_errors[$input_parameter] = sprintf(esc_html__("%s is not a file inside tmp directory", 'prime-mover'), maybe_serialize($input_data)); 
         
         } elseif('merging_zip_path' === $protocol && ! $this->isValidMergingZipPath($input_data)) {
-            $validation_errors[$input_parameter] = print_r(sprintf(esc_html__("%s is not a valid merging zip path", 'prime-mover'), maybe_serialize($input_data)) , true);
+            /* translators: %s: Maybe serialize output */
+            $validation_errors[$input_parameter] = sprintf(esc_html__("%s is not a valid merging zip path", 'prime-mover'), maybe_serialize($input_data));
             
         } elseif('prime_mover_menu_backups' === $protocol && ! $this->isValidPrimeMoverBackupsArray($input_data, $blog_id)) {
-            $validation_errors[$input_parameter] = print_r(sprintf(esc_html__("%s is not a valid backups array.", 'prime-mover'), maybe_serialize($input_data)) , true);
+            /* translators: %s: Maybe serialize output */
+            $validation_errors[$input_parameter] = sprintf(esc_html__("%s is not a valid backups array.", 'prime-mover'), maybe_serialize($input_data));
         }
         
         return apply_filters('prime_mover_perform_validation_logic', $validation_errors, $protocol, $input_parameter, $input_data);       
@@ -320,7 +335,7 @@ class PrimeMoverValidationHandlers
             }
             return $sanitized;
         } else {
-            $validation_error = print_r($validation_errors, true);
+            $validation_error = prime_mover_print_dbg($validation_errors);
             $serialized = maybe_serialize($validation_error);
             $this->afterInputValidationLog($validation_id, $serialized, $blog_id, $mode, $sanitized);
             do_action( 'prime_mover_shutdown_actions', ['type' => 1, 'message' => $validation_error] );

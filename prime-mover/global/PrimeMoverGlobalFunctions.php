@@ -9,8 +9,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-if (!function_exists('primeMoverGetConfigurationPath')) {
-    function primeMoverGetConfigurationPath()
+if (!function_exists('prime_mover_get_configuration_path')) {
+    function prime_mover_get_configuration_path()
     {
         if ( file_exists( ABSPATH . 'wp-config.php' ) ) {
             return ABSPATH . 'wp-config.php';
@@ -22,8 +22,8 @@ if (!function_exists('primeMoverGetConfigurationPath')) {
     }
 }
 
-if (!function_exists('primeMoverGetUploadsDirectoryInfo')) {
-    function primeMoverGetUploadsDirectoryInfo()
+if (!function_exists('prime_mover_get_uploads_directory_info')) {
+    function prime_mover_get_uploads_directory_info()
     {
         $main_site_blog_id = 0;
         $multisite = false;
@@ -45,8 +45,8 @@ if (!function_exists('primeMoverGetUploadsDirectoryInfo')) {
     }
 }
 
-if (!function_exists('primeMoverIsShaString')) {
-    function primeMoverIsShaString($string = '', $mode = 256)
+if (!function_exists('prime_mover_is_sha_string')) {
+    function prime_mover_is_sha_string($string = '', $mode = 256)
     {
         if (!$string) {
             return false;
@@ -69,8 +69,8 @@ if (!function_exists('primeMoverIsShaString')) {
     }
 }
 
-if (!function_exists('primeMoverLanguageToLocale')) {
-    function primeMoverLanguageToLocale()
+if (!function_exists('prime_mover_language_to_locale')) {
+    function prime_mover_language_to_locale()
     {
         return array(
             'af' => 'af_ZA',
@@ -153,15 +153,15 @@ if (!function_exists('primeMoverLanguageToLocale')) {
     }
 }
 
-if ( !function_exists( 'is_php_version_compatible' ) ) {
-    function is_php_version_compatible( $required ) 
+if ( !function_exists( 'prime_mover_is_php_version_compatible' ) ) {
+    function prime_mover_is_php_version_compatible( $required ) 
     {
         return empty( $required ) || version_compare( phpversion(), $required, '>=' );
     }
 }
 
-if (!function_exists('primeMoverDefaultUserAdjustments')) {
-    function primeMoverDefaultUserAdjustments()
+if (!function_exists('prime_mover_default_user_adjustments')) {
+    function prime_mover_default_user_adjustments()
     {
         $definitions = [];
         
@@ -497,8 +497,8 @@ if (!function_exists('primeMoverDefaultUserAdjustments')) {
     }
 }
 
-if (!function_exists('primeMoverAutoDeactivatePlugin')) {
-    function primeMoverAutoDeactivatePlugin()
+if (!function_exists('prime_mover_auto_deactivate_plugin')) {
+    function prime_mover_auto_deactivate_plugin()
     {
         if (defined('PRIME_MOVER_MAINPLUGIN_FILE')) {
             
@@ -514,8 +514,8 @@ if (!function_exists('primeMoverAutoDeactivatePlugin')) {
     }
 }
 
-if (!function_exists('primeMoverGetUserIp')) {
-    function primeMoverGetUserIp()
+if (!function_exists('prime_mover_get_user_ip')) {
+    function prime_mover_get_user_ip()
     {
         if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
             $ip = $_SERVER['HTTP_CLIENT_IP'];
@@ -537,8 +537,8 @@ if (!function_exists('primeMoverGetUserIp')) {
     }
 }
 
-if (!function_exists('primeMoverGetAuthKey')) {
-    function primeMoverGetAuthKey()
+if (!function_exists('prime_mover_get_auth_key')) {
+    function prime_mover_get_auth_key()
     {
         $auth_key = '';
         if (defined('AUTH_KEY') && AUTH_KEY) {
@@ -548,8 +548,8 @@ if (!function_exists('primeMoverGetAuthKey')) {
     }
 }
 
-if (!function_exists('primeMoverGetDbEncryptionKey')) {
-    function primeMoverGetDbEncryptionKey()
+if (!function_exists('prime_mover_get_db_encryption_key')) {
+    function prime_mover_get_db_encryption_key()
     {
         $ret = '';
         if ( ! defined('PRIME_MOVER_DB_ENCRYPTION_KEY') ) {
@@ -563,11 +563,11 @@ if (!function_exists('primeMoverGetDbEncryptionKey')) {
     }
 }
 
-if (!function_exists('primeMoverGetApiRequestKey')) {
-    function primeMoverGetApiRequestKey()
+if (!function_exists('prime_mover_get_api_request_key')) {
+    function prime_mover_get_api_request_key()
     {
-        $auth_key = primeMoverGetAuthKey();
-        $enc_key = primeMoverGetDbEncryptionKey();
+        $auth_key = prime_mover_get_auth_key();
+        $enc_key = prime_mover_get_db_encryption_key();
         
         if (!$auth_key || !$enc_key) {
             return '';
@@ -577,8 +577,8 @@ if (!function_exists('primeMoverGetApiRequestKey')) {
     }
 }
 
-if (!function_exists('primeMoverOpenSSLEncrypt')) {
-    function primeMoverOpenSSLEncrypt($plaintext = '', $key = '')
+if (!function_exists('prime_mover_openssl_encrypt')) {
+    function prime_mover_openssl_encrypt($plaintext = '', $key = '')
     {
         $cipher_method = PRIME_MOVER_OPENSSL_CIPHER;
         $ivlen = openssl_cipher_iv_length($cipher_method);
@@ -590,8 +590,8 @@ if (!function_exists('primeMoverOpenSSLEncrypt')) {
     }  
 }
 
-if (!function_exists('primeMoverOpenSSLDecrypt')) {
-    function primeMoverOpenSSLDecrypt($ciphertext = '', $key = '', $return_null_on_false = false)
+if (!function_exists('prime_mover_openssl_decrypt')) {
+    function prime_mover_openssl_decrypt($ciphertext = '', $key = '', $return_null_on_false = false)
     {
         if ( ! $ciphertext || ! $key ) {
             if ($return_null_on_false) {
@@ -623,8 +623,8 @@ if (!function_exists('primeMoverOpenSSLDecrypt')) {
     }
 }
 
-if (!function_exists('str_contains')) {
-    function str_contains($haystack, $needle) 
+if (!function_exists('prime_mover_str_contains')) {
+    function prime_mover_str_contains($haystack, $needle) 
     {
         if ('' === $needle) {
             return true;
@@ -634,8 +634,8 @@ if (!function_exists('str_contains')) {
     }
 }
 
-if (!function_exists('str_starts_with')) {
-    function str_starts_with( $haystack, $needle ) 
+if (!function_exists('prime_mover_str_starts_with')) {
+    function prime_mover_str_starts_with( $haystack, $needle ) 
     {
         if ( '' === $needle ) {
             return true;
@@ -645,8 +645,8 @@ if (!function_exists('str_starts_with')) {
     }
 }
 
-if (!function_exists('getPrimeMoverCronHooks')) {
-    function getPrimeMoverCronHooks()
+if (!function_exists('prime_mover_cron_hooks')) {
+    function prime_mover_cron_hooks()
     {
         $prime_mover_crons = [];
         if (!function_exists('_get_cron_array')) {
@@ -666,7 +666,7 @@ if (!function_exists('getPrimeMoverCronHooks')) {
             
             $cron_hooks = array_keys($v);            
             foreach ($cron_hooks as $hook) {
-                if ($hook && is_string($hook) && str_starts_with($hook, 'primeMover')) {
+                if ($hook && is_string($hook) && prime_mover_str_starts_with($hook, 'primeMover')) {
                     $prime_mover_crons[] = $hook;
                 }
             }
@@ -676,8 +676,8 @@ if (!function_exists('getPrimeMoverCronHooks')) {
     }
 }
 
-if (!function_exists('primeMoverRestoreAdminCaps')) {
-    function primeMoverRestoreAdminCaps()
+if (!function_exists('prime_mover_restore_admin_caps')) {
+    function prime_mover_restore_admin_caps()
     {
         return [
             'update_core',
@@ -699,10 +699,30 @@ if (!function_exists('primeMoverRestoreAdminCaps')) {
     }
 }
 
-if (!function_exists('primeMoverGetFreemiusSDK')) {
-    function primeMoverGetFreemiusSDK()
+if (!function_exists('prime_mover_get_freemius_sdk')) {
+    function prime_mover_get_freemius_sdk()
     {
-        global $pm_fs;
-        return $pm_fs;
+        global $prime_mover_fs;
+        return $prime_mover_fs;
     }   
+}
+
+if (!function_exists('prime_mover_print_dbg')) {
+    function prime_mover_print_dbg($data) 
+    {
+        if ($data instanceof \Closure) {
+            return '[Closure Object]';
+        }
+        
+        $output = wp_json_encode($data, JSON_PRETTY_PRINT);
+        if (false === $output) {
+            try {
+                $output = 'Parser Fallback (Serialized): ' . maybe_serialize($data);
+            } catch (\Exception $e) {
+                $output = 'Parser Emergency Fallback: Data structure formatting failed.';
+            }
+        }
+        
+        return $output;
+    }
 }

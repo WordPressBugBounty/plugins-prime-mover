@@ -271,16 +271,16 @@ class PrimeMoverConfigUtilities
         if (false === $this->getImportUtilities()->maybeImportPlugins($ret) || empty($ret['origin_site_url'])) {
             return $skipped;
         }
-        $this->getSystemFunctions()->switchToBlog($blogid_to_import);
-        
+        $this->getSystemFunctions()->switchToBlog($blogid_to_import);        
         $wpdb = $this->getSystemInitialization()->getWpdB();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
         $db_site_url = $wpdb->get_var("SELECT option_value FROM $wpdb->options WHERE option_name = 'siteurl'");        
         
         $this->getSystemFunctions()->restoreCurrentBlog();                
-        $db_site_domain = parse_url($db_site_url, PHP_URL_HOST);
+        $db_site_domain = wp_parse_url((string) $db_site_url, PHP_URL_HOST);        
         
         $origin_site_url = PRIME_MOVER_SECURE_PROTOCOL . $ret['origin_site_url'];
-        $origin_site_domain = parse_url($origin_site_url, PHP_URL_HOST);
+        $origin_site_domain = wp_parse_url((string) $origin_site_url, PHP_URL_HOST);        
         
         if ($db_site_domain !== $origin_site_domain) {            
             if (defined('PRIME_MOVER_CAN_COMPLETE_PACKAGE_BE_DEV') && true === PRIME_MOVER_CAN_COMPLETE_PACKAGE_BE_DEV) {
@@ -413,8 +413,7 @@ class PrimeMoverConfigUtilities
         $dev_attachment = $this->maybeLoadDevAttachment($attachment_id);
         if ( ! $dev_attachment || ! $url ) {
             return $url;
-        }
-        
+        }        
         $search = $dev_attachment['search'];
         $replace = $dev_attachment['replace'];
 
@@ -445,6 +444,7 @@ class PrimeMoverConfigUtilities
     private function markedOldAttachmentsHelper()
     {        
         $wpdb = $this->getSystemInitialization()->getWpdB();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
         $wpdb->query(  
             
             "INSERT INTO {$wpdb->postmeta} (post_id, meta_key, meta_value)
@@ -669,11 +669,11 @@ class PrimeMoverConfigUtilities
             return $instance;    
         }
         
-        if ( ! primeMoverGetConfigurationPath() ) {
+        if ( ! prime_mover_get_configuration_path() ) {
             return $instance; 
         }
         
-        $configuration_path = primeMoverGetConfigurationPath();
+        $configuration_path = prime_mover_get_configuration_path();
         return new WPConfigTransformer($configuration_path);
     }
     
@@ -692,7 +692,7 @@ class PrimeMoverConfigUtilities
             return '';
         }
         
-        $configuration_path = primeMoverGetConfigurationPath();
+        $configuration_path = prime_mover_get_configuration_path();
         if (!$configuration_path) {
             return '';
         }

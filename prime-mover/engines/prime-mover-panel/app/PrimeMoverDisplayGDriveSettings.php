@@ -111,13 +111,14 @@ class PrimeMoverDisplayGDriveSettings
             $readonly = '';
             $php_requirement = '';
             $disabled = '';
-            if (!is_php_version_compatible(PRIME_MOVER_GDRIVE_PHP_VERSION)) {
-                $readonly = 'readonly="readonly"';
+            if (!prime_mover_is_php_version_compatible(PRIME_MOVER_GDRIVE_PHP_VERSION)) {
+                $readonly = 'readonly';
+                /* translators: %s: Prime mover gdrive php version */
                 $php_requirement = sprintf(esc_html__('This feature requires PHP %s+.', 'prime-mover'), PRIME_MOVER_GDRIVE_PHP_VERSION);
                 $disabled = 'disabled';
             }
             ?>            
-            <textarea <?php echo $readonly; ?> autocomplete="off" class="large-text <?php echo $conceal_class; ?>" name="prime-mover-gdrive-settings" id="js-prime-mover-gdrive-settings" rows="5" cols="45"><?php echo esc_textarea($setting);?></textarea>
+            <textarea <?php echo esc_attr($readonly); ?> autocomplete="off" class="large-text <?php echo esc_attr($conceal_class); ?>" name="prime-mover-gdrive-settings" id="js-prime-mover-gdrive-settings" rows="5" cols="45"><?php echo esc_textarea($setting);?></textarea>
                 <div class="prime-mover-setting-description">
                      <?php if ($conceal_class) {?>
                      <p class="description">
@@ -130,13 +131,17 @@ class PrimeMoverDisplayGDriveSettings
                     <p class="description prime-mover-settings-paragraph">
                     <strong>
                     <?php 
-                    echo $php_requirement;
+                    echo wp_kses_post($php_requirement);
                     ?>
                     </strong>                    
-                    <?php 
-                        printf(esc_html__('Download the JSON credentials file in %s. Open the JSON file and paste all contents here. Please save the settings first. 
-                   Once done, please go back here and connect to Google Drive API.',
-                        'prime-mover'), '<strong>' . 'Google Developer Console -> Credentials -> OAuth 2.0 Client IDs' . '</strong>'
+                    <?php                        
+                        printf(
+                            wp_kses(
+                                /* translators: %s: Formatted text label path pointing to Google Developer Console credentials area */
+                                __( 'Download the JSON credentials file in <strong>%s</strong>. Open the JSON file and paste all contents here. Please save the settings first. Once done, please go back here and connect to Google Drive API.', 'prime-mover' ),
+                                [ 'strong' => [] ]
+                            ),
+                            'Google Developer Console -> Credentials -> OAuth 2.0 Client IDs'
                         ); 
                     ?>
                     </p>
@@ -151,7 +156,7 @@ class PrimeMoverDisplayGDriveSettings
                      $authUrl = $this->getSystemInitialization()->getGdriveAuthUrl();
 
                      if ($authUrl && $setting): ?>                  
-                         <a class="button" href='<?= $authUrl ?>'><?php esc_html_e('Connect to Google Drive!', 'prime-mover');?></a>                       
+                         <a class="button" href="<?php echo esc_url($authUrl); ?>"><?php esc_html_e( 'Connect to Google Drive!', 'prime-mover' ); ?></a>                                                
                      <?php endif ?>            
                      <?php 
                      if (is_object($client) && $client->getAccessToken()) {
@@ -159,7 +164,7 @@ class PrimeMoverDisplayGDriveSettings
                         <span class="notice notice-large notice-success">
                             <strong><em><?php esc_html_e('Success! You are connected to Google Drive!', 'prime-mover');?></em></strong>
                             <a title="<?php esc_attr_e('Logout from Google Drive API', 'prime-mover')?>" class="prime_mover_gdrive_logout_link" 
-                            href="<?php echo $this->generateGdriveLogoutLink();?>"><?php esc_html_e('Logout', 'prime-mover'); ?></a>
+                            href="<?php echo esc_url($this->generateGdriveLogoutLink());?>"><?php esc_html_e('Logout', 'prime-mover'); ?></a>
                         </span>                        
                      <?php    
                      }
@@ -171,7 +176,7 @@ class PrimeMoverDisplayGDriveSettings
         </tbody>
         </table>
     <?php     
-    }
+    }    
     
     /**
      * Get Google drive logout link

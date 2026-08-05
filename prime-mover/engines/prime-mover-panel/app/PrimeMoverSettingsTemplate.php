@@ -163,7 +163,7 @@ class PrimeMoverSettingsTemplate
                 <div class="prime-mover-setting-description">
                     <p class="description prime-mover-settings-paragraph">
          <?php 
-             echo $description;
+             echo wp_kses_post($description);
          ?>
                 </p>
          <?php 
@@ -214,7 +214,7 @@ class PrimeMoverSettingsTemplate
                 <div class="prime-mover-setting-description">
                     <p class="description prime-mover-settings-paragraph">
          <?php 
-             echo $description;
+             echo wp_kses_post($description);
          ?>
                </p>
          <?php 
@@ -270,7 +270,7 @@ class PrimeMoverSettingsTemplate
                 <div class="prime-mover-setting-description">
                     <p class="description prime-mover-settings-paragraph">
          <?php 
-             echo $description;
+             echo wp_kses_post($description);
          ?>
                 </p>
          <?php 
@@ -298,12 +298,12 @@ class PrimeMoverSettingsTemplate
         ?>
         <p class="description prime-mover-settings-paragraph">
             <a class="button-primary" 
-            href="<?php echo $this->getPrimeMoverSettings()->getSettingsMarkup()->generateDownloadLogUrl($ajax_action, $nonce, $ajax_key, $blog_id);?>">
+            href="<?php echo esc_url($this->getPrimeMoverSettings()->getSettingsMarkup()->generateDownloadLogUrl($ajax_action, $nonce, $ajax_key, $blog_id));?>">
             <?php echo esc_html($button_description);?></a>
         </p>
         
          <p class="description prime-mover-settings-paragraph">
-          <?php echo $description; ?>
+          <?php echo wp_kses_post($description); ?>
         </p> 
     <?php   
          $this->getPrimeMoverSettings()->getSettingsMarkup()->endMarkup();       
@@ -337,7 +337,7 @@ class PrimeMoverSettingsTemplate
                 <div class="prime-mover-setting-description">
                     <p class="description prime-mover-settings-paragraph">
                         <?php 
-                            echo $description;
+                            echo wp_kses_post($description);
                          ?>
                     </p>
          <?php 
@@ -429,7 +429,7 @@ class PrimeMoverSettingsTemplate
         
         $this->getPrimeMoverSettings()->getSettingsMarkup()->endMarkup();        
         if ($require_dialog) {
-            echo $this->renderDialogMarkup($config, $dialog_message, $dialog_heading);
+            echo esc_html($this->renderDialogMarkup($config, $dialog_message, $dialog_heading));
         }        
     }
     
@@ -449,7 +449,7 @@ class PrimeMoverSettingsTemplate
         $dialog_selector = $this->outputElementIdentifier($config, 'dialog_selector');
         ?>
         <div style="display:none;" id="<?php echo esc_attr($dialog_selector); ?>" title="<?php echo esc_attr($dialog_heading); ?>"> 
-			<p><?php echo $dialog_message; ?></p>	      	  	
+			<p><?php echo esc_html($dialog_message); ?></p>	      	  	
         </div>
     <?php
     }
@@ -488,7 +488,7 @@ class PrimeMoverSettingsTemplate
             <div class="prime-mover-setting-description">
             <p class="description prime-mover-settings-paragraph">
             <?php 
-               echo $description;
+               echo wp_kses_post($description);
             ?>
             </p>
          <?php 
@@ -532,7 +532,7 @@ class PrimeMoverSettingsTemplate
         ?>
         <textarea readonly="readonly" class="large-text" name="prime-mover-<?php echo esc_attr($identifier); ?>" id="js-prime-mover-<?php echo esc_attr($identifier); ?>" rows="5" cols="45"><?php echo esc_textarea($setting);?></textarea>
         
-       <?php echo $first_paragraph; ?>
+       <?php echo wp_kses_post($first_paragraph); ?>
        
        <p class="description">
            <button id="js-prime-mover-toggle-checkboxes" class="button" type="button"
@@ -545,7 +545,7 @@ class PrimeMoverSettingsTemplate
             <?php $this->buildCheckBoxesMarkup($setting, $validated_array, $empty_text, $use_key); ?>
        </div>
                 
-       <?php echo $second_paragraph; ?>                   
+       <?php echo wp_kses_post($second_paragraph); ?>                   
                 
        <?php 
             if (is_multisite()) {
@@ -578,7 +578,7 @@ class PrimeMoverSettingsTemplate
         
         if (empty($validated_array)) {
             ?>
-        <p><?php echo $empty_text; ?>  
+        <p><?php echo esc_html($empty_text); ?>  
         
         <?php           
         } else {        
@@ -607,7 +607,7 @@ class PrimeMoverSettingsTemplate
                 }
             ?> 
             <li><label><input <?php checked($checked); ?> type="checkbox" name="prime-mover-display-checkboxes" value="<?php echo esc_attr($key); ?>">
-                <?php echo $name; ?> (<em><?php echo $k; ?></em>)</label></li> 
+                <?php echo esc_html($name); ?> (<em><?php echo esc_html($k); ?></em>)</label></li> 
          <?php                
             }
         }

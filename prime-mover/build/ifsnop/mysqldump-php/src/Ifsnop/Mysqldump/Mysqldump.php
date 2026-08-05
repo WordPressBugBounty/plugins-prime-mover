@@ -19,6 +19,7 @@ namespace Codexonics\PrimeMoverFramework\build\Ifsnop\Mysqldump;
 use Exception;
 use PDO;
 use PDOException;
+use Codexonics\PrimeMoverBridgeIO;
 /**
  * Class Mysqldump.
  *
@@ -176,7 +177,7 @@ class Mysqldump
         }
         $diff = \array_diff(\array_keys($this->dumpSettings), \array_keys($dumpSettingsDefault));
         if (\count($diff) > 0) {
-            throw new Exception("Unexpected value in dumpSettings: (" . \implode(",", $diff) . ")");
+            throw new Exception(esc_html("Unexpected value in dumpSettings: (" . \implode(",", $diff) . ")"));
         }
         if (!\is_array($this->dumpSettings['include-tables']) || !\is_array($this->dumpSettings['exclude-tables'])) {
             throw new Exception("Include-tables and exclude-tables should be arrays");
@@ -365,10 +366,10 @@ class Mysqldump
                     throw new Exception("Unsupported database type (" . $this->dbType . ")");
             }
         } catch (PDOException $e) {
-            throw new Exception("Connection to " . $this->dbType . " failed with message: " . $e->getMessage());
+            throw new Exception(esc_html("Connection to " . $this->dbType . " failed with message: " . $e->getMessage()));
         }
         if (\is_null($this->dbHandler)) {
-            throw new Exception("Connection to " . $this->dbType . "failed");
+            throw new Exception(esc_html("Connection to " . $this->dbType . " failed"));
         }
         $this->dbHandler->setAttribute(PDO::ATTR_ORACLE_NULLS, PDO::NULL_NATURAL);
         $this->typeAdapter = TypeAdapterFactory::create($this->dbType, $this->dbHandler, $this->dumpSettings);
@@ -420,7 +421,7 @@ class Mysqldump
         // This check will be removed once include-tables supports regexps.
         if (0 < \count($this->dumpSettings['include-tables'])) {
             $name = \implode(",", $this->dumpSettings['include-tables']);
-            throw new Exception("Table (" . $name . ") not found in database");
+            throw new Exception(esc_html("Table (" . $name . ") not found in database"));
         }
     }
     /**
@@ -1349,7 +1350,7 @@ abstract class CompressManagerFactory
     {
         $c = \ucfirst(\strtolower($c));
         if (!CompressMethod::isValid($c)) {
-            throw new Exception("Compression method ({$c}) is not defined yet");
+            throw new Exception(esc_html("Compression method ({$c}) is not defined yet"));
         }
         $method = __NAMESPACE__ . "\\" . "Compress" . $c;
         return new $method();
@@ -1437,7 +1438,7 @@ class CompressNone extends CompressManagerFactory
         if ($chunk_mode) {
             $mode = "ab";
         }
-        $this->fileHandler = \fopen($filename, $mode);
+        $this->fileHandler = PrimeMoverBridgeIO::call('fopen', $filename, $mode);
         if (\false === $this->fileHandler) {
             throw new Exception("Output file is not writable");
         }
@@ -1445,7 +1446,7 @@ class CompressNone extends CompressManagerFactory
     }
     public function write($str)
     {
-        $bytesWritten = \fwrite($this->fileHandler, $str);
+        $bytesWritten = PrimeMoverBridgeIO::call('fwrite', $this->fileHandler, $str);
         if (\false === $bytesWritten) {
             throw new Exception("Writting to file failed! Probably, there is no more free space left?");
         }
@@ -1453,7 +1454,7 @@ class CompressNone extends CompressManagerFactory
     }
     public function close()
     {
-        return \fclose($this->fileHandler);
+        return PrimeMoverBridgeIO::call('fclose', $this->fileHandler);
     }
 }
 class CompressGzipstream extends CompressManagerFactory
@@ -1465,7 +1466,7 @@ class CompressGzipstream extends CompressManagerFactory
      */
     public function open($filename)
     {
-        $this->fileHandler = \fopen($filename, "wb");
+        $this->fileHandler = PrimeMoverBridgeIO::call('fopen', $filename, "wb");
         if (\false === $this->fileHandler) {
             throw new Exception("Output file is not writable");
         }
@@ -1474,7 +1475,7 @@ class CompressGzipstream extends CompressManagerFactory
     }
     public function write($str)
     {
-        $bytesWritten = \fwrite($this->fileHandler, \deflate_add($this->compressContext, $str, \ZLIB_NO_FLUSH));
+        $bytesWritten = PrimeMoverBridgeIO::call('fwrite', $this->fileHandler, \deflate_add($this->compressContext, $str, \ZLIB_NO_FLUSH));
         if (\false === $bytesWritten) {
             throw new Exception("Writting to file failed! Probably, there is no more free space left?");
         }
@@ -1482,8 +1483,8 @@ class CompressGzipstream extends CompressManagerFactory
     }
     public function close()
     {
-        \fwrite($this->fileHandler, \deflate_add($this->compressContext, '', \ZLIB_FINISH));
-        return \fclose($this->fileHandler);
+        PrimeMoverBridgeIO::call('fwrite', $this->fileHandler, \deflate_add($this->compressContext, '', \ZLIB_FINISH));
+        return PrimeMoverBridgeIO::call('fclose', $this->fileHandler);
     }
 }
 /**
@@ -1518,7 +1519,7 @@ abstract class TypeAdapterFactory
     {
         $c = \ucfirst(\strtolower($c));
         if (!TypeAdapter::isValid($c)) {
-            throw new Exception("Database type support for ({$c}) not yet available");
+            throw new Exception(esc_html("Database type support for ({$c}) not yet available"));
         }
         $method = __NAMESPACE__ . "\\" . "TypeAdapter" . $c;
         return new $method($dbHandler, $dumpSettings);
@@ -2052,7 +2053,7 @@ class TypeAdapterMysql extends TypeAdapterFactory
     private function check_parameters($num_args, $expected_num_args, $method_name)
     {
         if ($num_args != $expected_num_args) {
-            throw new Exception("Unexpected parameter passed to {$method_name}");
+            throw new Exception(esc_html("Unexpected parameter passed to {$method_name}"));
         }
         return;
     }

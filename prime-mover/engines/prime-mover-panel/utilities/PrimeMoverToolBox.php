@@ -264,18 +264,30 @@ class PrimeMoverToolBox
         
         
         $config = $settings_api[$identifier];
-        $heading_text = __('Non-user_id column auto-adjustment', 'prime-mover');        
+        $heading_text = __('Non-user_id column auto-adjustment', 'prime-mover');
         $setting = $this->getPrimeMoverSettingsTemplate()->getPrimeMoverSettings()->getSetting('non_user_column_id_adjustment', false, '', false, $blog_id, true);
         $setting = $this->convertNonUserIdToTextAreaDataFormat($setting);
-        $placeholder = "wp_custom_table_example : custom_user_column_name";
+        $placeholder = "wp_custom_table_example : custom_user_column_name";        
         
-        $description = sprintf(esc_html__('Only the %s database table column is auto-adjusted by default during export and import. If you have a non-user_id column, please define it here to be auto-adjusted on restore. 
-Please enter one row per database table using the format %s. Please %s to learn more about this feature.', 'prime-mover'), 
-            '<code>user_id</code>', "<code>{$placeholder}</code>",
-            '<a target="_blank" class="prime-mover-external-link" href="' . CODEXONICS_NON_USER_ID_ADJUSTMENT_TUTORIAL . '">' . esc_html__('please check out this tutorial', 'prime-mover') . '</a>'                
-        );
+        $description = sprintf(
+            wp_kses(
+                /* translators: %1$s: Text pattern format placeholder example, %2$s: Codexonics documentation reference URL address string path value */
+                __( 'Only the <code>user_id</code> database table column is auto-adjusted by default during export and import. If you have a non-user_id column, please define it here to be auto-adjusted on restore. Please enter one row per database table using the format <code>%1$s</code>. Please <a class="prime-mover-external-link" target="_blank" href="%2$s">read this tutorial</a> to learn more about this feature.', 'prime-mover' ),
+                [
+                    'code'   => [],
+                    'a'      => [
+                        'class'  => true,
+                        'target' => true,
+                        'href'   => true,
+                    ],
+                ]
+                ),
+            esc_html( $placeholder ),
+            esc_url( CODEXONICS_NON_USER_ID_ADJUSTMENT_TUTORIAL )
+            );
+        
         $this->getPrimeMoverSettingsTemplate()->renderTextAreaFormTemplate($heading_text, $identifier, $config, $setting, $placeholder, $description, $button_specs, false, $blog_id);
-    }
+    }    
     
     /**
      * Convert non user ID settings to text area data format
@@ -637,6 +649,7 @@ Please enter one row per database table using the format %s. Please %s to learn 
         $heading_text = __('Clear auto backup log', 'prime-mover');
         $description = esc_html__('Click this button if you like to clear the auto backup log of this site.', 'prime-mover');
         if (is_multisite()) {
+            /* translators: %d: Numerical blog ID value */
             $dialog_message = sprintf(esc_html__('Are you sure you want to clear the auto-backup log of blog ID %d?', 'prime-mover'), $blog_id);
         } else {
             $dialog_message = esc_html__('Are you sure you want to clear the auto-backup log?', 'prime-mover');
@@ -671,6 +684,7 @@ Please enter one row per database table using the format %s. Please %s to learn 
         $heading_text = __('Clear runtime error log', 'prime-mover');
         $description = esc_html__('Click this button if you like to clear the auto backup error log of this site.', 'prime-mover');
         if (is_multisite()) {
+            /* translators: %d: Numerical blog ID value */
             $dialog_message = sprintf(esc_html__('Are you sure you want to clear the error log of blog ID %d?', 'prime-mover'), $blog_id);
         } else {
             $dialog_message = esc_html__('Are you sure you want to clear the error log?', 'prime-mover');
@@ -705,6 +719,7 @@ Please enter one row per database table using the format %s. Please %s to learn 
         $heading_text = __('Clear autobackup init key', 'prime-mover');
         $description = esc_html__('Use this button to clear the auto backup init key of this site. Only use this if instructed by the tech support team or from a troubleshooting guide.', 'prime-mover');
         if (is_multisite()) {
+            /* translators: %d: Numerical blog ID value */
             $dialog_message = sprintf(esc_html__('Are you sure you want to clear the auto backup init key of blog ID %d?', 'prime-mover'), $blog_id);
         } else {
             $dialog_message = esc_html__('Are you sure you want to clear the auto backup init key?', 'prime-mover');

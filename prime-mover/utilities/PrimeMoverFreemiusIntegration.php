@@ -235,35 +235,59 @@ class PrimeMoverFreemiusIntegration
             ?>
             <div class="postbox prime-mover-account-details-div">
                  <h3 id="prime_mover_account_upgrade_plan_text"><span class="dashicons dashicons-cart prime-mover-cart-dashicon"></span><?php esc_html_e('Activate PRO', 'prime-mover'); ?></h3>                
-                    <p class="notice notice-info notice-large"><?php 
-                    echo sprintf(esc_html__('It looks like your Freemius account license is white labeled. To activate the license on this site, please check out this %s.', 'prime-mover'), 
-                        '<a class="prime-mover-external-link" href="' . esc_url(CODEXONICS_WHITE_LABEL_GUIDE) . '">' . esc_html__('complete guide', 'prime-mover') . '</a>');
+                    <p class="notice notice-info notice-large"><?php                     
+                    printf(
+                        wp_kses(
+                            /* translators: %s: Codexonics documentation reference URL link address string */
+                            __( 'It looks like your Freemius account license is white labeled. To activate the license on this site, please check out this <a class="prime-mover-external-link" href="%s">complete guide</a>.', 'prime-mover' ),
+                            [
+                                'a' => [
+                                    'class' => true,
+                                    'href'  => true,
+                                ],
+                            ]
+                        ),
+                        esc_url( CODEXONICS_WHITE_LABEL_GUIDE )
+                    );
                     ?> 
                     </p>               
             </div>
             <?php
         }        
-    }
+    }    
     
     /**
      * Maybe invite to upgrade
      */
     public function maybeInviteToUpgrade()
-    {        
+    {
         if ('no' === $this->hasUsableLicense() && false === $this->getSystemFunctions()->getSystemInitialization()->isUsingFreeCode()) {
-            if ($this->isWhiteLabeled()) {
+            $is_white_labeled = $this->isWhiteLabeled();
+            if ($is_white_labeled) {
                 $upgrade_url = CODEXONICS_UPGRADE_PLAN_GUIDE;
-                $class = 'class="prime-mover-external-link"';
-            } else {                
+                $class = 'prime-mover-external-link';
+            } else {
                 $upgrade_url = $this->getFreemius()->get_upgrade_url();
                 $class = '';
-            }  
-        ?>
+            }
+            ?>
             <div class="postbox prime-mover-account-details-div">
                  <h3 id="prime_mover_account_upgrade_plan_text"><span class="dashicons dashicons-cart prime-mover-cart-dashicon"></span><?php esc_html_e('Upgrade plan', 'prime-mover'); ?></h3>                
-                    <p class="notice-large"><?php 
-                    echo sprintf(esc_html__('You have used up all of your license activation quota. You should %s to activate the license to other production sites.', 'prime-mover'), 
-                        '<a ' . $class . ' href="' . esc_url($upgrade_url) . '">' . esc_html__('upgrade your plan', 'prime-mover') . '</a>');
+                    <p class="notice-large"><?php                     
+                    printf(
+                        wp_kses(
+                            /* translators: 1: CSS class name, 2: Destination plan management or guide panel link URL string */
+                            __( 'You have used up all of your license activation quota. You should <a class="%1$s" href="%2$s">upgrade your plan</a> to activate the license to other production sites.', 'prime-mover' ),
+                            [
+                                'a' => [
+                                    'class' => true,
+                                    'href'  => true,
+                                ],
+                            ]
+                        ),
+                        esc_attr($class),
+                        esc_url($upgrade_url)
+                    );
                     ?> 
                     </p>               
             </div>
@@ -327,12 +351,21 @@ class PrimeMoverFreemiusIntegration
         $uploadsize_limit = $this->getSystemFunctions()->getSystemInitialization()->getBrowserFileUploadSizeLimit();
         $human_readable = $this->getSystemFunctions()->humanFileSize($uploadsize_limit, 0);
         
-        $msg['prime_mover_exceeded_browser_limit'] = "<p>" . sprintf(esc_html__('Restoring packages beyond %s using browser uploads is not recommended for best performance.', 'prime-mover'), $human_readable) . "</p>" . 
-            "<p>" . sprintf(esc_html__('Please upload this package to this path via FTP: %s', 'prime-mover'), "<em>" . "{{WPRIME_EXPORT_PATH}}" . "</em>") . "</p>" . 
-            "<p>" . sprintf(esc_html__('You can then restore via %s in backend.', 'prime-mover'), "<em>" . esc_html__('Prime Mover - Packages', 'prime-mover') . "</em>") . "</p>";
+        /* translators: %s: Formatted file size string (e.g. 512MB) */
+        $limit_html = "<p>" . sprintf( __( 'Restoring packages beyond %s using browser uploads is not recommended for best performance.', 'prime-mover' ), esc_html( $human_readable ) ) . "</p>" .
+            "<p>" . __( 'Please upload this package to this path via FTP: <em>{{WPRIME_EXPORT_PATH}}</em>', 'prime-mover' ) . "</p>" .
+            "<p>" . __( 'You can then restore via <em>Prime Mover - Packages</em> in backend.', 'prime-mover' ) . "</p>";
+        
+        $msg['prime_mover_exceeded_browser_limit'] = wp_kses(
+            $limit_html,
+            [
+                'p'  => [],
+                'em' => [],
+            ]
+            );
         
         return $msg;
-    }
+    }    
  
     /**
      * Always Exclude Prime Mover Plugin in Diffs
@@ -438,7 +471,7 @@ class PrimeMoverFreemiusIntegration
         if (!$free_active && !$pro_active ) {            
             $this->getSystemFunctions()->restoreCurrentBlog();
             do_action('prime_mover_log_processed_events', 'ERROR: Prime Mover encounters fatal error and deactivated.', 0, 'import', __FUNCTION__, $this);
-            do_action( 'prime_mover_shutdown_actions', ['type' => 1, 'message' => esc_html__('Prime Mover encounters fatal error and deactivated.')] );
+            do_action( 'prime_mover_shutdown_actions', ['type' => 1, 'message' => esc_html__('Prime Mover encounters fatal error and deactivated.', 'prime-mover')] );
             return wp_die();
         }        
         if (!$do_deactivation ) {
@@ -623,9 +656,23 @@ class PrimeMoverFreemiusIntegration
           <div class="card">
           <h2><?php esc_html_e( 'Getting Started', 'prime-mover' ); ?></h2>
                <div class="notice-large highlight">                    
-                   <p><?php printf( esc_html__( 'Thank you for using %s ! Start migrating now by going to %s', 'prime-mover' ), "<strong>$plan</strong>", $target );?> : </p> 
+                   <p><?php                    
+                   printf(
+                       wp_kses(
+                           /* translators: %1$s: Formatted text title name string of the plugin package plan, %2$s: Destination text description label pointing to the target dashboard link area */
+                           __( 'Thank you for using <strong>%1$s</strong> ! Start migrating now by going to %2$s:', 'prime-mover' ),
+                           [ 'strong' => [] ]
+                       ),
+                       esc_html( $plan ),
+                       esc_html( $target )
+                   );
+                   ?> 
+                   </p> 
                </div>                                      
-               <p><a href="<?php echo esc_url($migration_tools);?>" class="button button-primary"><?php printf( esc_html__('Go to %s', 'prime-mover'), $target); ?></a></p>                     
+               <p><a href="<?php echo esc_url($migration_tools);?>" class="button button-primary"><?php 
+               /* translators: %s: Destination text description label pointing to the target dashboard link area */
+               printf( esc_html__('Go to %s', 'prime-mover'), esc_html($target)); 
+               ?></a></p>                     
          <h2><?php esc_html_e( 'Packages', 'prime-mover' ); ?></h2> 
               <?php 
               $backups_menu_url = $this->getSystemFunctions()->getBackupMenuUrl();
@@ -639,31 +686,35 @@ class PrimeMoverFreemiusIntegration
           <?php if ( ! $pro ) : ?>           
            <div class="card">                 
                 <?php                   
-                    $free_trial = $this->getFreemius()->get_upgrade_url('annual', true);
-                    $class = '';
-                    
+                    $free_trial = $this->getFreemius()->get_upgrade_url('annual', true);                    
                     $heading = esc_html__('Upgrade to Pro Version', 'prime-mover');
                     if ('yes' === $this->hasUsableLicense() && false === $this->getSystemFunctions()->getSystemInitialization()->isUsingFreeCode()) {
                         $heading = esc_html__('Activate Pro Version', 'prime-mover');
                     }
                 ?>                    
-                <h2><?php echo $heading; ?></h2>             
+                <h2><?php echo esc_html($heading); ?></h2>             
                  <div class="notice-large highlight">
                          <?php if (is_multisite() ) : ?>  
                               <p>
                                   <?php 
-                                  esc_html_e( 'Migrate faster and secure your migration with database / media files encryption. Plus many more useful features you can get with Pro version. 
-                             Click the button below to compare FREE and PRO plans.', 'prime-mover' );
+                                  esc_html_e( 'Migrate faster and secure your migration with database / media files encryption. Plus many more useful features you can get with Pro version. Click the button below to compare FREE and PRO plans.', 'prime-mover' );
                                   ?>
                              </p>        
                          <?php else : ?>                                                  
                               <p>
                                   <?php 
-                                  $trial_markup =  '';
-                                  if ('' === $this->hasUsableLicense()) {
-                                      $trial_markup =  '<a ' . $class . ' href="' . $free_trial . '">' . esc_html__('Start your 14-days FREE trial now.', 'prime-mover') . '</a>';
+                                  if ('' === $this->hasUsableLicense()) {                                      
+                                      printf(
+                                          wp_kses(
+                                              /* translators: %s: 14-days FREE trial registration page landing URL destination path string */
+                                              __( 'Migrate faster and secure your migration with database / media files encryption. <a href="%s">Start your 14-days FREE trial now.</a>', 'prime-mover' ),
+                                              [ 'a' => [ 'href' => true ] ]
+                                          ),
+                                          esc_url( $free_trial )
+                                      );
+                                  } else {
+                                      esc_html_e( 'Migrate faster and secure your migration with database / media files encryption.', 'prime-mover' );
                                   }
-                                  echo sprintf(esc_html__( 'Migrate faster and secure your migration with database / media files encryption. %s', 'prime-mover' ), $trial_markup);
                                    ?> 
                               </p>                                                    
                          <?php endif; ?>
@@ -672,7 +723,7 @@ class PrimeMoverFreemiusIntegration
                          $upgrade_url = apply_filters('prime_mover_filter_upgrade_pro_url', $upgrade_url);
                          $upgrade_text = apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__('Upgrade to Pro Version', 'prime-mover') , 0, false);
                      ?>                    
-                     <p><a href="<?php echo esc_url($upgrade_url);?>" class="button button-primary"><?php echo $upgrade_text; ?></a></p>   
+                     <p><a href="<?php echo esc_url($upgrade_url);?>" class="button button-primary"><?php echo esc_html($upgrade_text); ?></a></p>   
                      <?php $this->outputSupportAndDocumentationMarkup($pro, $support, $contact_us); ?>              
           </div>         
           <?php endif; ?>
@@ -681,7 +732,17 @@ class PrimeMoverFreemiusIntegration
            <div class="card">                      
                <h2><?php esc_html_e( 'Settings', 'prime-mover' ); ?></h2>             
                  <div class="notice-large highlight">
-                     <p><?php printf(esc_html__( '%s includes settings page. Please take a moment to review these settings and make sure they are correct.', 'prime-mover'), "<strong>$plan</strong>");?></p> 
+                     <p><?php                      
+                     printf(
+                         wp_kses(
+                             /* translators: %s: Formatted text title name string of the plugin package plan */
+                             __( '<strong>%s</strong> includes settings page. Please take a moment to review these settings and make sure they are correct.', 'prime-mover' ),
+                             [ 'strong' => [] ]
+                         ),
+                         esc_html( $plan )
+                     );
+                     ?>
+                     </p> 
                  </div>                                      
                  <p><a href="<?php echo esc_url($settings);?>" class="button button-primary"><?php esc_html_e( 'Go to Settings', 'prime-mover' ); ?></a></p>   
                  <?php $this->outputSupportAndDocumentationMarkup($pro, $support, $contact_us); ?>
@@ -699,25 +760,55 @@ class PrimeMoverFreemiusIntegration
      */
     private function outputSupportAndDocumentationMarkup($pro = false, $support = '', $contact_us = '')
     {
-    ?>       
+        ?>
         <h2><?php esc_html_e( 'Support and Documentation', 'prime-mover' ); ?></h2>             
             <div class="notice-large highlight">
                 <?php if ( ! $pro ) : ?>
-                    <p><?php printf( esc_html__( '%s. You can also read %s .', 
-                             'prime-mover' ), 
-                             $support,
-                             '<a target="_blank" class="prime-mover-external-link" href="' . CODEXONICS_DOCUMENTATION . '">' . esc_html__('documentation here', 'prime-mover') . '</a>'                             
-                             );
-                         ?>
+                    <p><?php                    
+                    $free_msg = sprintf(
+                        /* translators: %1$s: Dynamically injected support desk tracking info statement text or link anchor element, %2$s: Codexonics documentation directory reference URL address string link path */
+                        __( '%1$s. You can also read <a target="_blank" class="prime-mover-external-link" href="%2$s">documentation here</a>.', 'prime-mover' ),
+                        $support,
+                        esc_url( CODEXONICS_DOCUMENTATION )
+                    );
+                    
+                    echo wp_kses(
+                        $free_msg,
+                        [
+                            'a' => [
+                                'target' => true,
+                                'class'  => true,
+                                'href'   => true,
+                                'title'  => true,
+                                'id'     => true,
+                            ],
+                        ]
+                    );
+                    ?>
                      <?php esc_html_e('Please rate us in WordPress.org. Thank you!', 'prime-mover'); ?>
                     </p>
                      <?php endif; ?> 
                      <?php if ($pro) : ?>
-                      <p><?php printf( esc_html__( '%s. You can also read %s . 
-                     Contact us if you like to report bugs, etc.', 
-                         'prime-mover' ), 
-                         $support,
-                          '<a target="_blank" class="prime-mover-external-link" href="' . CODEXONICS_DOCUMENTATION . '">' . esc_html__('documentation here', 'prime-mover') . '</a>');
+                      <p><?php                       
+                      $pro_msg = sprintf(
+                          /* translators: %1$s: Dynamically injected support desk tracking info statement text or link anchor element, %2$s: Codexonics documentation directory reference URL address string link path */
+                          __( '%1$s. You can also read <a target="_blank" class="prime-mover-external-link" href="%2$s">documentation here</a>. Contact us if you like to report bugs, etc.', 'prime-mover' ),
+                          $support,
+                          esc_url( CODEXONICS_DOCUMENTATION )
+                      );
+                      
+                      echo wp_kses(
+                          $pro_msg,
+                          [
+                              'a' => [
+                                  'target' => true,
+                                  'class'  => true,
+                                  'href'   => true,
+                                  'title'  => true,
+                                  'id'     => true,
+                              ],
+                          ]
+                      );
                      ?>
                      </p>                        
                      <?php endif; ?>
@@ -750,10 +841,22 @@ class PrimeMoverFreemiusIntegration
     public function showGettingStartedOnFreeUsers()
     {
         $pro = false;
-        $plan = "Prime Mover Free version";
+        $plan = "Prime Mover Free version";        
         
-        $support = sprintf( esc_html__( '%s is available with free version', 'prime-mover' ), 
-            '<a target="_blank" class="prime-mover-external-link" href="https://wordpress.org/support/plugin/prime-mover/">' . esc_html__('Community support', 'prime-mover') . '</a>');
+        $support = sprintf(
+        wp_kses(
+        /* translators: %s: Codexonics community support forum reference URL link address string */
+        __( '<a target="_blank" class="prime-mover-external-link" href="%s">Community support</a> is available with free version.', 'prime-mover' ),
+        [
+        'a' => [
+        'target' => true,
+        'class'  => true,
+        'href'   => true,
+        ],
+        ]
+        ),
+        'https://wordpress.org/support/plugin/prime-mover/'
+            );
         $settings = "#";
         
         if ($this->isCustomer()) {
@@ -915,7 +1018,7 @@ class PrimeMoverFreemiusIntegration
         } else {
             $options_query = "SELECT option_name FROM {$wpdb->prefix}options WHERE option_name LIKE 'fs_%'";            
         }
-                
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $option_query_results = $wpdb->get_results($options_query, ARRAY_N);        
         
         if (!is_array($option_query_results) || empty($option_query_results)) {

@@ -145,8 +145,8 @@ class PrimeMoverTroubleshootingMarkup
         }
         $log_path = $this->getPrimeMover()->getSystemInitialization()->getTroubleShootingLogPath('siteinformation'); 
         $site_info = apply_filters('prime_mover_filter_error_output', [], 0);
-        
-        $site_info_string = print_r($site_info, true);
+               
+        $site_info_string = prime_mover_print_dbg($site_info);
         file_put_contents($log_path, $site_info_string);
     }
     
@@ -286,7 +286,7 @@ class PrimeMoverTroubleshootingMarkup
                     </p>                                  
                     <p class="p_wrapper_prime_mover_setting">                        
                     <a class="button-primary" 
-                    href="<?php echo $this->generateDownloadLogUrl('prime_mover_download_siteinfo', 'prime_mover_download_site_info_nonce', 'prime_mover_site_info');?>">
+                    href="<?php echo esc_url($this->generateDownloadLogUrl('prime_mover_download_siteinfo', 'prime_mover_download_site_info_nonce', 'prime_mover_site_info'));?>">
                      <?php esc_html_e('Export site info', 'prime-mover');?></a>
                     </p>   
                 </div>                      
@@ -305,7 +305,7 @@ class PrimeMoverTroubleshootingMarkup
     {
         $this->getPrimeMoverSettings()->getSettingsMarkup()->startMarkup(__('Troubleshooting', 'prime-mover'));
         $export_path = $this->getPrimeMover()->getSystemInitialization()->getMultisiteExportFolderPath();
-    ?>
+        ?>
         <p class="description">
           <label for="js-prime_mover_enable_log_checkbox">
               <input <?php checked( $this->getPrimeMoverSettings()->getSetting($setting, false, 'true'), 'true' ); ?> type="checkbox"
@@ -315,16 +315,35 @@ class PrimeMoverTroubleshootingMarkup
          </label>
         </p> 
         <p class="description prime-mover-settings-paragraph">
-          <?php printf( esc_html__('%s : These logs can contain sensitive/private details. Please do not post this information publicly or share to anyone. 
-          For maximum security, move your backup directory outside public html to prevent unauthorized access to these log. You can do this very easily in the %s.', 
-              'prime-mover'), '<strong>' . esc_html__('Important', 'prime-mover') . '</strong>',
-              '<a href="' . esc_url($this->getFreemiusIntegration()->getSettingsPageUrl()) . '">' . esc_html__('basic settings page', 'prime-mover') . '</a>'); ?>
+          <?php           
+          printf(
+              wp_kses(
+                  /* translators: %s: Base settings configuration layout page URL destination string */
+                  __( '<strong>Important</strong> : These logs can contain sensitive/private details. Please do not post this information publicly or share to anyone. For maximum security, move your backup directory outside public html to prevent unauthorized access to these log. You can do this very easily in the <a href="%s">basic settings page</a>.', 'prime-mover' ),
+                  [
+                      'strong' => [],
+                      'a'      => [ 'href' => true ],
+                  ]
+              ),
+              esc_url( $this->getFreemiusIntegration()->getSettingsPageUrl() )
+          ); ?>
         </p> 
         <p class="description prime-mover-settings-paragraph">
-          <?php printf( esc_html__('Interpreting these logs requires advance knowledge of migration processes. It is recommended to enable this only if advised by the technical support or plugin developer to analyze these data. 
-              The generated logs are stored in your %s.', 
-              'prime-mover'), 
-              '<a class="prime_mover_panel_backup_dir_title" title="' . esc_attr($export_path) . '">backup directory</a>'); ?>
+          <?php          
+          printf(
+              wp_kses(
+                  /* translators: %s: Absolute text path representation of the backup storage area directory */
+                  __( 'Interpreting these logs requires advance knowledge of migration processes. It is recommended to enable this only if advised by the technical support or plugin developer to analyze these data. The generated logs are stored in your <a class="prime_mover_panel_backup_dir_title" href="#" title="%s">backup directory</a>.', 'prime-mover' ),
+                  [
+                      'a' => [
+                          'class' => true,
+                          'href'  => true,
+                          'title' => true,
+                      ],
+                  ]
+              ),
+              esc_attr( $export_path )
+          ); ?>
         </p>                                                        
     <?php
         $this->getPrimeMoverSettings()->getSettingsMarkup()->renderSubmitButton('prime_mover_save_troubleshooting_settings_nonce', 'js-save-prime-mover-troubleshooting', 'js-save-prime-mover-troubleshooting-spinner', 
@@ -363,9 +382,22 @@ class PrimeMoverTroubleshootingMarkup
         
         $config = $settings_api[$identifier];
         $label = __('User diff check', 'prime-mover');
-        $enable_label = __('Disable user diff check', 'prime-mover');        
-        $sprintf = sprintf(esc_html__('By default, user diff check is enabled, so you will be reminded to reset your site before you restore it. You can turn it off here if you do not need to use this feature. Please %s to know about using this feature.', 'prime-mover'),
-            '<a target="_blank" class="prime-mover-external-link" href="' . CODEXONICS_USER_DIFF_FAQ . '">' . esc_html__('read this FAQ', 'prime-mover') . '</a>');
+        $enable_label = __('Disable user diff check', 'prime-mover');   
+        
+        $sprintf = sprintf(
+            wp_kses(
+                /* translators: %s: Codexonics user differences documentation FAQ reference URL link address string */
+                __( 'By default, user diff check is enabled, so you will be reminded to reset your site before you restore it. You can turn it off here if you do not need to use this feature. Please <a target="_blank" class="prime-mover-external-link" href="%s">read this FAQ</a> to know about using this feature.', 'prime-mover' ),
+                [
+                    'a' => [
+                        'target' => true,
+                        'class'  => true,
+                        'href'   => true,
+                    ],
+                ]
+            ),
+            esc_url( CODEXONICS_USER_DIFF_FAQ )
+        );
         $this->getSettingsTemplate()->renderCheckBoxFormTemplate($label, $identifier, $config, 'true', $enable_label, $sprintf, 0, false, $button_specs);
     }
     
@@ -391,13 +423,15 @@ class PrimeMoverTroubleshootingMarkup
         
         $config = $settings_api[$identifier];
         $heading_text = __('Clear locks', 'prime-mover');
-        $description = sprintf(esc_html__('Clear the locked user file and return the settings to the options table. %s.', 'prime-mover'), 
-            '<strong>' . esc_html__('Please do this only when no ongoing export (including auto-backups) or import process is running and when technical support has instructed you', 'prime-mover') . '</strong>');
-        $dialog_message = esc_html__('Are you sure you want to restore locked settings?', 'prime-mover');        
+        $description = wp_kses(
+            __( 'Clear the locked user file and return the settings to the options table. <strong>Please do this only when no ongoing export (including auto-backups) or import process is running and when technical support has instructed you.</strong>', 'prime-mover' ),
+            [ 'strong' => [] ]
+            );
+        $dialog_message = esc_html__('Are you sure you want to restore locked settings?', 'prime-mover');
         $dialog_heading = __('Heads Up!', 'prime-mover');
         
         $this->getSettingsTemplate()->renderButtonFormConfirmTemplate($heading_text, $identifier, $config, $description, 1, false, $button_specs, $dialog_message, $dialog_heading);
-    }    
+    }
     
     /**
      * Render clear log markup
@@ -438,7 +472,7 @@ class PrimeMoverTroubleshootingMarkup
     ?>
         <p class="description prime-mover-settings-paragraph">
             <a class="button-primary" 
-            href="<?php echo $this->generateDownloadLogUrl('prime_mover_download_troubleshooting_log', 'download_troubleshooting_log_nonce', 'prime_mover_troubleshooting_log');?>">
+            href="<?php echo esc_url($this->generateDownloadLogUrl('prime_mover_download_troubleshooting_log', 'download_troubleshooting_log_nonce', 'prime_mover_troubleshooting_log'));?>">
             <?php esc_html_e('Download log file', 'prime-mover');?></a>
         </p>
          <p class="description prime-mover-settings-paragraph">
@@ -607,10 +641,13 @@ class PrimeMoverTroubleshootingMarkup
     {
         ?>
         <div style="display:none;" id="js-prime-mover-panel-clearall-dialog" title="<?php esc_attr_e('Warning!', 'prime-mover')?>"> 
-			<p><?php printf( esc_html__('Are you really sure you want to %s', 'prime-mover'), 
-			    '<strong>' . esc_html__('clear the log', 'prime-mover') . '</strong>'); ?> ? </p>			
-			<p><strong><?php esc_html_e('Once cleared, the process cannot be undone.')?></strong></p>		      	  	
+			<p><?php 
+			echo wp_kses(
+			    __( 'Are you really sure you want to <strong>clear the log</strong> ?', 'prime-mover' ),
+			    [ 'strong' => [] ]
+			); ?></p>			
+			<p><strong><?php esc_html_e('Once cleared, the process cannot be undone.', 'prime-mover')?></strong></p>		      	  	
         </div>
     <?php
-    }
+    }    
 }

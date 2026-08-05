@@ -13,6 +13,7 @@ namespace Codexonics\PrimeMoverFramework\utilities;
 
 use Codexonics\PrimeMoverFramework\classes\PrimeMoverSystemChecks;
 use Codexonics\PrimeMoverFramework\classes\PrimeMoverProgressHandlers;
+use Codexonics\PrimeMoverBridgeIO;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -139,9 +140,11 @@ class PrimeMoverUploadUtilities
     public function setUploadError(array $args )
     {
         $args['prime_mover_upload_error_message'] = esc_js(
-            sprintf(__('Upload fails for blog ID {{BLOGID}}. Retry is attempted but still fails. %s',
-                'prime-mover'), 
-                '<strong>' . esc_html__('Server Error : {{UPLOADSERVERERROR}}', 'prime-mover') . '</strong>'));
+            wp_kses(
+                __( 'Upload fails for blog ID {{BLOGID}}. Retry is attempted but still fails. <strong>Server Error : {{UPLOADSERVERERROR}}</strong>', 'prime-mover' ),
+                [ 'strong' => [] ]
+                )
+            );
         return $args;
     }
     
@@ -665,21 +668,21 @@ class PrimeMoverUploadUtilities
                 $chunks = $resume_chunks;
             }
             if ( $retry_parts_merging && $this->getSystemFunctions()->nonCachedFileExists($filePath)) {
-                $out = @fopen($filePath, 'ab');
+                $out = @PrimeMoverBridgeIO::call('fopen', $filePath, 'ab');
             }
             
             if ( $retry_parts_merging && ! $this->getSystemFunctions()->nonCachedFileExists($filePath)) {
-                $out = @fopen($filePath, 'wb');
+                $out = @PrimeMoverBridgeIO::call('fopen', $filePath, 'wb');
             }
             if ( ! $retry_parts_merging ) {
-                $out = @fopen($filePath, 'wb');
+                $out = @PrimeMoverBridgeIO::call('fopen', $filePath, 'wb');
             }
             
             for ($i = $index; $i <= $chunks; $i++) {    
                 $this->maybeTestSlowZipMerging();
                 $retry_timeout = apply_filters('prime_mover_retry_timeout_seconds', PRIME_MOVER_RETRY_TIMEOUT_SECONDS, 'maybeReassembleImportPackageChunks');
                 if (microtime(true) - $start_time > $retry_timeout && $i) {
-                    @fclose($out);
+                    @PrimeMoverBridgeIO::call('fclose', $out);
                     $retry_parameters = ['resume_parts_index' => $i, 'resume_filepath' => $filePath, 'resume_chunks' => $chunks];
                     
                     do_action('prime_mover_log_processed_events', "Merging timeout, need to retry with the following parameters: ", $import_blog_id, 'import', 'maybeReassembleImportPackageChunks', $this);
@@ -687,10 +690,10 @@ class PrimeMoverUploadUtilities
                     
                     return $retry_parameters;
                 } 
-                $in = @fopen($filePath . '-' . $i . '.part', 'rb');
+                $in = @PrimeMoverBridgeIO::call('fopen', $filePath . '-' . $i . '.part', 'rb');
                 if ($in) {
                     stream_copy_to_stream($in, $out);
-                    @fclose($in);
+                    @PrimeMoverBridgeIO::call('fclose', $in);
                     
                     do_action('prime_mover_log_processed_events', "Asssembled chunk $i back to the main zip", $import_blog_id, 'import', 'maybeReassembleImportPackageChunks', $this);
                     unlink($filePath . '-' . $i . '.part');
@@ -700,7 +703,7 @@ class PrimeMoverUploadUtilities
             $done = true;
             $this->markPackageAsAssembled($process_id);
             $this->getProgressHandlers()->primeMoverDeleteAssemblyOption($process_id);
-            @fclose($out);
+            @PrimeMoverBridgeIO::call('fclose', $out);
         }
         
         return $done;

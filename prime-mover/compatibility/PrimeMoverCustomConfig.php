@@ -189,7 +189,7 @@ class PrimeMoverCustomConfig
     public function deactivate()
     {
         if ($this->getSystemAuthorization()->isUserAuthorized()) {
-            primeMoverAutoDeactivatePlugin();
+            prime_mover_auto_deactivate_plugin();
         }        
     }    
 }

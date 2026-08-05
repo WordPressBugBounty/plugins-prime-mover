@@ -74,9 +74,19 @@ class PrimeMoverBackupDirectorySize
         }
         if ( false === $total_size ) {
             return ['status' => false, 'message' => esc_html__('Error ! There is a problem computing backup dir size.', 'prime-mover')];
-        }
-        return ['status' => true, 'message' => sprintf( esc_html__('Total backup size is %s', 'prime-mover'), 
-            '<strong>' . $this->getPrimeMover()->getSystemFunctions()->humanFileSize($total_size, 2) . '</strong>' )];
+        }        
+        
+        return [
+            'status'  => true,
+            'message' => sprintf(
+                wp_kses(
+                    /* translators: %s: Human-readable file size string value (e.g. 15.42 MB) */
+                    __( 'Total backup size is <strong>%s</strong>', 'prime-mover' ),
+                    [ 'strong' => [] ]
+                    ),
+                esc_html( $this->getPrimeMover()->getSystemFunctions()->humanFileSize($total_size, 2) )
+                )
+        ];
     }
 
     /**
@@ -128,7 +138,7 @@ class PrimeMoverBackupDirectorySize
                 <label id="prime-mover-backupstats-settings-label"><?php esc_html_e('Backup stats', 'prime-mover')?></label>
             </th>
             <td>                 
-                <p><button data-nonce="<?php echo $this->getPrimeMover()->getSystemFunctions()->primeMoverCreateNonce('prime_mover_compute_backup_directory_size_nonce'); ?>" id="js-prime-mover-backup-directory-size-button" class="button button-primary" type="button">
+                <p><button data-nonce="<?php echo esc_attr($this->getPrimeMover()->getSystemFunctions()->primeMoverCreateNonce('prime_mover_compute_backup_directory_size_nonce')); ?>" id="js-prime-mover-backup-directory-size-button" class="button button-primary" type="button">
                         <?php esc_html_e('Compute Backup Directory Size', 'prime-mover' ); ?></button></p>
                 <div class="prime-mover-setting-description">
                     <p class="description prime-mover-settings-paragraph">

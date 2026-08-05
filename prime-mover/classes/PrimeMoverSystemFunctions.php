@@ -19,6 +19,7 @@ use WP_Error;
 use SplFixedArray;
 use wpdb;
 use Freemius;
+use Codexonics\PrimeMoverBridgeIO;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -133,7 +134,7 @@ class PrimeMoverSystemFunctions
         }
         
         $package = false;
-        if (is_file($filepath) && str_contains(strtolower($filename), '.wprime')) {
+        if (is_file($filepath) && prime_mover_str_contains(strtolower($filename), '.wprime')) {
             $package = true;
         }
         
@@ -226,30 +227,30 @@ class PrimeMoverSystemFunctions
             
             $size = filesize($path);
             
-            if (!($file = fopen($path, 'rb')))
+            if (!($file = PrimeMoverBridgeIO::call('fopen', $path, 'rb')))
                 return false;
                 
                 if ($size >= 0) {
-                    if (fseek($file, 0, SEEK_END) === 0) {
-                        fclose($file);
+                    if (PrimeMoverBridgeIO::call('fseek', $file, 0, SEEK_END) === 0) {
+                        PrimeMoverBridgeIO::call('fclose', $file);
                         return $size;
                     }
                 }
 
                 $size = PHP_INT_MAX - 1;
-                if (fseek($file, PHP_INT_MAX - 1) !== 0) {
-                    fclose($file);
+                if (PrimeMoverBridgeIO::call('fseek', $file, PHP_INT_MAX - 1) !== 0) {
+                    PrimeMoverBridgeIO::call('fclose', $file);
                     return false;
                 }                
                 $length = 1024 * 1024;
                 while (!feof($file)) {
-                    $read = fread($file, $length);
+                    $read = PrimeMoverBridgeIO::call('fread', $file, $length);
                     $size = bcadd($size, $length);
                 }
                 $size = bcsub($size, $length);
                 $size = bcadd($size, strlen($read));
                 
-                fclose($file);
+                PrimeMoverBridgeIO::call('fclose', $file);
                 return $size;
     }
     
@@ -593,8 +594,8 @@ class PrimeMoverSystemFunctions
         $source_scheme = $scheme_params['scheme_replace']['search'];
         $target_scheme = $scheme_params['scheme_replace']['replace'];
         
-        $origin_protocol = parse_url($source_scheme, PHP_URL_SCHEME);
-        $target_protocol = parse_url($target_scheme, PHP_URL_SCHEME);
+        $origin_protocol = wp_parse_url((string) $source_scheme, PHP_URL_SCHEME);
+        $target_protocol = wp_parse_url((string) $target_scheme, PHP_URL_SCHEME);        
         
         $origin_protocol = $origin_protocol . "://";
         $target_protocol = $target_protocol . "://";
@@ -775,7 +776,7 @@ class PrimeMoverSystemFunctions
             return @unlink( $file );
         }
         if (!$recursive && $wp_filesystem->is_dir($file)) {
-            return @rmdir( $file );
+            return @PrimeMoverBridgeIO::call('rmdir',  $file );
         }        
         $file = trailingslashit($file);
         $filelist = $wp_filesystem->dirlist($file, true);        
@@ -791,7 +792,7 @@ class PrimeMoverSystemFunctions
                 }
             }
         }        
-        if ($this->nonCachedFileExists($file) && !@rmdir($file)) {
+        if ($this->nonCachedFileExists($file) && !@PrimeMoverBridgeIO::call('rmdir', $file)) {
             $retval = false;
         }        
         return $retval;
@@ -828,7 +829,8 @@ class PrimeMoverSystemFunctions
             }
         }
         if ( ! $structure_valid ) {  
-            $invalid_keys = array_keys($footprint);            
+            $invalid_keys = array_keys($footprint);     
+            /* translators: %s: Invalid keys */
             $errors[] = sprintf( esc_html__('Invalid footprint keys detected : %s', 'prime-mover'), implode(",", $invalid_keys));
         }
 
@@ -961,7 +963,7 @@ class PrimeMoverSystemFunctions
                     /**
                      * Handling case #4, case #5 and case #6
                      */
-                    $status = apply_filters('multsite_migration_targetplugin_status', '', $source_plugin_name, $source_version);
+                    $status = apply_filters('prime_mover_targetplugin_status', '', $source_plugin_name, $source_version);
                     if ($status) {
                         $pluginsDifference[ $source_plugin_name ] = [
                             'source' => $source_version,
@@ -1113,6 +1115,7 @@ class PrimeMoverSystemFunctions
         }
         $msg	 = '';
         $extra_space = false;
+        /* translators: %s: NOT */
         $msg	.= sprintf(esc_html__(
             'Some dependencies required for the imported site is not meet. Please review and do %s proceed if this can adversely affect your site',
             'prime-mover'
@@ -1295,26 +1298,63 @@ class PrimeMoverSystemFunctions
             $msg .= PHP_EOL;
             $msg .= PHP_EOL;
             $msg .= esc_html__('For best restoration results, the following is recommended:', 'prime-mover');
-            $msg .= '<ol>';
-            $msg .= '<li>' . sprintf(esc_html__('Start with a %s', 'prime-mover'), '<a class="prime-mover-external-link" target="_blank" href="' . $tutorial_link . '">' . sprintf(esc_html__('fresh %s install', 'prime-mover'), $platform_text) . '</a>.') . '</li>';
+            $msg .= '<ol>';           
+            
+            /* translators: %s: Platform name (e.g. WordPress, Bedrock) */
+            $platform_label = sprintf(esc_html__('fresh %s install', 'prime-mover'), $platform_text);
+            
+            $anchor_link = '<a class="prime-mover-external-link" target="_blank" href="' . esc_url($tutorial_link) . '">' . esc_html($platform_label) . '</a>.';
+            
+            /* translators: %s: Formatted HTML link to the installation tutorial */
+            $msg .= '<li>' . sprintf(esc_html__('Start with a %s', 'prime-mover'), $anchor_link) . '</li>';
             
             $recommended_email = '';
             if (!empty($diff['users']['recommended_email'])) {
                 $recommended_email = $diff['users']['recommended_email'];
             }
             
-            if ($recommended_email) {
-                $msg .= '<li>' . sprintf(esc_html__('Set %s as its %s.', 'prime-mover'), '<strong>' . $recommended_email . '</strong>', $admin_text) . '</li>';
-            } else {
-                $msg .= '<li>' . sprintf(esc_html__('Use a %s email, and do not use %s to avoid user restoration conflicts', 'prime-mover'), '<em>' . 
-                    esc_html__('different administrator email', 'prime-mover') . '</em>', '<strong>' . $recommended_email . '</strong>') . '</li>';
+            if ($recommended_email) {                
+                $msg .= '<li>' . sprintf(
+                    wp_kses(
+                    /* translators: %1$s: Recommended email string value, %2$s: Admin description text context */
+                        __( 'Set <strong>%1$s</strong> as its %2$s.', 'prime-mover' ),
+                        [ 'strong' => [] ]
+                        ),
+                    esc_html( $recommended_email ),
+                    esc_html( $admin_text )
+                    ) . '</li>';
+            } else {                
+                $msg .= '<li>' . sprintf(
+                    wp_kses(
+                    /* translators: %s: Recommended administrator email address string value */
+                        __( 'Use a <em>different administrator email</em>, and do not use <strong>%s</strong> to avoid user restoration conflicts', 'prime-mover' ),
+                        [
+                            'em'     => [],
+                            'strong' => [],
+                        ]
+                        ),
+                    esc_html( $recommended_email )
+                    ) . '</li>';
             }
             
-            $msg .= '</ol>';
-            $msg .= sprintf(esc_html__('To do this, you must cancel this import by clicking the "%s" button and re-install %s in a fresh state. Please %s about this feature.', 'prime-mover'), 
-                '<strong>' . esc_html__('No', 'prime-mover') . '</strong>',
-                $platform_text,
-                '<a class="prime-mover-external-link" target="_blank" href="' . CODEXONICS_USER_DIFF_FAQ . '">' . esc_html__('read the FAQ', 'prime-mover') . '</a>');
+            $msg .= '</ol>';            
+            $msg .= sprintf(
+                wp_kses(
+                /* translators: %1$s: Localized state name of the platform (e.g. WordPress), %2$s: Mapped configuration link view pointing to the custom user difference FAQ document */
+                    __( 'To do this, you must cancel this import by clicking the <strong>No</strong> button and re-install %1$s in a fresh state. Please <a class="prime-mover-external-link" target="_blank" href="%2$s">read the FAQ</a> about this feature.', 'prime-mover' ),
+                    [
+                        'strong' => [],
+                        'a'      => [
+                            'class'  => true,
+                            'target' => true,
+                            'href'   => true,
+                        ],
+                    ]
+                    ),
+                esc_html( $platform_text ),
+                esc_url( CODEXONICS_USER_DIFF_FAQ )
+                );
+               
             $msg .= PHP_EOL;
             $msg .= PHP_EOL;
             $msg .= esc_html__('Otherwise, you can ignore this warning and proceed with the rest of the import.', 'prime-mover');  
@@ -2515,7 +2555,7 @@ class PrimeMoverSystemFunctions
         }
         $buffer = '';
         $cnt    = 0;
-        $handle = fopen($filename, 'rb');
+        $handle = PrimeMoverBridgeIO::call('fopen', $filename, 'rb');
         
         if ($handle === false) {
             return false;
@@ -2523,10 +2563,12 @@ class PrimeMoverSystemFunctions
    
         if ($offset) {
             do_action('prime_mover_log_processed_events', "Offset requested: $offset", $blog_id, 'import', 'readfileChunked', $this);
-            fseek($handle, $offset);
+            PrimeMoverBridgeIO::call('fseek', $handle, $offset);
         }
         while (!feof($handle)) {
-            $buffer = fread($handle, 1024*1024);
+            $buffer = PrimeMoverBridgeIO::call('fread', $handle, 1024*1024);
+            
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Replicating standard WordPress Core buffered output.
             echo $buffer;
             
             if ($flush_var && ob_get_level() > 0) {
@@ -2539,7 +2581,7 @@ class PrimeMoverSystemFunctions
             }
         }
         
-        $status = fclose($handle);
+        $status = PrimeMoverBridgeIO::call('fclose', $handle);
         
         if ($retbytes && $status) {
             return $cnt;
@@ -2579,16 +2621,16 @@ class PrimeMoverSystemFunctions
             if ($directory !== $name ) {
                 wp_mkdir_p($path);
             } else {
-                $unzipped = @fopen($path, 'wb');
+                $unzipped = @PrimeMoverBridgeIO::call('fopen', $path, 'wb');
                 if ($unzipped) {
                     while($size > 0){
                         $this->temporarilyIncreaseMemoryLimits();
                         $chunkSize = ($size > 33554432) ? 33554432 : $size;
                         $size -= $chunkSize;
                         $chunk = zip_entry_read($entry, $chunkSize);
-                        if($chunk !== false) fwrite($unzipped, $chunk);
+                        if($chunk !== false) PrimeMoverBridgeIO::call('fwrite', $unzipped, $chunk);
                     }
-                    fclose($unzipped);
+                    PrimeMoverBridgeIO::call('fclose', $unzipped);
                 } else {
                     do_action('prime_mover_log_processed_events', "Failed to open file for writing while unzipping: $path", $blog_id, 'import', 'unzipFileChunked', $this);
                 }
@@ -3119,13 +3161,13 @@ class PrimeMoverSystemFunctions
             do_action('prime_mover_log_processed_events', "File is not readable", 0, '', 'isZipByMime', $this);
             return false;
         }
-        $fh = @fopen($filePath, "r");
+        $fh = @PrimeMoverBridgeIO::call('fopen', $filePath, "r");
         if ( ! $fh) {
             do_action('prime_mover_log_processed_events', "Cannot open file for checking", 0, '', 'isZipByMime', $this);
             return false;
         }
         $blob = fgets($fh, 5);
-        fclose($fh);
+        PrimeMoverBridgeIO::call('fclose', $fh);
         if (false !== strpos($blob, 'PK')) {
             return true;
         }
@@ -3518,16 +3560,16 @@ class PrimeMoverSystemFunctions
     public function recurseCopy($src = '', $dst = '', $processor_array = [], $pending_to_copy = [], $identifier = [], $resource = []) {
         $dir = opendir($src);
         if ( ! is_resource($dir) ) {
-            return new WP_Error( 'recurseCopyCannotOpen', __( 'Recurse copy invalid input resource' ), $src);
+            return new WP_Error( 'recurseCopyCannotOpen', __( 'Recurse copy invalid input resource', 'prime-mover' ), $src);
         }
         $file_resource = null;
         $dir_resource = null;
         if (!empty($resource)) {
             list($file_resource, $dir_resource) = $resource;
         }        
-        @mkdir($dst);
+        @PrimeMoverBridgeIO::call('mkdir', $dst);
         if (is_resource($dir_resource)) {
-            fwrite($dir_resource, trailingslashit($dst) . PHP_EOL);
+            PrimeMoverBridgeIO::call('fwrite', $dir_resource, trailingslashit($dst) . PHP_EOL);
         }
         $retried = false;
         while(false !== ( $file = readdir($dir)) ) {
@@ -3551,7 +3593,7 @@ class PrimeMoverSystemFunctions
                     }
                     if (true === $ret) {
                         if (is_resource($file_resource)) {
-                            fwrite($file_resource, trailingslashit($dst) . $file . PHP_EOL);
+                            PrimeMoverBridgeIO::call('fwrite', $file_resource, trailingslashit($dst) . $file . PHP_EOL);
                         }
                         do_action('prime_mover_log_processed_events', "File $src SUCCESSFULY COPIED TO $dst", 0, 'export', 'recurseCopy', $this, true);
                     }
@@ -3760,7 +3802,7 @@ class PrimeMoverSystemFunctions
      */
     public function isShaString($string = '', $mode = 256)
     {
-        return primeMoverIsShaString($string, $mode);
+        return prime_mover_is_sha_string($string, $mode);
     }
     
     /**
@@ -3861,12 +3903,12 @@ class PrimeMoverSystemFunctions
             $regex = $escaped_like . '[0-9]+';
             $db = DB_NAME;
             $db_search = $this->getSiteTableQuery($db, $wpdb, $target_prefix, $regex);
-            
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $all_tables = $wpdb->get_col($db_search);
             
-        } else {
-            
+        } else {            
             $specific_site_prefix	= str_replace('_', '\_', $wpdb->prefix);
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $all_tables = $wpdb->get_col("SHOW TABLES LIKE '{$specific_site_prefix}%'");
         }
         
@@ -4060,10 +4102,10 @@ class PrimeMoverSystemFunctions
      */
     public function isConfigFileWritable()
     {
-        if (!function_exists('primeMoverGetConfigurationPath')) {
+        if (!function_exists('prime_mover_get_configuration_path')) {
             return false;
         }
-        $config_path = primeMoverGetConfigurationPath();
+        $config_path = prime_mover_get_configuration_path();
         if (!$config_path) {
             return false;
         }
@@ -4278,9 +4320,9 @@ class PrimeMoverSystemFunctions
         }
         
         if (empty($context_options)) {
-            return @fopen($path, $mode, $include_path);
+            return @PrimeMoverBridgeIO::call('fopen', $path, $mode, $include_path);
         } else {
-            return @fopen($path, $mode, $include_path, stream_context_create($context_options));
+            return @PrimeMoverBridgeIO::call('fopen', $path, $mode, $include_path, stream_context_create($context_options));
         }
     }
     
@@ -4325,7 +4367,7 @@ class PrimeMoverSystemFunctions
             return false;    
         }
         
-        return @fclose($handle);
+        return @PrimeMoverBridgeIO::call('fclose', $handle);
     }
     
     /**
@@ -4531,19 +4573,19 @@ class PrimeMoverSystemFunctions
     {
         if (!$this->getSystemAuthorization()->isUserAuthorized() || !$drop_query) {
             return;
-        } 
-        
+        }         
         if (defined('PRIME_MOVER_DISABLE_FK_CHECKS') && true === PRIME_MOVER_DISABLE_FK_CHECKS) {
             $foreign_key_checks = false;
-        }
-        
+        }        
         if ($foreign_key_checks) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
             $wpdb->query('SET FOREIGN_KEY_CHECKS=0;');
         }
-        
-        $drop_result = $wpdb->query($drop_query);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $drop_result = $wpdb->query($drop_query);        
         
         if ($foreign_key_checks) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->query('SET FOREIGN_KEY_CHECKS=1;');
         }
         
@@ -4766,8 +4808,8 @@ class PrimeMoverSystemFunctions
             return false;
         }
         
-        $from = fopen($from, $from_mode);
-        $to = fopen($to, $to_mode);
+        $from = PrimeMoverBridgeIO::call('fopen', $from, $from_mode);
+        $to = PrimeMoverBridgeIO::call('fopen', $to, $to_mode);
         
         if (false === $from || false === $to) {
             return false;
@@ -4775,8 +4817,8 @@ class PrimeMoverSystemFunctions
         
         $bytes = stream_copy_to_stream($from, $to);
         
-        fclose($from);
-        fclose($to);
+        PrimeMoverBridgeIO::call('fclose', $from);
+        PrimeMoverBridgeIO::call('fclose', $to);
         
         if ($return_bytes) {
             return $bytes;
@@ -4796,8 +4838,9 @@ class PrimeMoverSystemFunctions
         }
         $db_search = "SHOW TABLES LIKE %s";
         $esc_table = $wpdb->esc_like($given);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         $sql = $wpdb->prepare($db_search , $esc_table);
-        
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $query_res = $wpdb->get_var($sql);
         if (!$query_res || !is_string($query_res)) {
             return false;
@@ -5000,7 +5043,8 @@ class PrimeMoverSystemFunctions
         $backup_dir = $this->getExportDirectoryPermissionPathToFix($blog_id);
         $tooltip_button = '';
         if ($backup_dir) {
-            $tooltip_button = sprintf(esc_html__('Unable to %s because %s is not writable.', 'prime-mover'), $mode, $backup_dir);
+            /* translators: %1$s: Mode, %2$s: Backup dir */
+            $tooltip_button = sprintf(esc_html__('Unable to %1$s because %2$s is not writable.', 'prime-mover'), $mode, $backup_dir);
         }                
         
         return $tooltip_button;
@@ -5131,9 +5175,9 @@ class PrimeMoverSystemFunctions
             
         } else {            
             $regex = $this->getSubsiteQueryRegEx($wpdb, $origin_target_prefix);           
-        }
-            
+        }            
         $db_search = $this->getSiteTableQuery($db, $wpdb, $target_prefix, $regex);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $tables_to_export = $wpdb->get_results($db_search, ARRAY_N);
         
         $this->restoreCurrentBlog();

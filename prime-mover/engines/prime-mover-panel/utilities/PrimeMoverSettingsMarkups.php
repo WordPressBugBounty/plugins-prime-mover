@@ -83,7 +83,7 @@ class PrimeMoverSettingsMarkups
         if ( ! $button_text ) {
             $button_text =  __('Save', 'prime-mover');
         }
-        echo $main_opening_tag;      
+        echo wp_kses_post($main_opening_tag);      
         $render = false;
         if ($blog_id) {
             $render = apply_filters('prime_mover_multisite_blog_is_licensed', false, $blog_id);            
@@ -95,17 +95,17 @@ class PrimeMoverSettingsMarkups
     ?>        
             <a title="<?php esc_attr_e('This is PRO feature setting. Please upgrade or activate license to use this setting.', 'prime-mover'); ?>" 
             class="prime-mover-upgrade-button-simple button" href="<?php echo esc_url($upgrade_url); ?>">            
-            <?php echo apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__( 'Upgrade to PRO', 'prime-mover' ), $blog_id); ?></a>
+            <?php echo wp_kses_post(apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__( 'Upgrade to PRO', 'prime-mover' ), $blog_id)); ?></a>
      <?php        
         } else {
        ?>
-            <button title="<?php echo esc_attr($title);?>" <?php echo esc_html($disabled); ?> data-prime-mover-blogid-panel="<?php echo esc_attr($blog_id); ?>" data-nonce="<?php echo $this->getPrimeMover()->getSystemFunctions()->primeMoverCreateNonce($nonce_key); ?>" 
+            <button title="<?php echo esc_attr($title);?>" <?php echo esc_html($disabled); ?> data-prime-mover-blogid-panel="<?php echo esc_attr($blog_id); ?>" data-nonce="<?php echo esc_attr($this->getPrimeMover()->getSystemFunctions()->primeMoverCreateNonce($nonce_key)); ?>" 
             id="<?php echo esc_attr($button_id);?>" class="<?php echo esc_attr($button_classes);?>" type="button">
             <?php echo esc_html($button_text);?></button>
-            <?php echo $spinner_tag; ?>   
+            <?php echo wp_kses_post($spinner_tag); ?>   
     <?php    
         }          
-        echo $main_closing_tag;
+        echo wp_kses_post($main_closing_tag);
     }
     
     /**

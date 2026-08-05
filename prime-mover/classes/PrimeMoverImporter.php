@@ -14,6 +14,7 @@ namespace Codexonics\PrimeMoverFramework\classes;
 use Codexonics\PrimeMoverFramework\interfaces\PrimeMoverImport;
 use Codexonics\PrimeMoverFramework\utilities\PrimeMoverSearchReplace;
 use Codexonics\PrimeMoverFramework\cli\PrimeMoverCLIArchive;
+use Codexonics\PrimeMoverBridgeIO;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -682,7 +683,8 @@ class PrimeMoverImporter implements PrimeMoverImport
             if (isset($remaining) && $remaining > 1) {
                 $text_files = esc_html__('files', 'prime-mover');
             }
-            $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Unzip package %d remaining %s. %s', 'prime-mover'), $remaining, $text_files, $percent_string), 'import');
+            /* translators: %1$d: Remaining files, %2$s: Text files, %3$s: Percent string */
+            $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Unzip package %1$d remaining %2$s. %3$s', 'prime-mover'), $remaining, $text_files, $percent_string), 'import');
             
             if ( ! empty($extraction_status['media_zip_extraction_done'])) {
                 $ret = $this->doAfterExtraction($ret, $blogid_to_import, $unzipped_directory, $file_path, false);
@@ -716,6 +718,7 @@ class PrimeMoverImporter implements PrimeMoverImport
             
             if ($retrying) {
                 $readable = $this->getSystemFunctions()->humanFileSize($offset, 1);
+                /* translators: %s: Readable file size */
                 $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Package extraction..%s bytes read.', 'prime-mover'), $readable), 'import');
             } else {
                 $this->getProgressHandlers()->updateTrackerProgress(esc_html__('Package extraction..starting.', 'prime-mover'), 'import');
@@ -1131,6 +1134,7 @@ class PrimeMoverImporter implements PrimeMoverImport
             
             if ($retrying) {
                 $readable = $this->getSystemFunctions()->humanFileSize($offset, 1);
+                /* translators: %s: Readable file size */
                 $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Media extraction..%s bytes read.', 'prime-mover'), $readable), 'import');
             } else {
                 $this->getProgressHandlers()->updateTrackerProgress(esc_html__('Media extraction..starting.', 'prime-mover'), 'import');
@@ -1178,7 +1182,8 @@ class PrimeMoverImporter implements PrimeMoverImport
                 $text_files = esc_html__('files', 'prime-mover');
             }
             
-            $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Extracting %d remaining media %s. %s', 'prime-mover'), $remaining, $text_files, $percent_string), 'import');
+            /* translators: %1$d: Remaining files, %2$s: Text files, %3$s: Percent string */
+            $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Extracting %1$d remaining media %2$s. %3$s', 'prime-mover'), $remaining, $text_files, $percent_string), 'import');
             
             if ( ! empty($extraction_status['media_zip_extraction_done'])) {
                 do_action('prime_mover_log_processed_events', "Done extraction, move on to next process..", $blogid_to_import, 'import', $current_func, $this);
@@ -1309,7 +1314,8 @@ class PrimeMoverImporter implements PrimeMoverImport
             $text_files = esc_html__('files', 'prime-mover');
         }
        
-        $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Copying %d remaining language %s. %s', 'prime-mover'), $remaining, $text_files, $percent_string), 'import');
+        /* translators: %1$d: Remaining, %2$s: Text files, %3$s: Percent string */
+        $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Copying %1$d remaining language %2$s. %3$s', 'prime-mover'), $remaining, $text_files, $percent_string), 'import');
         $copy_directory_result	= $this->getSystemChecks()->getSystemCheckUtilities()->copyDir($source, $target, [], [], true, true, $start_time, $blogid_to_import,
             $copied, true, 'langimport', [], $ret);
                 
@@ -1464,7 +1470,8 @@ class PrimeMoverImporter implements PrimeMoverImport
         if (isset($remaining) && $remaining > 1) {
             $text_files = esc_html__('files', 'prime-mover');
         }
-        $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Importing %d remaining media %s. %s', 'prime-mover'), $remaining, $text_files, $percent_string), 'import');            
+        /* translators: %1$d: Remaining files, %2$s: Text files, %3$s: Percent string */
+        $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Importing %1$d remaining media %2$s. %3$s', 'prime-mover'), $remaining, $text_files, $percent_string), 'import');            
         $copy_directory_result	= $this->getSystemChecks()->getSystemCheckUtilities()->copyDir(
             $source, 
             $target, 
@@ -1596,6 +1603,7 @@ class PrimeMoverImporter implements PrimeMoverImport
         if ($percent) {
             $percent_string = $percent . '%' . ' ' . esc_html__('done', 'prime-mover');
         }
+        /* translators: %s: Percent string */
         $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Dropping custom tables, %s', 'prime-mover'), $percent_string), 'import');
         $this->killBlockingProcesses($ret);        
         foreach ($alltables as $k => $t) {
@@ -1689,10 +1697,12 @@ class PrimeMoverImporter implements PrimeMoverImport
         if (!empty( $ret['percent_db_imported'] ) ) {
             $percent = $ret['percent_db_imported'] . "%";
         }
+        /* translators: %s: Percent */
         $progress_phrase = sprintf(esc_html__('%s completed', 'prime-mover'), $percent);
         if ("0%" === $percent) {            
             $progress_phrase = esc_html__('Starting...', 'prime-mover');
         }
+        /* translators: %s: Progress phrase */
         $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Importing database tables. %s', 'prime-mover'), $progress_phrase));        
         $import_result = $this->restoredB($import_command, $ret, $blogid_to_import, $start_time);        
         
@@ -1756,7 +1766,7 @@ class PrimeMoverImporter implements PrimeMoverImport
         $max_allowed_packet = $this->getSystemChecks()->getSystemCheckUtilities()->getMaxAllowedPacket();        
         do_action('prime_mover_log_processed_events', "Database restoration max allowed packet value is $max_allowed_packet" , $blogid_to_import, 'import', __FUNCTION__, $this);
         
-        $handle = @fopen($target_path, 'r');
+        $handle = @PrimeMoverBridgeIO::call('fopen', $target_path, 'r');
         if (!$handle) {
             $return['error'] = esc_html__('Unable to open database file.', 'prime-mover');
             return $return;
@@ -1849,8 +1859,8 @@ class PrimeMoverImporter implements PrimeMoverImport
                     }
                     
                     $max_allowed_package_target = $this->getSystemUtilities()->maxAllowedPacketAdjustOnRunTime($wpdb, $db_super_user, $string_byte, $max_allowed_packet);
-                    if ($db_super_user) {
-                        fclose($handle);
+                    if ($db_super_user) {                        
+                        PrimeMoverBridgeIO::call('fclose', $handle);
                         do_action('prime_mover_log_processed_events', "A retry is needed after MAX_ALLOWED_PACKET dynamic adjustment, $percent% done" , $blogid_to_import, 'import', __FUNCTION__, $this);
                         
                         $return['max_allowed_packet_original'] = $max_allowed_packet;
@@ -1874,19 +1884,21 @@ class PrimeMoverImporter implements PrimeMoverImport
             
             $retry_timeout = apply_filters('prime_mover_retry_timeout_seconds', PRIME_MOVER_RETRY_TIMEOUT_SECONDS, 'restoredB');
             if ($executed && ((microtime(true) - $start_time) > $retry_timeout) ) {                
-                fclose($handle);                
+                PrimeMoverBridgeIO::call('fclose', $handle);
                 do_action('prime_mover_log_processed_events', "$retry_timeout seconds time out on database restore, $percent% done" , $blogid_to_import, 'import', __FUNCTION__, $this);
                 
                 return $return;                
             }
         }
         
-        fclose($handle); 
+        PrimeMoverBridgeIO::call('fclose', $handle);
         
         if ($max_allowed_packet_error && $max_allowed_packet_fix_rejected) {
-            $return['error'] = sprintf(esc_html__('Error: Prime Mover is unable to increase max_allowed_packet due to server restrictions. Please consider increasing this above %d bytes.'), $max_allowed_package_target);
+            /* translators: %d: Max allowed package target */
+            $return['error'] = sprintf(esc_html__('Error: Prime Mover is unable to increase max_allowed_packet due to server restrictions. Please consider increasing this above %d bytes.', 'prime-mover'), $max_allowed_package_target);
         } elseif ($max_allowed_packet_error && !$db_super_user) {
-            $return['error'] = sprintf(esc_html__('Error: Your MySQL server max_allowed_packet size is insufficient. Please consider increasing this above %d bytes.'), $max_allowed_package_target);
+            /* translators: %d: Max allowed package target */
+            $return['error'] = sprintf(esc_html__('Error: Your MySQL server max_allowed_packet size is insufficient. Please consider increasing this above %d bytes.', 'prime-mover'), $max_allowed_package_target);
         } else {
             $return['import_db_done'] = true;
         }     
@@ -2012,7 +2024,7 @@ class PrimeMoverImporter implements PrimeMoverImport
                         $original_table_name,
                         $new_table_name
                         );
-
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
                     $wpdb->query($rename_query);
                 }
                 
@@ -2098,7 +2110,7 @@ class PrimeMoverImporter implements PrimeMoverImport
             return;
         }
         
-        $default_admin_caps = primeMoverRestoreAdminCaps();
+        $default_admin_caps = prime_mover_restore_admin_caps();
         $changes = [];
         foreach ($default_admin_caps as $cap_name) {
             $update = false;
@@ -2148,8 +2160,7 @@ class PrimeMoverImporter implements PrimeMoverImport
         if (!isset($source_role_option['administrator']['capabilities']['manage_options']) && !isset($source_role_option['administrator']['capabilities']['activate_plugins'])) {
             do_action('prime_mover_log_processed_events', 'Imported options although set does not have administrator capabilities. Emergency restoration of default user role to avoid breaking restore process.', $blog_id, 'import', __FUNCTION__, $this);
             return true;
-        }       
-        
+        }            
         return false;   
     }
     
@@ -2163,6 +2174,7 @@ class PrimeMoverImporter implements PrimeMoverImport
         if (isset($ret['prime_mover_is_super_db_user']) && false === $ret['prime_mover_is_super_db_user']) {
             return;
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
         $result = $wpdb->get_results("SHOW PROCESSLIST", ARRAY_A); 
         if (!is_array($result)) {
             return;
@@ -2170,10 +2182,10 @@ class PrimeMoverImporter implements PrimeMoverImport
         
         $filter_to_use = ['db' => DB_NAME, 'Command' => 'Sleep'];
         $filtered = wp_list_filter($result, $filter_to_use);
-        $ids = wp_list_pluck($filtered, 'Id');
-        
+        $ids = wp_list_pluck($filtered, 'Id');        
         foreach ($ids as $process_id) {
             $prepared = $wpdb->prepare("KILL %d", $process_id);
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
             $wpdb->query($prepared);
         }          
     }
@@ -2356,9 +2368,9 @@ class PrimeMoverImporter implements PrimeMoverImport
         foreach ($affected_options as $v) {            
             $name_without_prefix = $this->removePrefixFromTable($origin_prefix, $v);
             $new_option_name = $wpdb->prefix . $name_without_prefix;
-            delete_option($new_option_name);
-            
+            delete_option($new_option_name);            
             $update_query = "UPDATE {$wpdb->prefix}options SET option_name = '{$new_option_name}' WHERE option_name = '%s'";
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $wpdb->query($wpdb->prepare($update_query, $v));
         }
         $this->getSystemFunctions()->restoreCurrentBlog();
@@ -2380,13 +2392,14 @@ class PrimeMoverImporter implements PrimeMoverImport
         if (empty($ret) || ! $blogid_to_import) {
             return $affected_options;
         }
-
         $this->getSystemFunctions()->switchToBlog($blogid_to_import); 
         $wpdb = $this->getSystemInitialization()->getWpdB();
         
         $options_query = "SELECT option_name FROM {$wpdb->prefix}options WHERE option_name LIKE %s";
-        $prefix_search = $wpdb->esc_like($ret['origin_db_prefix']) . '%';
+        $prefix_search = $wpdb->esc_like($ret['origin_db_prefix']) . '%';  
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         $option_query_prepared = $wpdb->prepare($options_query, $prefix_search);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $option_query_results = $wpdb->get_results($option_query_prepared, ARRAY_N);
         
         if (! is_array($option_query_results) || empty($option_query_results)) {
@@ -2542,6 +2555,7 @@ class PrimeMoverImporter implements PrimeMoverImport
             $percent_string = $ret['count_tablerows_progress'];
         }        
         
+        /* translators: %s: Percent string */
         $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Table rows count. %s', 'prime-mover'), $percent_string), 'import');        
         $retry_timeout = apply_filters('prime_mover_retry_timeout_seconds', PRIME_MOVER_RETRY_TIMEOUT_SECONDS, $current_func);
         
@@ -2560,7 +2574,7 @@ class PrimeMoverImporter implements PrimeMoverImport
         
         $wpdb = $this->getSystemInitialization()->getWpdB();
         foreach ($all_tables as $k => $table) {   
-            
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $table_rows_count[$table] = $wpdb->get_var("SELECT count(*) FROM `{$table}`");
             unset($all_tables[$k]);           
             
@@ -2666,6 +2680,7 @@ class PrimeMoverImporter implements PrimeMoverImport
             $ret['prime_mover_final_replaceables'] = $replaceables;
         }
         
+        /* translators: %s: Percent string */
         $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Search and replace. %s', 'prime-mover'), $percent_string), 'import');        
         $this->logSearchReplaceParameters($ret, $blogid_to_import, $replaceables);
         
@@ -2865,17 +2880,17 @@ class PrimeMoverImporter implements PrimeMoverImport
         }
         $ret['ongoing_import'] = true;
         $ret['next_method'] = $next_method;
-        $ret['current_method'] = $current_method;
-        
+        $ret['current_method'] = $current_method;        
         $meta_key = $this->getProgressHandlers()->generateTrackerId($blogid_to_import, 'import');       
         wp_cache_delete($user_id, 'user_meta' );
         
         $wpdb = $this->getSystemInitialization()->getWpdB();
-        $wpdb->query("UNLOCK TABLES;");      
-          
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
+        $wpdb->query("UNLOCK TABLES;");           
         $umeta_id = 0;
         if (!isset($ret['prime_mover_tracker_umeta_id']) && !is_multisite()) {
             $usermeta_table = $this->getSystemFunctions()->getUserMetaTableName();
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $umeta_id = $wpdb->get_var($wpdb->prepare("SELECT umeta_id FROM {$usermeta_table} WHERE meta_key = %s", $meta_key));
         }
         

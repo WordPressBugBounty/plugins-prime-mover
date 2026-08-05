@@ -677,14 +677,24 @@ class PrimeMoverAutoBackupSetting
             'button_text' => '',
             'disabled' => '',
             'title' => ''
-        ];
+        ];        
         
-        $important_msg = '<br /><strong>' . __('Important:', 'prime-mover') . '</strong>';
-        $settings_page_url =  '<a href="' . esc_url($this->getFreemiusIntegration()->getSettingsPageUrl()) . '#prime-mover-gdrive-settings-label">' . __('Google Drive OAuth 2.0 credentials', 'prime-mover') . '</a>';
-        $gdrive_connect_url = '<a class="prime-mover-external-link" href="' . esc_url(CODEXONICS_GDRIVE_CONNECT_DOC) . '">' . __('connected to API', 'prime-mover') . '</a>';
-        
-        $sprintf = sprintf(esc_html__('Check this setting to create a backup copy of this package to Google Drive. %s This requires %s to work and should be %s.', 'prime-mover'),
-            $important_msg, $settings_page_url, $gdrive_connect_url);
+        $sprintf = sprintf(
+            wp_kses(
+                /* translators: %1$s: Base settings panel URL destination string, %2$s: Codexonics Google Drive connection documentation reference URL link string */
+                __( 'Check this setting to create a backup copy of this package to Google Drive. <br /><strong>Important:</strong> This requires <a href="%1$s">Google Drive OAuth 2.0 credentials</a> to work and should be <a class="prime-mover-external-link" href="%2$s">connected to API</a>.', 'prime-mover' ),
+                [
+                    'br'     => [],
+                    'strong' => [],
+                    'a'      => [
+                        'class' => true,
+                        'href'  => true,
+                    ],
+                ]
+                ),
+            esc_url( $this->getFreemiusIntegration()->getSettingsPageUrl() . '#prime-mover-gdrive-settings-label' ),
+            esc_url( CODEXONICS_GDRIVE_CONNECT_DOC )
+            );
         
         $config = $settings_api[$identifier];
         $gdrive_storage_label = __('Google Drive storage', 'prime-mover');
@@ -712,16 +722,24 @@ class PrimeMoverAutoBackupSetting
             'disabled' => '',
             'title' => ''
         ];
-        
         $dropbox_storage_label = __('Dropbox storage', 'prime-mover');
-        $backup_to_dropbox_label = __('Backup to Dropbox', 'prime-mover');
-        $important_msg = '<br /><strong>' . __('Important:', 'prime-mover') . '</strong>';
-        $settings_page_url = '<a href="' . esc_url($this->getFreemiusIntegration()->getSettingsPageUrl()) . '#prime-mover-dropbox-settings-label">' . __('Dropbox access token', 'prime-mover') . '</a>';
+        $backup_to_dropbox_label = __('Backup to Dropbox', 'prime-mover');        
         
-        $sprintf = sprintf(esc_html__('Check this setting if you want to save a backup copy to Dropbox. %s This requires %s to work.', 'prime-mover'), $important_msg, $settings_page_url);        
+        $sprintf = sprintf(
+            wp_kses(
+                /* translators: %s: Base settings configuration panel URL destination address string path value */
+                __( 'Check this setting if you want to save a backup copy to Dropbox. <br /><strong>Important:</strong> This requires <a href="%s">Dropbox access token</a> to work.', 'prime-mover' ),
+                [
+                    'br'     => [],
+                    'strong' => [],
+                    'a'      => [ 'href' => true ],
+                ]
+                ),
+            esc_url( $this->getFreemiusIntegration()->getSettingsPageUrl() . '#prime-mover-dropbox-settings-label' )
+            );
         $config = $settings_api[$identifier];
         $this->getPrimeMoverSettingsTemplate()->renderCheckBoxFormTemplate( $dropbox_storage_label, $identifier, $config, 'true', $backup_to_dropbox_label, $sprintf, $blog_id, true, $button_specs);
-    }
+    }    
     
     /**
      * Output backup encryption
@@ -784,8 +802,16 @@ class PrimeMoverAutoBackupSetting
         
         $config = $settings_api[$identifier];        
         $schedule_label = __('Backup schedule', 'prime-mover');
-        $choose_label = sprintf(esc_html__('Choose backup schedule. For best performance, it is best to choose weekly for complete backup package or twice a week for database backups only. %s. ', 'prime-mover'), 
-            esc_html__('You can ', 'prime-mover') . '<a target="_blank" class="prime-mover-external-link" href="https://codexonics.com/prime_mover/prime-mover/how-to-add-custom-backup-schedules-for-automatic-backup/">' . esc_html__('add custom schedules via wp-config.php', 'prime-mover') . '</a>');
+        $choose_label = wp_kses(
+            __( 'Choose backup schedule. For best performance, it is best to choose weekly for complete backup package or twice a week for database backups only. You can <a target="_blank" class="prime-mover-external-link" href="https://codexonics.com/prime_mover/prime-mover/how-to-add-custom-backup-schedules-for-automatic-backup/">add custom schedules via wp-config.php</a>.', 'prime-mover' ),
+            [
+                'a' => [
+                    'target' => true,
+                    'class'  => true,
+                    'href'   => true,
+                ],
+            ]
+        );
         $backup_select_label = __('Choose backup schedule', 'prime-mover');
         
         $this->getPrimeMoverSettingsTemplate()->renderSelectFormTemplate($schedule_label, $identifier, $config, '', $schedule_values, $choose_label, $blog_id, true, $button_specs, $backup_select_label, true);    
@@ -850,10 +876,15 @@ class PrimeMoverAutoBackupSetting
         $config = $settings_api[$identifier];
         $auto_backup_lbl = __('Automatic backup', 'prime-mover');
         $enable_autobackup_lbl = __('Enable automatic backup', 'prime-mover');
-        $settings_page_url = '<a href="' . esc_url($this->getFreemiusIntegration()->getSettingsPageUrl()) . '#prime-mover-autobackup_global_status-label">' . __('global setting', 'prime-mover') . '</a>';
         
-        $sprintf = sprintf(esc_html__('By default, automatic backup is disabled on this site. This setting only affects this site. To disable automatic backups for all sites at once, use the %s.', 'prime-mover'), 
-            $settings_page_url);
+        $sprintf = sprintf(
+            wp_kses(
+                /* translators: %s: Base settings configuration layout page URL destination string */
+                __( 'By default, automatic backup is disabled on this site. This setting only affects this site. To disable automatic backups for all sites at once, use the <a href="%s">global setting</a>.', 'prime-mover' ),
+                [ 'a' => [ 'href' => true ] ]
+            ),
+            esc_url( $this->getFreemiusIntegration()->getSettingsPageUrl() . '#prime-mover-autobackup_global_status-label' )
+        );
         
         $this->getPrimeMoverSettingsTemplate()->renderCheckBoxFormTemplate($auto_backup_lbl, $identifier, $config, 'true', $enable_autobackup_lbl, $sprintf, $blog_id, true, $button_specs);
     }
@@ -880,10 +911,15 @@ class PrimeMoverAutoBackupSetting
         $config = $settings_api[$identifier];       
         $autobackup_label = __('Automatic backup', 'prime-mover');
         $enable_label = __('Enable automatic backup', 'prime-mover');
-        $settings_page_url = '<a href="' . $this->getPrimeMover()->getSystemFunctions()->getScheduledBackupSettingsUrl() . '">' . __('Scheduled backup', 'prime-mover') . '</a>';
-        
-        $sprintf = sprintf(esc_html__('By default, automatic backup is disabled. This is a global setting that affects all sites (if using multisite).
-Once enabled - you can set individual backup site settings via %s.', 'prime-mover'), $settings_page_url);
+                
+        $sprintf = sprintf(
+            wp_kses(
+                /* translators: %s: Scheduled backup management panel URL destination string */
+                __( 'By default, automatic backup is disabled. This is a global setting that affects all sites (if using multisite). Once enabled - you can set individual backup site settings via <a href="%s">Scheduled backup</a>.', 'prime-mover' ),
+                [ 'a' => [ 'href' => true ] ]
+            ),
+            esc_url( $this->getPrimeMover()->getSystemFunctions()->getScheduledBackupSettingsUrl() )
+        );
         
         $this->getPrimeMoverSettingsTemplate()->renderCheckBoxFormTemplate($autobackup_label, $identifier, $config, 'true', $enable_label, $sprintf, 0, true, $button_specs);
     }   

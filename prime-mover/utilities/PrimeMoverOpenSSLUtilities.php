@@ -373,13 +373,20 @@ class PrimeMoverOpenSSLUtilities
             $ret['error'] = esc_html__("Signature or blog ID is not set. Please check.", 'prime-mover');
             return $ret;
         }
-
-        $upgrade_url = apply_filters('prime_mover_filter_upgrade_pro_url', $this->getFreemius()->get_upgrade_url(), $blog_id);    
+        
+        $upgrade_url = apply_filters('prime_mover_filter_upgrade_pro_url', $this->getFreemius()->get_upgrade_url(), $blog_id);
         $upgrade_text = apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__('upgrade to Prime Mover PRO', 'prime-mover') , $blog_id, false);
         
-        if (!$this->isOpenSSLCustomer($blog_id)) {
-            $ret['error'] = sprintf(esc_html__("Restoring encrypted package is a PRO feature. %s to restore this package.", 'prime-mover'), '<a href="' . 
-                esc_url($upgrade_url) . '">' . $upgrade_text . '</a>');
+        if (!$this->isOpenSSLCustomer($blog_id)) {            
+            $ret['error'] = sprintf(
+                wp_kses(
+                    /* translators: %1$s: Premium features promotion destination URL link string path, %2$s: Dynamically filtered upgrade action text phrase (e.g. upgrade to Prime Mover PRO) */
+                    __( 'Restoring encrypted package is a PRO feature. <a href="%1$s">%2$s</a> to restore this package.', 'prime-mover' ),
+                    [ 'a' => [ 'href' => true ] ]
+                    ),
+                esc_url( $upgrade_url ),
+                $upgrade_text
+                );
             return $ret;
         }
         $validation_result = $this->verifyKeyHelper($data, $blog_id, true);
@@ -439,7 +446,7 @@ class PrimeMoverOpenSSLUtilities
      */
     public function openSSLDecrypt($ciphertext = '', $key = '', $return_null_on_false = false)
     {
-        return primeMoverOpenSSLDecrypt($ciphertext, $key, $return_null_on_false);
+        return prime_mover_openssl_decrypt($ciphertext, $key, $return_null_on_false);
     }
     
     /**
@@ -451,7 +458,7 @@ class PrimeMoverOpenSSLUtilities
      */
     public function openSSLEncrypt($plaintext = '', $key = '')
     {        
-        return primeMoverOpenSSLEncrypt($plaintext, $key);
+        return prime_mover_openssl_encrypt($plaintext, $key);
     }    
 
     /**

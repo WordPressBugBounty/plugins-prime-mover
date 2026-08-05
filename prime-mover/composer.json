@@ -1,0 +1,10 @@
+{
+    "name": "codex-m/prime-mover-core",
+    "description": "The complete migration solution for moving single-site to multisite platform and vice versa.",
+    "type": "wordpress-plugin",
+    "require": {
+        "ifsnop/mysqldump-php": "dev-bridge-IO",
+        "wp-cli/wp-config-transformer": "1.4.2",
+        "splitbrain/php-archive": "dev-bridge-IO"
+    }
+}

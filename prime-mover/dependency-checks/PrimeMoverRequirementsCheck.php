@@ -140,9 +140,9 @@ class PrimeMoverRequirementsCheck
         }
         
         if (! $passes) {
-            global $pm_fs;
-            if (is_object($pm_fs)) {
-                remove_action( 'admin_init', array($pm_fs, '_admin_init_action' ));
+            global $prime_mover_fs;
+            if (is_object($prime_mover_fs)) {
+                remove_action( 'admin_init', array($prime_mover_fs, '_admin_init_action' ));
             }            
             add_action('admin_init', array( $this, 'deactivate' ));
         }
@@ -156,6 +156,6 @@ class PrimeMoverRequirementsCheck
      */
     public function deactivate()
     {
-        primeMoverAutoDeactivatePlugin();
+        prime_mover_auto_deactivate_plugin();
     }
 }

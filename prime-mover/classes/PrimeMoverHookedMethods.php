@@ -222,7 +222,8 @@ class PrimeMoverHookedMethods
             if ($this->maybeLoadMigrationSection($column_name, $blog_id)) {
                 $rendered = true;
                 $blogaddress_by_id	= $this->getBlogAddress($blog_id);
-                $tooltip_button = sprintf(esc_html__('Export %s with blog ID: %d', 'prime-mover'), $blogaddress_by_id, $blog_id);
+                /* translators: %1$s: Blogaddress by id, %2$d: Blog id */
+                $tooltip_button = sprintf(esc_html__('Export %1$s with blog ID: %2$d', 'prime-mover'), $blogaddress_by_id, $blog_id);
                 if ( ! is_multisite() ) {
                     $tooltip_button = esc_html__('Export site', 'prime-mover');
                 }
@@ -233,10 +234,10 @@ class PrimeMoverHookedMethods
                 $tooltip_button = $this->getSystemFunctions()->maybeShowPermissionIssuesOnToolTip($blog_id, 'export');
             }
             ?>
-			<input	<?php echo $disabled; ?> name="prime_mover_exportbutton" 
-					value="<?php echo $button_text; ?>" 
+			<input	<?php echo esc_attr($disabled); ?> name="prime_mover_exportbutton" 
+					value="<?php echo esc_attr($button_text); ?>" 
 					data-primemover-button-class="<?php echo esc_attr($button_class);?>"
-					class="<?php echo $button_class; ?> prime_mover_exportbutton js-prime_mover_exportbutton"
+					class="<?php echo esc_attr($button_class); ?> prime_mover_exportbutton js-prime_mover_exportbutton"
 					title="<?php echo esc_attr($tooltip_button); ?>"
 					id ="js-prime_mover_exporting_blog_<?php echo esc_attr($blog_id) ; ?>"
 					data-multisiteblogid = "<?php echo esc_attr($blog_id); ?>" 				
@@ -254,7 +255,7 @@ class PrimeMoverHookedMethods
             ?>	
 		    <a title="<?php echo esc_attr__('Upgrade or activate license to create backup/export the main site.', 'prime-mover'); ?>" href="<?php echo esc_url($upgrade_url);?>" 
 		    class="js-prime-mover-upgrade-button-simple prime-mover-upgrade-button-simple prime_mover_exportbutton button">
-		    <?php echo apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__( 'Upgrade to PRO', 'prime-mover' ), $blog_id); ?></a>			
+		    <?php echo wp_kses_post(apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__( 'Upgrade to PRO', 'prime-mover' ), $blog_id)); ?></a>			
 			<?php                          
             }
         }
@@ -269,8 +270,10 @@ class PrimeMoverHookedMethods
     protected function generateExportButtonText($blog_id = 0)
     {
         $target = apply_filters('prime_mover_filter_export_button_text', esc_html__('EXPORT', 'prime-mover'), $blog_id);   
-        if (is_multisite()) {
-            $text = sprintf(('%s %s : %d'), $target, esc_html__('blog ID', 'prime-mover'), esc_attr($blog_id));
+        if (is_multisite()) {            
+            /* translators: %1$s: Capitalized action label (e.g., EXPORT), %2$d: Numerical Blog ID */
+            $text = sprintf(esc_html__('%1$s blog ID : %2$d', 'prime-mover'), $target, esc_attr($blog_id));
+            
         } else {
             $text = $target;
         }
@@ -326,7 +329,7 @@ class PrimeMoverHookedMethods
                 ?>
 		        <a title="<?php echo esc_attr__('Upgrade or activate license to migrate/restore the main site.', 'prime-mover'); ?>" href="<?php echo esc_url($upgrade_url);?>" 
 		        class="js-prime-mover-upgrade-button-simple prime-mover-upgrade-button-simple prime-mover-fileupload-label button">
-		        <?php echo apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__( 'Upgrade to PRO', 'prime-mover' ), $blog_id); ?></a>			
+		        <?php echo wp_kses_post(apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__( 'Upgrade to PRO', 'prime-mover' ), $blog_id)); ?></a>			
 			<?php                          
             }
         }
@@ -496,10 +499,23 @@ class PrimeMoverHookedMethods
                         'prime_mover_spinner_zipanalysis_text' => esc_js(__('Analyzing resources..', 'prime-mover')),                        
                         'prime_mover_zipjs_workers' => esc_url_raw(plugins_url('res/js/zip-library/', dirname(__FILE__))),
                         'prime_mover_media_decryption_error' => $this->getSystemInitialization()->returnCommonMediaDecryptionError(),
-                        'prime_mover_phpuploads_misconfigured' => $this->getSystemFunctions()->maybeUploadParametersMisconfigured(),
-                        'prime_mover_upload_misconfiguration_error' => sprintf(esc_html__("Upload package restore is not possible due to PHP upload misconfiguration. Please %s .", 'prime-mover'), 
-            '<a class="prime-mover-external-link" target="_blank" href="' .
-            esc_url(CODEXONICS_PACKAGE_MANAGER_RESTORE_GUIDE . "#packagemanager") . '">' . esc_html__('restore using package manager', 'prime-mover') . '</a>'),
+                        'prime_mover_phpuploads_misconfigured' => $this->getSystemFunctions()->maybeUploadParametersMisconfigured(),                         
+                         
+                        'prime_mover_upload_misconfiguration_error' => sprintf(
+                            wp_kses(
+                            /* translators: %s: Codexonics package manager restore documentation URL address */
+                                __( 'Upload package restore is not possible due to PHP upload misconfiguration. Please <a class="prime-mover-external-link" target="_blank" href="%s">restore using package manager</a>.', 'prime-mover' ),
+                                [
+                                    'a' => [
+                                        'class'  => true,
+                                        'target' => true,
+                                        'href'   => true,
+                                    ],
+                                ]
+                            ),
+                            esc_url(CODEXONICS_PACKAGE_MANAGER_RESTORE_GUIDE)
+                        ),
+                    
                         'prime_mover_invalid_package' => esc_js(__('Invalid file type or corrupted package.', 'prime-mover')),
                         'prime_mover_exceeded_browser_limit' => esc_js(__('Restoring package beyond 4GB is not supported by browser uploads. Please upgrade to premium version and use remote URL restore feature.', 'prime-mover')),
                 ])
@@ -535,8 +551,19 @@ class PrimeMoverHookedMethods
             $export_folder = $this->getSystemFunctions()->getExportDirectoryPermissionPathToFix();
             if ($export_folder) {
             ?>				
-			<p><?php echo sprintf(esc_html__('%s: Unable to create Prime Mover plugin export folder: %s. 
-					Please make sure WordPress has permission for this path.', 'prime-mover'), '<strong>' . esc_html__('ERROR!', 'prime-mover') . '</strong>', '<code>' . $export_folder . '</code>'); ?></p>
+			<p><?php 			
+			echo sprintf(
+			    wp_kses(
+			    /* translators: %1$s: ERROR!, %2$s: Export folder path string */
+			        __( '<strong>%1$s</strong>: Unable to create Prime Mover plugin export folder: <code>%2$s</code>. Please make sure WordPress has permission for this path.', 'prime-mover' ),
+			        [
+			            'strong' => [],
+			            'code'   => [],
+			        ]
+			    ),
+			    esc_html__( 'ERROR!', 'prime-mover' ),
+			    esc_html( $export_folder )
+			); ?></p>
 				
 			<?php
             } else {
@@ -548,10 +575,17 @@ class PrimeMoverHookedMethods
             }
         }
             if (false === $this->getSystemInitialization()->getMultisiteWpFilesystemInitialized()) {
-                ?>			
-			<p><?php echo sprintf ( esc_html__('Prime Mover plugin is activated but not yet ready to use. %s.', 
-			    'prime-mover'), 
-			    '<strong>' . esc_html__('Error: WordPress FileSystem API not set since it requires DIRECT FILE PERMISSIONS', 'prime-mover') . '</strong>'); ?></p>
+                ?>		
+				<p>
+                <?php 
+                echo wp_kses(
+                    __( 'Prime Mover plugin is activated but not yet ready to use. <strong>Error: WordPress FileSystem API not set since it requires DIRECT FILE PERMISSIONS</strong>.', 'prime-mover' ),
+                    [
+                        'strong' => [],
+                    ]
+                ); 
+                ?>
+               </p>
 			<p><?php echo esc_html__('Make sure WordPress is creating files as the same owner as the WordPress files.', 'prime-mover'); ?></p>
 			
 		<?php
@@ -575,7 +609,7 @@ class PrimeMoverHookedMethods
 		</div>
 		<?php
         }
-    }
+    }    
     
     /**
      * Single site migration callback
@@ -665,8 +699,10 @@ class PrimeMoverHookedMethods
         }
         
         add_menu_page(
+            /* translators: %s: Plugin title */
             sprintf(esc_html__('%s Control Panel', 'prime-mover'), $this->getSystemInitialization()->getPrimeMoverPluginTitle()), 
-            sprintf(esc_html__('%s', 'prime-mover'), $this->getSystemInitialization()->getPrimeMoverPluginTitle()),
+            
+            sprintf('%s', $this->getSystemInitialization()->getPrimeMoverPluginTitle()),
             $required_cap, 'migration-panel-settings', [$this, 'addMenuPageCallBack'], 'dashicons-multisitemigrationpaneldashicons');
         
         do_action('prime_mover_run_menus');
@@ -680,7 +716,9 @@ class PrimeMoverHookedMethods
     {
         ?>
       <div class="wrap">
-         <h1><?php echo sprintf(esc_html__('%s Control Panel', 'prime-mover'), $this->getSystemInitialization()->getPrimeMoverPluginTitle()); ?></h1>
+         <h1><?php 
+         /* translators: %s: Plugin title */
+         echo sprintf(esc_html__('%s Control Panel', 'prime-mover'), esc_html($this->getSystemInitialization()->getPrimeMoverPluginTitle())); ?></h1>
            <?php do_action('prime_mover_dashboard_content');?> 
       </div>       
     <?php     

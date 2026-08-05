@@ -586,7 +586,7 @@ class PrimeMoverSearchReplaceUtilities
         }
         
         $path = wp_normalize_path($path);
-        $parsed = parse_url($path);
+        $parsed = wp_parse_url((string) $path);        
         
         if (!$parsed) {
             return false;
@@ -946,7 +946,7 @@ class PrimeMoverSearchReplaceUtilities
             return false;
         }
         
-        return !str_contains($source_content_relative, $target_content_relative);        
+        return !prime_mover_str_contains($source_content_relative, $target_content_relative);        
     }
     
     /**
@@ -1509,7 +1509,7 @@ class PrimeMoverSearchReplaceUtilities
         $dummy = 'http://' . $source_site;
         $dummy = untrailingslashit(wp_normalize_path($dummy));
         
-        $parsed = parse_url($dummy);
+        $parsed = wp_parse_url((string) $dummy);        
         if (empty($parsed['path'])) {
             return $updated;
         }
@@ -1608,9 +1608,9 @@ class PrimeMoverSearchReplaceUtilities
             return $upload_phrase;
         }
        
-        if (parse_url($upload_phrase['wpupload_url']['search'], PHP_URL_HOST) !== parse_url($upload_phrase['wpupload_url']['replace'], PHP_URL_HOST)) {
-            return $upload_phrase;            
-        }
+        if (wp_parse_url((string) $upload_phrase['wpupload_url']['search'], PHP_URL_HOST) !== wp_parse_url((string) $upload_phrase['wpupload_url']['replace'], PHP_URL_HOST)) {
+            return $upload_phrase;
+        }        
        
         if (empty($ret['origin_site_url']) || empty($ret['target_site_url'])) {
             return $upload_phrase;
@@ -1667,7 +1667,7 @@ class PrimeMoverSearchReplaceUtilities
             $origin_scheme = $ret['imported_package_footprint']['scheme'];
         }
         
-        $scheme_search = parse_url($source_site_upload_url, PHP_URL_SCHEME);       
+        $scheme_search = wp_parse_url((string) $source_site_upload_url, PHP_URL_SCHEME);        
         $compat_search = '';
         if ( 'http' === $scheme_search && 'https://' === $origin_scheme) {
             $compat_search = str_replace('http://', 'https://', $source_site_upload_url);

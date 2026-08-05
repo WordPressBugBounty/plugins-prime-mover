@@ -375,10 +375,10 @@ class PrimeMoverControlPanel
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverControlPanel::itDoesNotEnqueueIconCSSIfNotNetworkAdmin() 
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverControlPanel::itEnqueuesNonMinifiedWhenOnScriptDebug()
      */
-    public function controlPanelEnqueueScripts() 
+    public function controlPanelEnqueueScripts()
     {
         if (! $this->getPrimeMover()->getSystemAuthorization()->isUserAuthorized()) {
-           return; 
+            return;
         }
         $current_screen = get_current_screen();
         
@@ -391,7 +391,7 @@ class PrimeMoverControlPanel
             $min = '';
         }
         $js = "prime-mover-panel$min.js";
-
+        
         wp_enqueue_style(
             'prime_mover_css_textsecurity',
             esc_url_raw(plugins_url('res/css/text-security/text-security.css', dirname(__FILE__))),
@@ -404,18 +404,24 @@ class PrimeMoverControlPanel
             esc_url_raw(plugins_url('res/css/prime-mover-panel.css', dirname(__FILE__))),
             ['wp-jquery-ui-dialog', 'prime_mover_css_textsecurity'],
             PRIME_MOVER_PANEL_VERSION
-        );
+            );
         
         wp_enqueue_script(
             'prime_mover_js_control_panel',
             esc_url_raw(plugins_url('res/js/' . $js, dirname(__FILE__))),
             ['jquery', 'jquery-ui-core', 'jquery-ui-dialog'],
             PRIME_MOVER_PANEL_VERSION
-        ); 
+            );
         
-        $error_message = sprintf( esc_html__('Server error found ! Please enable %s to generate %s and try again.', 'prime-mover'), '<strong>WP_DEBUG</strong>', '<strong>debug.log</strong>' );
+        $error_message = wp_kses(
+            __( 'Server error found ! Please enable <strong>WP_DEBUG</strong> to generate <strong>debug.log</strong> and try again.', 'prime-mover' ),
+            [ 'strong' => [] ]
+            );
         if ( defined('WP_DEBUG') && WP_DEBUG ) {
-            $error_message = sprintf( esc_html__('Server error found ! Please check WordPress %s for more details.', 'prime-mover'), '<strong>debug.log</strong>' );
+            $error_message = wp_kses(
+                __( 'Server error found ! Please check WordPress <strong>debug.log</strong> for more details.', 'prime-mover' ),
+                [ 'strong' => [] ]
+                );
         }
         $host_domain = $this->getSystemUtilities()->computeHostDomain();
         wp_localize_script(
@@ -432,10 +438,11 @@ class PrimeMoverControlPanel
                 'prime_mover_expand_text' => esc_js(__('Click to expand', 'prime-mover')),
                 'prime_mover_close_text' => esc_js(__('Click to close', 'prime-mover')),
             ])
-        );
+            );
         
         do_action( 'prime_mover_panel_after_enqueue_assets');
     }
+    
     
     /**
      * Added menu page for advanced settings
@@ -461,8 +468,8 @@ class PrimeMoverControlPanel
      * Add schedule backup setting sub-menu page callback
      */
     public function addScheduledBackupSettingsCallBack()
-    {        
-        $error = false;  
+    {
+        $error = false;
         $blog_id = 1;
         $multisite = false;
         if (is_multisite()) {
@@ -472,24 +479,25 @@ class PrimeMoverControlPanel
             $blog_id = $this->getPrimeMover()->getSystemInitialization()->getMainSiteBlogId();
         }
         
-        $error_msg = sprintf(
-            esc_html__('Error: Blog ID is not valid - go to %s, load the subsite and click %s', 'prime-mover'),
-            '<em>' . esc_html__('Prime Mover -> Packages', 'prime-mover') . '</em>',
-            '<strong>' . esc_html__('Scheduled backup settings','prime-mover') . '</strong>')
-            ;
-        
-        $get = $this->getPrimeMover()->getSystemInitialization()->getUserInput('get', ['prime_mover_site_blog_id' => FILTER_SANITIZE_NUMBER_INT], 
+        $error_msg = wp_kses(
+            __( 'Error: Blog ID is not valid - go to <em>Prime Mover -> Packages</em>, load the subsite and click <strong>Scheduled backup settings</strong>', 'prime-mover' ),
+            [
+                'em'     => [],
+                'strong' => [],
+            ]
+            );
+        $get = $this->getPrimeMover()->getSystemInitialization()->getUserInput('get', ['prime_mover_site_blog_id' => FILTER_SANITIZE_NUMBER_INT],
             '', '', 0, true, true);
         
         if (!empty($get['prime_mover_site_blog_id'])) {
             $blog_id = $get['prime_mover_site_blog_id'];
             $blog_id = (int)$blog_id;
         }
-       
+        
         if (!$error && $multisite && !$blog_id) {
             $error = true;
-        }       
-       
+        }
+        
         if (!$error && $multisite && !get_blogaddress_by_id($blog_id)) {
             $error = true;
         }
@@ -500,7 +508,7 @@ class PrimeMoverControlPanel
          ?>
              <h1><?php echo esc_html__('Site Tools', 'prime-mover'); ?></h1> 
              <div class="notice notice-error">
-                 <p><?php echo $error_msg;?></p>         
+                 <p><?php echo wp_kses( $error_msg, [ 'em' => [], 'strong' => [] ] ); ?></p>         
              </div>         
          <?php 
          } else {
@@ -508,7 +516,9 @@ class PrimeMoverControlPanel
              <?php 
              if ($multisite) {
              ?>
-             <h1><?php echo sprintf(esc_html__('Site Tools for blog ID: %d', 'prime-mover'), $blog_id); ?></h1>            
+             <h1><?php 
+             /* translators: %d: Blog id */
+             echo sprintf(esc_html__('Site Tools for blog ID: %d', 'prime-mover'), esc_html($blog_id)); ?></h1>            
              <?php 
              } else {                 
              ?>
@@ -520,7 +530,7 @@ class PrimeMoverControlPanel
                  do_action('prime_mover_show_scheduled_backup_notice', $blog_id);
              ?>        
              <p class="edit-site-actions prime-mover-edit-site-actions"><a href="<?php echo esc_url($this->getSystemFunctions()->getPublicSiteUrl($blog_id)); ?>"><?php esc_html_e('Visit Site', 'prime-mover');?></a> <span class="prime-mover-divider"> | </span> 
-             <a href="<?php echo $this->getSystemFunctions()->getCreateExportUrl($blog_id, true); ?>"><?php esc_html_e('Migration Tools', 'prime-mover'); ?></a> <span class="prime-mover-divider"> | </span>
+             <a href="<?php echo esc_url($this->getSystemFunctions()->getCreateExportUrl($blog_id, true)); ?>"><?php esc_html_e('Migration Tools', 'prime-mover'); ?></a> <span class="prime-mover-divider"> | </span>
              <a href="<?php echo esc_url($this->getSystemFunctions()->getBackupMenuUrl($blog_id)); ?>"><?php esc_html_e('Package Manager', 'prime-mover'); ?></a> <span class="prime-mover-divider"> | </span>
              <a href="<?php echo esc_url($this->getSystemFunctions()->getEventViewerUrl($blog_id)); ?>"><?php esc_html_e('Event Viewer', 'prime-mover'); ?></a>
              </p>
@@ -600,14 +610,16 @@ class PrimeMoverControlPanel
         exit;
     }
     
-    /**
+        /**
      * Added menu page for basic settings
      */
     public function addBasicSubMenuPageCallBack()
     {
         ?>
       <div class="wrap">
-         <h1><?php echo sprintf(esc_html__('%s Settings', 'prime-mover'), $this->getPrimeMover()->getSystemInitialization()->getPrimeMoverPluginTitle()); ?></h1>
+         <h1><?php 
+         /* translators: %s: plugin title: Prime Mover */
+         echo sprintf(esc_html__('%s Settings', 'prime-mover'), esc_html($this->getPrimeMover()->getSystemInitialization()->getPrimeMoverPluginTitle())); ?></h1>
          <?php 
          if ($this->getProgressHandlers()->isNowPublicMaintenance()) {
          ?>
@@ -630,7 +642,7 @@ class PrimeMoverControlPanel
     {
         ?>
       <div class="wrap">
-         <h1><?php echo apply_filters('prime_mover_filter_advance_settings_title', esc_html__('Advanced Settings Panel', 'prime-mover')); ?></h1>
+         <h1><?php echo esc_html(apply_filters('prime_mover_filter_advance_settings_title', esc_html__('Advanced Settings Panel', 'prime-mover'))); ?></h1>
          <?php 
          if ($this->getProgressHandlers()->isNowPublicMaintenance()) {
          ?>

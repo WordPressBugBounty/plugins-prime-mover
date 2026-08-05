@@ -233,15 +233,6 @@ final class PrimeMoverMustUsePluginManager
     }
         
     /**
-     * Check if we need to enable log
-     * @return boolean
-     */
-    private function primeMoverMaybeEnablePluginManagerLog()
-    {
-        return (defined('PRIME_MOVER_PLUGIN_MANAGER_LOG') && PRIME_MOVER_PLUGIN_MANAGER_LOG && file_exists(PRIME_MOVER_PLUGIN_MANAGER_LOG));
-    }
- 
-    /**
      * Compute signature
      * @return string
      */
@@ -725,18 +716,7 @@ final class PrimeMoverMustUsePluginManager
         $input_post = $this->getInputPost();
         $required = $this->primeMoverMaybeAddThirdPartyApp($input_post);
         $current_filter = current_filter();
-        $current_process = $this->getCurrentProcess();
-        
-        if ($this->primeMoverMaybeEnablePluginManagerLog()) {
-            
-            file_put_contents(PRIME_MOVER_PLUGIN_MANAGER_LOG, "INPUT PLUGINS BEFORE FILTERING:" . PHP_EOL, FILE_APPEND | LOCK_EX);
-            file_put_contents(PRIME_MOVER_PLUGIN_MANAGER_LOG, print_r($plugins, true)  . PHP_EOL, FILE_APPEND | LOCK_EX);
-            
-            file_put_contents(PRIME_MOVER_PLUGIN_MANAGER_LOG, "CURRENT FILTER: $current_filter"  . PHP_EOL, FILE_APPEND | LOCK_EX);            
-            file_put_contents(PRIME_MOVER_PLUGIN_MANAGER_LOG, "REQUIRED PLUGINS ON THIS PROCESS: $current_process"  . PHP_EOL, FILE_APPEND | LOCK_EX);
-            file_put_contents(PRIME_MOVER_PLUGIN_MANAGER_LOG, print_r($required, true)  . PHP_EOL, FILE_APPEND | LOCK_EX);            
-        }
-        
+                
         if ('site_option_active_sitewide_plugins' === $current_filter) {
             $plugins = array_filter(
                 $plugins,
@@ -752,12 +732,7 @@ final class PrimeMoverMustUsePluginManager
                 return (in_array($plugin, $required));
             });
         }
-        
-        if ($this->primeMoverMaybeEnablePluginManagerLog()) {
-            file_put_contents(PRIME_MOVER_PLUGIN_MANAGER_LOG, "FILTERED PLUGINS FINAL RESULT:" . PHP_EOL, FILE_APPEND | LOCK_EX);
-            file_put_contents(PRIME_MOVER_PLUGIN_MANAGER_LOG, print_r($plugins, true)  . PHP_EOL, FILE_APPEND | LOCK_EX);
-        }
-        
+                
         return $plugins;
     }   
 

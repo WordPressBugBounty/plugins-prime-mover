@@ -541,10 +541,15 @@ class PrimeMoverProgressHandlers
     public function setProgressError( array $args )
     {
         $args['prime_mover_progress_error_message'] = esc_js(
-            sprintf(__('Progress reporting fails for blog ID {{BLOGID}}. Retry is attempted but still fails. %s',
-                'prime-mover'),
-                '<strong>' . __('Server Error : {{PROGRESSSERVERERROR}}', 'prime-mover') . '</strong>'));
-                return $args;
+            wp_kses(
+                __( 'Progress reporting fails for blog ID {{BLOGID}}. Retry is attempted but still fails. <strong>Server Error : {{PROGRESSSERVERERROR}}</strong>', 'prime-mover' ),
+                [
+                    'strong' => [],
+                ]
+            )
+        );
+                
+        return $args;
     }
     
     /**
@@ -666,7 +671,7 @@ class PrimeMoverProgressHandlers
         }
         
         wp_die(
-            $message, 
+            wp_kses_post($message), 
             esc_html__('Maintenance Mode', 'prime-mover'),             
             ['response' => 503]
         );        

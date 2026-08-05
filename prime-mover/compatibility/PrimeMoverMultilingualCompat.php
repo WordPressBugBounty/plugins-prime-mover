@@ -230,7 +230,6 @@ class PrimeMoverMultilingualCompat
         if (!is_array($table_specific_collations_source) || empty($table_specific_collations_source)) {
             return $ret;
         }
-
         if (empty($ret['wprime_tar_config_set']['prime_mover_source_site_db_collate'])) {
             return $ret;
         }
@@ -248,6 +247,7 @@ class PrimeMoverMultilingualCompat
         $sql = "SHOW COLLATION where Collation IN ($tbl_specific_collations_string)";
         
         $wpdb = $this->getSystemInitialization()->getWpdB();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $res = $wpdb->get_results($sql, ARRAY_A);        
         if (!is_array($res)) {
             do_action('prime_mover_log_processed_events', "ERROR: SHOW COLLATION query result is not in array result format, SQL query below:", $blog_id_imported, 'import', __FUNCTION__, $this);
@@ -335,12 +335,12 @@ class PrimeMoverMultilingualCompat
             return $locales;
         } 
         
-        if (!function_exists('primeMoverLanguageToLocale')) {
+        if (!function_exists('prime_mover_language_to_locale')) {
             $this->getSystemFunctions()->restoreCurrentBlog(); 
             return $locales;
         }
         
-        $locales_masterlist = primeMoverLanguageToLocale();
+        $locales_masterlist = prime_mover_language_to_locale();
         if (!is_array($locales_masterlist)) {
             $this->getSystemFunctions()->restoreCurrentBlog(); 
             return $locales;
@@ -435,7 +435,9 @@ class PrimeMoverMultilingualCompat
        
         $source_charset = $ret['wprime_tar_config_set']['prime_mover_target_db_charset'];           
         if (false === $this->getSystemUtilities()->maybeSourceAndTargetCharsetsSame($source_charset, $current_charset)) {
-            $ret['error'] = sprintf(esc_html__('Mismatch source and target database charset error. Source site charset %s cannot be restored to this database charset using %s. Please read: https://codexonics.com/prime_mover/prime-mover/runtime-error-mismatch-source-and-target-database-charset-error/'), $source_charset, $current_charset);            
+            /* translators: %1$s: Source charset, %2$s: Current charset, %3$s: Codexonics documentation reference URL */
+            $ret['error'] = sprintf(esc_html__('Mismatch source and target database charset error. Source site charset %1$s cannot be restored to this database charset using %2$s. Please read: %3$s', 'prime-mover'), 
+                $source_charset, $current_charset, 'https://codexonics.com/prime_mover/prime-mover/runtime-error-mismatch-source-and-target-database-charset-error/');            
             
             $this->reactivatePlugins();
             return $ret;
@@ -525,11 +527,11 @@ class PrimeMoverMultilingualCompat
             return $ret;
         }   
        
-        $tables = array_keys($ret['tbl_primary_keys']);        
-        
+        $tables = array_keys($ret['tbl_primary_keys']);          
         $wpdb = $this->getSystemInitialization()->getWpdB();
         $collations = [];
         foreach ($tables as $table) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $results = $wpdb->get_results("SHOW FULL COLUMNS FROM `{$table}`");
             if (!$results ) {
                 continue;

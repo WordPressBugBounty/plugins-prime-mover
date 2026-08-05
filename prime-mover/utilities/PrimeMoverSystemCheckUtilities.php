@@ -17,6 +17,7 @@ use ZipArchive;
 use RecursiveIteratorIterator;
 use RecursiveDirectoryIterator;
 use PDO;
+use Codexonics\PrimeMoverBridgeIO;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -159,7 +160,7 @@ class PrimeMoverSystemCheckUtilities
         $args['prime_mover_package_mismatch_subsite_mismatch'] = esc_js(__('You are restoring a package with incorrect blog ID to a target subsite.', 'prime-mover'));
         $args['prime_mover_package_mismatch_singlesite_mismatch'] = esc_js(__('It looks like you are restoring a multisite package to a single site installation.', 'prime-mover'));
         
-        $args['prime_mover_package_mismatch_export_type'] = esc_js(__('It looks like you are restoring a {{SOURCE_PACKAGE_TYPE}} package to a {{TARGET_PACKAGE_TYPE}} installation.'), 'prime-mover');
+        $args['prime_mover_package_mismatch_export_type'] = esc_js(__('It looks like you are restoring a {{SOURCE_PACKAGE_TYPE}} package to a {{TARGET_PACKAGE_TYPE}} installation.', 'prime-mover'));
         
         $args['prime_mover_mainsite_id'] = 1;
         if (is_multisite()) {
@@ -325,7 +326,7 @@ class PrimeMoverSystemCheckUtilities
         
         $reference_index = array_search("wpupload_url",array_keys($replaceables));
         $search_part = $ret['imported_package_footprint']['legacy_upload_information_url'];
-        $scheme_search = parse_url($search_part, PHP_URL_SCHEME);
+        $scheme_search = wp_parse_url((string) $search_part, PHP_URL_SCHEME);        
         $origin_scheme = '';
         if ( ! empty( $ret['imported_package_footprint']['scheme'] ) ) {
             $origin_scheme = $ret['imported_package_footprint']['scheme'];
@@ -467,7 +468,7 @@ class PrimeMoverSystemCheckUtilities
         global $wp_filesystem;
         $wpdb = $this->getSystemInitialization()->getWpdB();
         $executable = '';
-        
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
         $result = $wpdb->get_results("SHOW VARIABLES WHERE Variable_name = 'basedir'", ARRAY_N);
         if ( ! is_array($result) ) {
             return;
@@ -567,57 +568,59 @@ class PrimeMoverSystemCheckUtilities
      * @return boolean|\WP_Error
      */
     protected function maybeSkipFileCopying($source = '', $destination = '', $blog_id = 0, $wp_filesystem = null)
-    {      
+    {
         $source = wp_normalize_path($source);
         $destination = wp_normalize_path($destination);
         $processing_thumbs = false;
-		$thumbs_delete_success = false;
-		
-        if ($this->isWindowsThumbsDb($source)) {
-			$processing_thumbs = true;
-        }
-		
-		if ($processing_thumbs && wp_is_writable($source)) {
-			$thumbs_delete_success = $wp_filesystem->delete( $source, true);			
-	    }
+        $thumbs_delete_success = false;
         
-		if ($processing_thumbs && $thumbs_delete_success) {  
-			do_action('prime_mover_log_processed_events', 'AUTOMATICALLY EXCLUDING THUMBS.DB FILE FROM IMPORT: ' . $source, $blog_id, 'import', __FUNCTION__, $this);
-	        return true;
-		}
-		
-		if ($processing_thumbs && false === $thumbs_delete_success) { 			
-			return new WP_Error('permission_issue_copy_dir', __('Could not copy thumbs.DB file due to permission issue - please create another export package so that this file will be auto-excluded.', 'prime-mover'));
-	    }
-		
+        if ($this->isWindowsThumbsDb($source)) {
+            $processing_thumbs = true;
+        }
+        
+        if ($processing_thumbs && wp_is_writable($source)) {
+            $thumbs_delete_success = $wp_filesystem->delete( $source, true);
+        }
+        
+        if ($processing_thumbs && $thumbs_delete_success) {
+            do_action('prime_mover_log_processed_events', 'AUTOMATICALLY EXCLUDING THUMBS.DB FILE FROM IMPORT: ' . $source, $blog_id, 'import', __FUNCTION__, $this);
+            return true;
+        }
+        
+        if ($processing_thumbs && false === $thumbs_delete_success) {
+            return new WP_Error('permission_issue_copy_dir', __('Could not copy thumbs.DB file due to permission issue - please create another export package so that this file will be auto-excluded.', 'prime-mover'));
+        }
+        
         if (!$this->getSystemFunctions()->fileExists($source) ||
             !$this->getSystemFunctions()->fileExists($destination)) {
                 return false;
-        }        
-        
-        if (wp_is_writable($destination)) {
-            return false;
-        }
-        
-        $filesize = $this->getSystemFunctions()->fileSize64($source);        
-        if ($this->getSystemFunctions()->isLargeStreamFile($filesize)) {
-            do_action('prime_mover_log_processed_events', 'FILE COPYING ISSUE DETECTED AND TOO LARGE FILE SIZE: ' . $source, $blog_id, 'import', __FUNCTION__, $this);
-            return new WP_Error( 'permission_issue_copy_dir', sprintf(__( 'Could not copy file due to permission issue - please manually delete this path and try again: %s' ), $destination), $destination);
-        }
-               
-        $hash_algo = $this->getSystemInitialization()->getFastHashingAlgo();
-        $source_hash = $this->getSystemFunctions()->hashEntity($source, $hash_algo);
-        $destination_hash = $this->getSystemFunctions()->hashEntity($destination, $hash_algo);        
-        
-        do_action('prime_mover_log_processed_events', "Comparing non-permissive entity using hash algo: $hash_algo", $blog_id, 'import', __FUNCTION__, $this);
-        do_action('prime_mover_log_processed_events', "Source $source hash: $source_hash and target $destination hash: $destination_hash", $blog_id, 'import', __FUNCTION__, $this); 
-        
-        if ($source_hash && $source_hash !== $destination_hash) {
-            return new WP_Error( 'permission_issue_copy_dir', sprintf(__( 'Could not restore file due to permission issue - please manually delete this path and try again: %s' ), $destination), $destination);
-        }
-              
-        return true;            
-    }
+            }
+            
+            if (wp_is_writable($destination)) {
+                return false;
+            }
+            
+            $filesize = $this->getSystemFunctions()->fileSize64($source);
+            if ($this->getSystemFunctions()->isLargeStreamFile($filesize)) {
+                do_action('prime_mover_log_processed_events', 'FILE COPYING ISSUE DETECTED AND TOO LARGE FILE SIZE: ' . $source, $blog_id, 'import', __FUNCTION__, $this);
+                /* translators: %s: Absolute target media file directory destination string path */
+                return new WP_Error( 'permission_issue_copy_dir', sprintf(__( 'Could not copy file due to permission issue - please manually delete this path and try again: %s', 'prime-mover' ), $destination), $destination);
+            }
+            
+            $hash_algo = $this->getSystemInitialization()->getFastHashingAlgo();
+            $source_hash = $this->getSystemFunctions()->hashEntity($source, $hash_algo);
+            $destination_hash = $this->getSystemFunctions()->hashEntity($destination, $hash_algo);
+            
+            do_action('prime_mover_log_processed_events', "Comparing non-permissive entity using hash algo: $hash_algo", $blog_id, 'import', __FUNCTION__, $this);
+            do_action('prime_mover_log_processed_events', "Source $source hash: $source_hash and target $destination hash: $destination_hash", $blog_id, 'import', __FUNCTION__, $this);
+            
+            if ($source_hash && $source_hash !== $destination_hash) {
+                /* translators: %s: Absolute target media file directory destination string path */
+                return new WP_Error( 'permission_issue_copy_dir', sprintf(__( 'Could not restore file due to permission issue - please manually delete this path and try again: %s', 'prime-mover' ), $destination), $destination);
+            }
+            
+            return true;
+    }    
     
     /**
      * Copy by streams
@@ -641,7 +644,7 @@ class PrimeMoverSystemCheckUtilities
         $buffer_size = PRIME_MOVER_STREAM_COPY_CHUNK_SIZE;
         $copy_mode = 'wb';
         
-        $fin = fopen($from, "rb");
+        $fin = PrimeMoverBridgeIO::call('fopen', $from, "rb");
         if (!is_resource($fin)) {
             do_action('prime_mover_log_processed_events', "FROM - is resource returns FALSE ", $blog_id, 'import', __FUNCTION__, $this);
             return false;
@@ -651,7 +654,7 @@ class PrimeMoverSystemCheckUtilities
             
             do_action('prime_mover_log_processed_events', "Resume copying on $from starting at position " . $ret['copychunked_offset'], $blog_id, 'import', __FUNCTION__, $this);
             $copy_mode = 'ab';
-            $seek_res = fseek($fin, $ret['copychunked_offset']);
+            $seek_res = PrimeMoverBridgeIO::call('fseek', $fin, $ret['copychunked_offset']);
             if (-1 === $seek_res) {
                 do_action('prime_mover_log_processed_events', "FIN - Fseek error ", $blog_id, 'import', __FUNCTION__, $this);
             }
@@ -660,7 +663,7 @@ class PrimeMoverSystemCheckUtilities
             
         }
         
-        $fout = fopen($to, $copy_mode);
+        $fout = PrimeMoverBridgeIO::call('fopen', $to, $copy_mode);
         if (!is_resource($fout)) {
             do_action('prime_mover_log_processed_events', "FOUT - is resource returns FALSE ", $blog_id, 'import', __FUNCTION__, $this);
             return false;
@@ -668,11 +671,11 @@ class PrimeMoverSystemCheckUtilities
         
         while(!feof($fin)) {
             $this->maybeTestStreamCopyDelay();
-            $chunk = fread($fin, $buffer_size);
+            $chunk = PrimeMoverBridgeIO::call('fread', $fin, $buffer_size);
             if (false === $chunk) {
                 do_action('prime_mover_log_processed_events', "FIN - Fread returns FALSE ", $blog_id, 'import', __FUNCTION__, $this);
             }
-            $write_res = fwrite($fout, $chunk);
+            $write_res = PrimeMoverBridgeIO::call('fwrite', $fout, $chunk);
             if (false === $write_res) {
                 do_action('prime_mover_log_processed_events', "FOUT - fwrite returns FALSE ", $blog_id, 'import', __FUNCTION__, $this);
             }
@@ -688,8 +691,8 @@ class PrimeMoverSystemCheckUtilities
             }
         }
         
-        fclose($fin);
-        fclose($fout);
+        PrimeMoverBridgeIO::call('fclose', $fin);
+        PrimeMoverBridgeIO::call('fclose', $fout);
         
         if (isset($ret['copychunked_offset'])) {
             unset($ret['copychunked_offset']);
@@ -783,7 +786,7 @@ class PrimeMoverSystemCheckUtilities
             list($file_resource, $dir_resource) = $resource;
         }
         if (is_resource($dir_resource)) {
-            fwrite($dir_resource, $to . PHP_EOL);
+            PrimeMoverBridgeIO::call('fwrite', $dir_resource, $to . PHP_EOL);
         }
         
         if (!isset($ret['copydir_processed'])) {
@@ -821,7 +824,7 @@ class PrimeMoverSystemCheckUtilities
                
                 if (is_array($processfile) && !isset($processfile['copychunked_offset'])) {
                     if (is_resource($file_resource)) {
-                        fwrite($file_resource, $to . $filename . PHP_EOL);
+                        PrimeMoverBridgeIO::call('fwrite', $file_resource, $to . $filename . PHP_EOL);
                     }
                     
                     $ret['copydir_processed']++;
@@ -845,7 +848,7 @@ class PrimeMoverSystemCheckUtilities
                         )) {
                             
                         do_action('prime_mover_log_processed_events', 'STILL HAVING ERROR copying file ' . $from . $filename . " , bailing out.", $blog_id, 'import', __FUNCTION__, $this);
-                        return new WP_Error( 'copy_failed_copy_dir', __( 'Could not copy file.' ), $to . $filename );
+                        return new WP_Error( 'copy_failed_copy_dir', __( 'Could not copy file.', 'prime-mover' ), $to . $filename );
                     }
                     
                 } else {
@@ -857,7 +860,7 @@ class PrimeMoverSystemCheckUtilities
                 if ( ! $wp_filesystem->is_dir( $to . $filename ) ) {
                     if ( ! $wp_filesystem->mkdir( $to . $filename, FS_CHMOD_DIR ) ) {                        
                         do_action('prime_mover_log_processed_events', 'ERROR: Unable to create directory: ' . $to . $filename . " as requisite for copying, bail out.", $blog_id, 'import', __FUNCTION__, $this);
-                        return new WP_Error( 'mkdir_failed_copy_dir', __( 'Could not create directory.' ), $to . $filename );
+                        return new WP_Error( 'mkdir_failed_copy_dir', __( 'Could not create directory.', 'prime-mover' ), $to . $filename );
                     } else {
                         
                         if ($copy_by_parts) {                            
@@ -929,39 +932,39 @@ class PrimeMoverSystemCheckUtilities
         if (wp_is_writable($destination)) {
             return false;
         }
-       
+        
         $retry_timeout = apply_filters('prime_mover_retry_timeout_seconds', PRIME_MOVER_RETRY_TIMEOUT_SECONDS, __FUNCTION__);
-        $running_time = microtime(true) - $start; 
+        $running_time = microtime(true) - $start;
         if ($running_time > $retry_timeout) {
-            $ret = $this->getSystemInitialization()->maybeAutomaticBackupTimeout($ret);            
+            $ret = $this->getSystemInitialization()->maybeAutomaticBackupTimeout($ret);
             return $this->bailoutAndReturn('timeout need retry', false, $blog_id, $source, $destination, $ret);
         }
-           
+        
         $time_left = $retry_timeout - $running_time;
         if ($time_left < 0) {
             return $this->bailoutAndReturn('negative time left', false, $blog_id, $source, $destination, $ret);
         }
-                      
+        
         $dirsize = get_dirsize($source, $time_left);
-        if (null === $dirsize || false === $dirsize) {            
+        if (null === $dirsize || false === $dirsize) {
             if (!empty($ret['directory_for_sizing']) && $source === $ret['directory_for_sizing']) {
                 return $this->bailoutAndReturn('repeated timeout', true, $blog_id, $source, $destination,  $ret);
-            } else {                
+            } else {
                 return $this->bailoutAndReturn('retry for first time', false, $blog_id, $source, $destination,  $ret, true);
-            }            
+            }
         }
         
-        if (!is_integer($dirsize)) {            
+        if (!is_integer($dirsize)) {
             return $this->bailoutAndReturn('invalid integer', true, $blog_id, $source, $destination,  $ret);
         }
         
-        if ($this->getSystemFunctions()->isLargeStreamFile($dirsize)) {            
+        if ($this->getSystemFunctions()->isLargeStreamFile($dirsize)) {
             return $this->bailoutAndReturn('large directory', true, $blog_id, $source, $destination,  $ret);
         }
         
         $running_time = microtime(true) - $start;
         if ($running_time > $retry_timeout) {
-            $ret = $this->getSystemInitialization()->maybeAutomaticBackupTimeout($ret); 
+            $ret = $this->getSystemInitialization()->maybeAutomaticBackupTimeout($ret);
             return $this->bailoutAndReturn('timeout need retry', false, $blog_id, $source, $destination,  $ret);
         }
         
@@ -973,18 +976,19 @@ class PrimeMoverSystemCheckUtilities
             return $this->bailoutAndReturn('timeout need retry', false, $blog_id, $source, $destination,  $ret);
         }
         
-        $destination_hash = $this->getSystemFunctions()->hashEntity($destination, $hash_algo); 
- 
+        $destination_hash = $this->getSystemFunctions()->hashEntity($destination, $hash_algo);
+        
         do_action('prime_mover_log_processed_events', "Comparing non-permissive uploads directory folders entity using hash algo: $hash_algo", $blog_id, 'import', __FUNCTION__, $this);
-        do_action('prime_mover_log_processed_events', "Source $source hash: $source_hash and target $destination hash: $destination_hash", $blog_id, 'import', __FUNCTION__, $this); 
+        do_action('prime_mover_log_processed_events', "Source $source hash: $source_hash and target $destination hash: $destination_hash", $blog_id, 'import', __FUNCTION__, $this);
         
         if ($source_hash !== $destination_hash) {
-            return new WP_Error( 'permission_issue_copy_folder', sprintf(__( 'Could not copy directory due to permission issue - please manually delete this directory and try again: %s' ), $destination), $destination);
+            /* translators: %s: Absolute target media upload folder directory destination string path */
+            return new WP_Error( 'permission_issue_copy_folder', sprintf(__( 'Could not copy directory due to permission issue - please manually delete this directory and try again: %s', 'prime-mover' ), $destination), $destination);
         }
-       
+        
         do_action('prime_mover_log_processed_events', "Copying directory permission success since source and destination content are the same.", $blog_id, 'import', __FUNCTION__, $this);
-        return true;        
-    }
+        return true;
+    }    
     
     /**
      * Bailout and return
@@ -999,20 +1003,21 @@ class PrimeMoverSystemCheckUtilities
      */
     protected function bailoutAndReturn($log = '', $return_error = false, $blog_id = 0, $source = '', $destination = '',  $ret = [], $dir_for_sizing = false)
     {
-        do_action('prime_mover_log_processed_events', "Copying directory permission bailout: $log", $blog_id, 'import', __FUNCTION__, $this);        
+        do_action('prime_mover_log_processed_events', "Copying directory permission bailout: $log", $blog_id, 'import', __FUNCTION__, $this);
         if ($return_error) {
-            return new WP_Error( 'permission_issue_copy_folder', sprintf(__( 'Could not copy directory due to permission issue - please manually delete this directory and try again: %s' ), $destination), $destination);
+            /* translators: %s: Absolute target directory folder destination path string */
+            return new WP_Error( 'permission_issue_copy_folder', sprintf(__( 'Could not copy directory due to permission issue - please manually delete this directory and try again: %s', 'prime-mover' ), $destination), $destination);
             
-        } 
-           
+        }
+        
         $ret['copychunked_offset'] = 0;
         $ret['copychunked_under_copy'] = $source;
         
         if ($dir_for_sizing) {
-            $ret['directory_for_sizing'] = wp_normalize_path($source); 
-        }        
-            
-        return $ret;                  
+            $ret['directory_for_sizing'] = wp_normalize_path($source);
+        }
+        
+        return $ret;
     }
     
     /**
@@ -1034,11 +1039,13 @@ class PrimeMoverSystemCheckUtilities
     {
         $zip = $this->getSystemInitialization()->getZipArchiveInstance();
         if (true !== $zip->open($zipfile)) {
+            /* translators: %s: Current migration mode operational context tag label (e.g. Export or Import) */
             $return['error'] = sprintf(esc_html__('%s Error opening zip path', 'prime-mover'), $mode);
             return $return;
         }
         
         $zip = $this->getSystemInitialization()->setEncryptionPassword($zip);
+        /* translators: %s: Current migration mode operational context tag label (e.g. Export or Import) */
         $extraction_failed = sprintf(esc_html__('%s Extraction failed.', 'prime-mover'), $mode);
         
         $total_numfiles_zip = $zip->numFiles;
@@ -1046,13 +1053,13 @@ class PrimeMoverSystemCheckUtilities
         $retry_timeout = apply_filters('prime_mover_retry_timeout_seconds', PRIME_MOVER_RETRY_TIMEOUT_SECONDS, 'resumableZipExtractor');
         
         for($i = $index; $i < $total_numfiles_zip; $i++) {
-            list($result, $resource, $size, $path, $directory, $name) = $this->computeExtractionParameters($shell, $i, $zip, $extraction_path, $blogid);            
+            list($result, $resource, $size, $path, $directory, $name) = $this->computeExtractionParameters($shell, $i, $zip, $extraction_path, $blogid);
             if ($directory !== $name ) {
                 $result = wp_mkdir_p($path);
                 continue;
-            }  
+            }
             
-            list($use_extract_to, $chunkSize) = $this->computeChunkSize($size);           
+            list($use_extract_to, $chunkSize) = $this->computeChunkSize($size);
             list($use_extract_to, $resource) = $this->getResource($use_extract_to, $zip, $name, $resource);
             
             if ($use_extract_to) {
@@ -1060,7 +1067,7 @@ class PrimeMoverSystemCheckUtilities
                 $finished = microtime(true) - $start;
                 if ($result && $finished > $retry_timeout) {
                     return $this->maybeExtractionNeedsToRestart($return, 0, $i, $shell, $ret, $name, $blogid);
-                }                
+                }
             } else {
                 $result = $this->doExtractionByFileLevelChunks($bytes_offset, $name, $blogid, $path, $resource, $chunkSize, $shell, $start, $retry_timeout, $i, $ret, $return);
                 if (is_array($result)) {
@@ -1069,7 +1076,7 @@ class PrimeMoverSystemCheckUtilities
             }
             
             if ($result) {
-                $bytes_offset = 0;                
+                $bytes_offset = 0;
             } else {
                 return $this->handleExtractionError($zip, $mode, $blogid, $extraction_failed);
             }
@@ -1181,7 +1188,7 @@ class PrimeMoverSystemCheckUtilities
             $mode = "ab";
         }
         do_action('prime_mover_log_processed_events', "Opening file $name in $mode for writing.", $blogid, 'import', 'resumableZipExtractor', $this, true);
-        $unzipped = fopen($path, $mode);
+        $unzipped = PrimeMoverBridgeIO::call('fopen', $path, $mode);
         $return = $this->validateResource($return, $unzipped, $resource);
         if ( ! empty($return['error']) ) {
             return $return;
@@ -1191,7 +1198,7 @@ class PrimeMoverSystemCheckUtilities
             if ( ! $chunkSize ) {
                 break;
             }
-            $chunk = fread($resource, $chunkSize);
+            $chunk = PrimeMoverBridgeIO::call('fread', $resource, $chunkSize);
             if (false === $chunk) {
                 do_action('prime_mover_log_processed_events', "Fread error detected on seek position $seek_position for entry $name", $blogid, 'import', 'resumableZipExtractor', $this, true);
             }
@@ -1204,7 +1211,7 @@ class PrimeMoverSystemCheckUtilities
                 continue;
             }
             if(false !== $chunk) {
-                $result = fwrite($unzipped, $chunk);
+                $result = PrimeMoverBridgeIO::call('fwrite', $unzipped, $chunk);
                 $this->maybeThrottleExtraction($shell);
             } else {
                 do_action('prime_mover_log_processed_events', "Missed write error on seek position $seek_position for entry $name", $blogid, 'import', 'resumableZipExtractor', $this, true);
@@ -1214,7 +1221,7 @@ class PrimeMoverSystemCheckUtilities
                 return $this->maybeExtractionNeedsToRestart($return, $current_position, $i, $shell, $ret, $name, $blogid);
             }
         }        
-        $result = fclose($unzipped);
+        $result = PrimeMoverBridgeIO::call('fclose', $unzipped);
         return $result;
     }
     
@@ -1320,13 +1327,15 @@ class PrimeMoverSystemCheckUtilities
             $mode = esc_html__('Media', 'prime-mover');
         }
         if ( ! $media_path ) {
+            /* translators: %s: Current migration mode operational context tag label (e.g. Media or Plugins) */
             $return['error'] = sprintf(esc_html__('%s archive path does not exist', 'prime-mover'), $mode);
             return $return;
         }
         if ( ! $extraction_path) {
+            /* translators: %s: Current migration mode operational context tag label (e.g. Media or Plugins) */
             $return['error'] = sprintf(esc_html__('%s extraction path does not exist', 'prime-mover'), $mode);
             return $return;
-        }        
+        }
         
         $index = 0;
         if ( ! empty($ret['media_zip_last_index'])) {
@@ -1335,11 +1344,11 @@ class PrimeMoverSystemCheckUtilities
         
         $bytes_offset = 0;
         if ( ! empty($ret['zip_bytes_offset'])) {
-            $bytes_offset = (int) $ret['zip_bytes_offset'];            
+            $bytes_offset = (int) $ret['zip_bytes_offset'];
         }
         list($index, $bytes_offset) = $this->getExtractionReprocessingParameters($ret, $index, $bytes_offset, $shell);
         return $this->resumableZipExtractor($media_path, $extraction_path, $extract_start, $index, $bytes_offset, $return, $shell, $mode, $blogid_to_import, $ret);
-    }  
+    }
     
     /**
      * Get extraction reprocessiong parameters
@@ -1396,13 +1405,13 @@ class PrimeMoverSystemCheckUtilities
     protected function querySQLConfig($config = 'max_allowed_packet')
     {
         $wpdb = $this->getSystemInitialization()->getWpdB();
-        $result = false;
-        
+        $result = false;        
         if ('max_allowed_packet' === $config) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
             $result = $wpdb->get_row("SHOW VARIABLES LIKE 'max_allowed_packet'", ARRAY_N);
-        } 
-        
+        }         
         if ('require_secure_transport' === $config) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $result = $wpdb->get_row("SHOW VARIABLES LIKE 'require_secure_transport'", ARRAY_N);
         }       
         

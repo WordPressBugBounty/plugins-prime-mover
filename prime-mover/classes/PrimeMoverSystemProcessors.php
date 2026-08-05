@@ -457,9 +457,22 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
             $filePath = $resume_filepath;
         }
         if (true === $done && ! $this->getSystemFunctions()->isReallyValidFormat($filePath)) {
-            $response['status'] = false;
-            $response['error'] = sprintf(esc_html__('Corrupt package error: %s', 'prime-mover'), 
-                '<a class="prime-mover-external-link" target="_blank" href="' . esc_url(CODEXONICS_CORRUPT_WPRIME_DOC) . '">' . esc_html__('How to fix?', 'prime-mover') . '</a>');
+            $response['status'] = false;            
+            
+            $response['error'] = sprintf(
+                wp_kses(
+                /* translators: %s: Codexonics corrupt package documentation URL */
+                    __( 'Corrupt package error: <a class="prime-mover-external-link" target="_blank" href="%s">How to fix?</a>', 'prime-mover' ), 
+                    [
+                        'a' => [
+                            'class'  => true,
+                            'target' => true,
+                            'href'   => true,
+                        ],
+                    ]
+                ),
+                esc_url(CODEXONICS_CORRUPT_WPRIME_DOC)
+            );
             
             do_action('prime_mover_log_processed_events', "File type error DETECTED: $filePath", $uploads_ajax_input['multisite_blogid_to_import'], 'import', 'doUploadFinishingTasks', $this);
             $this->getSystemFunctions()->primeMoverDoDelete($filePath);
@@ -699,12 +712,13 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
 
                 $this->saveImportResultForOutput($response, $status);
             }
-        } else {
-            if (! empty($errors)) {
-                $errors = print_r($errors, true);
+        } else {            
+            if (!empty($errors)) {
+                $errors = prime_mover_print_dbg($errors);
             } else {
                 $errors = esc_html__('An unknown error has occured', 'prime-mover');
             }
+            
             do_action('prime_mover_shutdown_actions', [
                 'type' => 1,
                 'message' => $errors
@@ -929,7 +943,7 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
             
         } else {
             if (!empty($errors)) {
-                $errors = print_r($errors, true);
+                $errors = prime_mover_print_dbg($errors);
             } else {
                 $errors = esc_html__('An unknown error has occured', 'prime-mover');
             }
@@ -956,8 +970,7 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
         if ( ! $blog_id ) {
             return '';
         }
-        $backup_menu_site = esc_url($this->getSystemFunctions()->getBackupMenuUrl($blog_id));
-        
+        $backup_menu_site = esc_url($this->getSystemFunctions()->getBackupMenuUrl($blog_id));        
         $out = '';
         $out .= esc_js(__('Export completed.', 'prime-mover'));
         $out .= ' <a href="' . $backup_menu_site . '" class="prime-mover-export-directory-path" title="' . esc_attr($this->getSystemInitialization()->getMultisiteExportFolder()) . '">' . esc_html__('Package Saved !', 'prime-mover') . '</a>';
@@ -975,8 +988,10 @@ class PrimeMoverSystemProcessors implements PrimeMoverSystemProcessor
             return;
         }
         $wpdb = $this->getSystemInitialization()->getWpdB();
+        
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
         $wpdb->query("UNLOCK TABLES;");
-        $validation_error = print_r($ret['error'], true);
+        $validation_error = prime_mover_print_dbg($ret['error']);
         do_action( 'prime_mover_shutdown_actions', ['type' => 1, 'message' => $validation_error] );
         
         if ($this->getSystemAuthorization()->isDoingAutoBackup()) {

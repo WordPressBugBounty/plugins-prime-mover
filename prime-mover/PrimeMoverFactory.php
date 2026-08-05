@@ -1,6 +1,10 @@
 <?php
 namespace Codexonics;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 /*
  * This file is part of the Codexonics package.
  *
@@ -66,10 +70,6 @@ use Codexonics\PrimeMoverFramework\compatibility\PrimeMoverPageBuilderCompat;
 use Codexonics\PrimeMoverFramework\compatibility\PrimeMoverCustomConfig;
 use wpdb;
 
-if (! defined('ABSPATH')) {
-    exit;
-}
-
 /**
  *  Instantiate new plugin object and uninstallation methods.
  */
@@ -109,7 +109,7 @@ class PrimeMoverFactory
     public function composeObjects()
     {        
         $prime_mover_user = wp_get_current_user();  
-        $freemius = primeMoverGetFreemiusSDK();
+        $freemius = prime_mover_get_freemius_sdk();
         
         $system_authorization = new PrimeMoverSystemAuthorization($prime_mover_user,  $freemius);        
         $system_initialization = new PrimeMoverSystemInitialization($system_authorization);        
@@ -283,11 +283,11 @@ class PrimeMoverFactory
      */
     private function removePrimeMoverCrons()
     {
-        if (!function_exists('getPrimeMoverCronHooks')) {
+        if (!function_exists('prime_mover_cron_hooks')) {
             return;
         }
         
-        $prime_mover_crons = getPrimeMoverCronHooks();
+        $prime_mover_crons = prime_mover_cron_hooks();
         if (!is_array($prime_mover_crons)) {
             return;
         }
@@ -319,7 +319,7 @@ class PrimeMoverFactory
         } else {
             delete_option($option);
         }
-        if (primeMoverIsShaString($option)) {
+        if (prime_mover_is_sha_string($option)) {
             if ($network) {
                 delete_site_option($option . '_filename');
             } else {
@@ -386,7 +386,7 @@ class PrimeMoverFactory
         if (!in_array($field, $valid_fields) || !in_array($table, $valid_tb)) {
             return [];
         }        
-        
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $results = $wpdb->get_results($this->returnOptionQuery($field, $table, $user_id), ARRAY_A);                 
         if (!is_array($results)) {
             return [];
@@ -402,7 +402,7 @@ class PrimeMoverFactory
             if (is_array($exploded) && isset($exploded[0])) {
                 $string = $exploded[0];
             }
-            return primeMoverIsShaString($string);
+            return prime_mover_is_sha_string($string);
         });
     }
         
@@ -528,8 +528,8 @@ class PrimeMoverFactory
 /**
  * Instantiate
  */
-$loaded_instance = new PrimeMoverFactory();
-$loaded_instance->initHook();
-$loaded_instance->loadActivationHook();
+$prime_mover_loaded_instance = new PrimeMoverFactory();
+$prime_mover_loaded_instance->initHook();
+$prime_mover_loaded_instance->loadActivationHook();
 
-pm_fs()->add_action('after_uninstall', [$loaded_instance, 'primeMoverCleanUpOnUninstall']);
+prime_mover_fs()->add_action('after_uninstall', [$prime_mover_loaded_instance, 'primeMoverCleanUpOnUninstall']);

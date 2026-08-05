@@ -161,7 +161,7 @@ class PrimeMoverAutoBackupEventViewer
         }
         
         $testListTable = $this->getEventViewerListTableInstance();
-        $testListTable->prepare_items();       
+        $testListTable->prepare_items();
         
         ?>
       <div class="wrap prime-mover-backup-menu-wrap">
@@ -172,7 +172,7 @@ class PrimeMoverAutoBackupEventViewer
                 if (is_multisite() && $blog_id) {
              ?>
                   <p class="edit-site-actions prime-mover-edit-site-actions"><a href="<?php echo esc_url($this->getSystemFunctions()->getPublicSiteUrl($blog_id)); ?>"><?php esc_html_e('Visit Site', 'prime-mover');?></a> <span class="prime-mover-divider"> | </span> 
-                      <a href="<?php echo $this->getSystemFunctions()->getCreateExportUrl($blog_id, true); ?>"><?php esc_html_e('Migration Tools', 'prime-mover'); ?></a> <span class="prime-mover-divider"> | </span>
+                      <a href="<?php echo esc_url($this->getSystemFunctions()->getCreateExportUrl($blog_id, true)); ?>"><?php esc_html_e('Migration Tools', 'prime-mover'); ?></a> <span class="prime-mover-divider"> | </span>
                       <a href="<?php echo esc_url($this->getSystemFunctions()->getBackupMenuUrl($blog_id)); ?>"><?php esc_html_e('Package Manager', 'prime-mover'); ?></a> <span class="prime-mover-divider"> | </span>
                       <a href="<?php echo esc_url($this->getSystemFunctions()->getScheduledBackupSettingsUrl($blog_id)); ?>"><?php esc_html_e('Scheduled Backup Settings', 'prime-mover'); ?></a>
                  </p>
@@ -183,15 +183,23 @@ class PrimeMoverAutoBackupEventViewer
         <div id="icon-users" class="icon32"><br/></div>     
         <div class="prime-mover-backupmenu-notes-div">        
             <p>
-                <?php printf(esc_html__('This page shows all the automatic backup cron events triggered by %s', 'prime-mover'), '<strong>' . PRIME_MOVER_PLUGIN_CODENAME . '</strong>');?>.
+                <?php                
+                printf(
+                    wp_kses(
+                        /* translators: %s: Formatted plugin title codename string */
+                        __( 'This page shows all the automatic backup cron events triggered by %s.', 'prime-mover' ),
+                        [ 'strong' => [] ]
+                    ), 
+                    '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>'
+                ); ?>
             </p> 
         </div>
         
         <!-- Forms are NOT created automatically, so you need to wrap the table in one to use features like bulk actions -->
         <form id="prime_mover_backups-filter" method="get">
         <!-- For plugins, we also need to ensure that the form posts back to our current page -->
-            <input type="hidden" name="page" value="<?php esc_attr_e($_REQUEST['page']) ?>" />
-            <input type="hidden" name="prime-mover-blog-id-menu" value="<?php esc_attr_e($this->getBackupMenus()->getBlogIdUnderQuery(false))?>" />
+            <input type="hidden" name="page" value="<?php echo esc_attr($_REQUEST['page']); ?>" />
+            <input type="hidden" name="prime-mover-blog-id-menu" value="<?php echo esc_attr($this->getBackupMenus()->getBlogIdUnderQuery(false))?>" />            
             <!-- Now we can render the completed list table -->
             <?php $testListTable->display() ?>
         </form>         

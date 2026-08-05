@@ -155,8 +155,15 @@ class PrimeMoverFileSystemDependencies
         $plugin_manager_error = [];
         ?>
         <div class="error">        
-         <p><?php printf( esc_html__( 'The %s plugin cannot be activated if the following paths were not writable by WordPress', 'prime-mover' ), 
-             '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>' )?>:</p>
+         <p><?php          
+         printf( 
+             wp_kses(
+             /* translators: %s: Formatted plugin title codename */
+                 __( 'The %s plugin cannot be activated if the following paths were not writable by WordPress', 'prime-mover' ), 
+                 [ 'strong' => [] ]
+             ),
+             '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>' 
+         ); ?>:</p>
             <ul>
                 <?php 
                 foreach ( $this->getProblematicPaths() as $path ) {
@@ -164,21 +171,41 @@ class PrimeMoverFileSystemDependencies
                         $plugin_manager_error[] = wp_normalize_path($path);
                     }
                 ?>
-                    <li><strong><?php echo $path;?></strong></li>
+                    <li><strong><?php echo esc_html($path);?></strong></li>
                 <?php    
                 }
                 ?>
             </ul>
-            
+            <p>
              <?php
              $plugin_manager_error_text = '';
-             if (!empty($plugin_manager_error)) {
-                 $plugin_manager_error_text = sprintf(esc_html__('In addition, you can %s for possible solutions regarding this issue.', 'prime-mover'), 
-                     '<a class="prime-mover-external-link" href="' . PRIME_MOVER_FIX_MU_SCRIPT_TUTORIAL . '">' . esc_html__('check out this tutorial', 'prime-mover') . '</a>');
+             if (!empty($plugin_manager_error)) {                 
+                 $plugin_manager_error_text = sprintf(
+                     wp_kses(
+                     /* translators: %s: Securely permitted link pointing directly to the mu-plugins script fix tutorial page */
+                         __( 'In addition, you can <a class="prime-mover-external-link" href="%s">check out this tutorial</a> for possible solutions regarding this issue.', 'prime-mover' ),
+                         [
+                             'a' => [
+                                 'class' => true,
+                                 'href'  => true,
+                             ],
+                         ]
+                     ),
+                     esc_url(PRIME_MOVER_FIX_MU_SCRIPT_TUTORIAL)
+                 );
              }
-             $text = esc_html__('', 'prime-mover');            
-             echo sprintf(esc_html__('%s Please contact your web hosting provider or request to make these paths writable. %s', 'prime-mover' ), $text, $plugin_manager_error_text); ?></p>
+             $text = '';             
+             
+             echo sprintf(
+                 wp_kses(
+                 /* translators: %1$s: Text leading spacing buffer, %2$s: Dynamic localized running plugin manager fallback guide text */
+                     __( '%1$s Please contact your web hosting provider or request to make these paths writable. %2$s', 'prime-mover' ),
+                     [ 'span' => [] ]
+                 ), 
+                 esc_html($text), 
+                 wp_kses_post($plugin_manager_error_text)
+             ); ?></p>
             </div>
     <?php
-    }
+    }    
 }

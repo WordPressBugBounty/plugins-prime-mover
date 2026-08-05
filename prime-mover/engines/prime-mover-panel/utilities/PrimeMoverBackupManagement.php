@@ -202,6 +202,7 @@ class PrimeMoverBackupManagement
         
         if (true === $this->getComponentAux()->canSupportRestoreUrlInFreeMode()) {
             $markup = [
+                /* translators: %s: Item[package type] */
                 sprintf(esc_attr__('Copy restore URL to clipboard. This requires PRO version at target %s to migrate this package.', 'prime-mover'), $item['package_type']),
                 $item['download_url'],
                 "button prime-mover-menu-button js-prime-mover-clipboard-button-responsive js-prime-mover-copy-clipboard-menu prime-mover-copy-clipboard-menu-button",
@@ -252,14 +253,19 @@ class PrimeMoverBackupManagement
     {
         $this->getPrimeMoverSettings()->saveSetting(self::COPYBACKUP_DIR, $copydir_preference);
         $status = true;
-        $message =  sprintf( esc_html__('Success! Custom backup directory will be %s back to default uploads backup directory when Control Panel plugin is %s.', 'prime-mover'), 
-            '<strong>' . esc_html__('COPIED', 'prime-mover') . '</strong>', '<strong>' . esc_html__('DEACTIVATED', 'prime-mover') . '</strong>' );
+        
+        $message = wp_kses(
+            __( 'Success! Custom backup directory will be <strong>COPIED</strong> back to default uploads backup directory when Control Panel plugin is <strong>DEACTIVATED</strong>.', 'prime-mover' ),
+            [ 'strong' => [] ]
+            );
         if ( 'true' === $copydir_preference) {
-            $message =  sprintf( esc_html__('Success! Custom backup directory will %s back to default uploads backup directory when Control Panel plugin is %s.', 'prime-mover'), 
-                '<strong>' . esc_html__('NOT BE COPIED', 'prime-mover') . '</strong>', '<strong>' . esc_html__('DEACTIVATED', 'prime-mover') . '</strong>' );
-        }        
+            $message = wp_kses(
+                __( 'Success! Custom backup directory will <strong>NOT BE COPIED</strong> back to default uploads backup directory when Control Panel plugin is <strong>DEACTIVATED</strong>.', 'prime-mover' ),
+                [ 'strong' => [] ]
+                );
+        }
         return ['status' => $status, 'message' => $message];
-    }
+    }    
     
     /**
      * Check if user wants to copy custom backup dir to default when this plugin is deactivated

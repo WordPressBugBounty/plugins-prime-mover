@@ -376,7 +376,7 @@ class PrimeMoverDownloadUtilities
             'REQUEST_METHOD' => $this->getSystemInitialization()->getPrimeMoverSanitizeStringFilter()
         ];
         
-        if (is_php_version_compatible(PRIME_MOVER_IDEAL_PHP_VERSION)) {
+        if (prime_mover_is_php_version_compatible(PRIME_MOVER_IDEAL_PHP_VERSION)) {
             $filters['HTTP_X_PRIME_MOVER_DOMAIN'] = FILTER_VALIDATE_DOMAIN;
         } else {
             $filters['HTTP_X_PRIME_MOVER_DOMAIN'] = FILTER_DEFAULT;
@@ -746,9 +746,30 @@ class PrimeMoverDownloadUtilities
         }        
         if (false === $readfile_method && ! $linkurl) {            
             $resumable_method = true;
+        }        
+
+        list($resumable_method, $readfile_method, $header_location_method) = $this->maybeForceResumableMethod($resumable_method, $readfile_method, $header_location_method);        
+        return $this->forceReadFileRendering([$linkurl, $readfile_method, $header_location_method, $resumable_method]);
+    }
+    
+    /**
+     * Maybe force resumable method
+     * @param boolean $resumable_method
+     * @param boolean $readfile_method
+     * @param boolean $header_location_method
+     */
+    private function maybeForceResumableMethod($resumable_method, $readfile_method, $header_location_method)
+    {
+        /**
+         * Force resumable method
+         */
+        if (defined('PRIME_MOVER_FORCE_RESUMABLE_METHOD') && true === PRIME_MOVER_FORCE_RESUMABLE_METHOD) {
+            $resumable_method = true;
+            $readfile_method = false;
+            $header_location_method = false;
         }
         
-        return $this->forceReadFileRendering([$linkurl, $readfile_method, $header_location_method, $resumable_method]);
+        return [$resumable_method, $readfile_method, $header_location_method];
     }
     
     /**
@@ -804,6 +825,7 @@ class PrimeMoverDownloadUtilities
         $header_location_method = false;
         $resumable_method = false;
         
+        list($resumable_method, $readfile_method, $header_location_method) = $this->maybeForceResumableMethod($resumable_method, $readfile_method, $header_location_method);         
         return [$linkurl, $readfile_method, $header_location_method, $resumable_method];
     }
     
@@ -865,6 +887,7 @@ class PrimeMoverDownloadUtilities
      */
     protected function renderDownloadHelper($header_location_method = false, $readfile_method = false, $linkurl = '', $download_path = '', $offset = '', $blog_id = 0, $resumable_method = false)
     {
+        list($resumable_method, $readfile_method, $header_location_method) = $this->maybeForceResumableMethod($resumable_method, $readfile_method, $header_location_method); 
         if ($header_location_method) { 
             
             do_action('prime_mover_log_processed_events', 'Rendering download by header location method.', $blog_id, 'export', 'renderDownloadHelper', $this);

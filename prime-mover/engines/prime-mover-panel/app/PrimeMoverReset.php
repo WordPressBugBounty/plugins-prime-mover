@@ -86,14 +86,16 @@ class PrimeMoverReset
                 <label id="prime-mover-reset-settings-label" for="js-prime-mover-reset-settings"><?php esc_html_e('Reset settings', 'prime-mover')?></label>
             </th>
             <td>
-                <p><button data-nonce="<?php echo $this->getPrimeMover()->getSystemFunctions()->primeMoverCreateNonce('prime_mover_reset_settings_nonce'); ?>" 
+                <p><button data-nonce="<?php echo esc_attr($this->getPrimeMover()->getSystemFunctions()->primeMoverCreateNonce('prime_mover_reset_settings_nonce')); ?>" 
                 id="js-prime-mover-reset-settings" class="button button-large prime-mover-deleteall-button" type="button">
                         <?php esc_html_e('Reset to defaults', 'prime-mover' ); ?></button></p>
                 <div class="prime-mover-setting-description">
                     <p class="description prime-mover-settings-paragraph">
-                    <?php printf( esc_html__('Using the above button, you can %s used by this plugin. Take note that this reset button applies to both basic and advance settings.',  'prime-mover'), 
-                        '<strong>' . esc_html__('reset ALL settings', 'prime-mover'). '</strong>'
-                        ); ?>
+                    <?php 
+                    echo wp_kses(
+                        __( 'Using the above button, you can <strong>reset ALL settings</strong> used by this plugin. Take note that this reset button applies to both basic and advance settings.', 'prime-mover' ),
+                        [ 'strong' => [] ]
+                    ); ?>
                     </p>
                     <p class="description prime-mover-settings-paragraph">
                     <?php esc_html_e('Careful, there is no way to restore these settings once deleted. Make a copy of these settings if it is important!',  'prime-mover');?>                    
@@ -107,7 +109,7 @@ class PrimeMoverReset
         </tbody>
         </table>
     <?php
-         echo $this->renderResetDialogMarkup();
+         $this->renderResetDialogMarkup();
     }
     
     /**
@@ -115,12 +117,15 @@ class PrimeMoverReset
      */
     private function renderResetDialogMarkup()
     {
-    ?>
+        ?>
         <div style="display:none;" id="js-prime-mover-panel-resettodefault-dialog" title="<?php esc_attr_e('Warning!', 'prime-mover')?>"> 
-			<p><?php printf( esc_html__('Are you really sure you want to %s', 'prime-mover'), 
-			    '<strong>' . esc_html__('reset all settings', 'prime-mover') . '</strong>'); ?> ? </p>
+			<p><?php 
+			echo wp_kses(
+			    __( 'Are you really sure you want to <strong>reset all settings</strong>?', 'prime-mover' ),
+			    [ 'strong' => [] ]
+			); ?></p>
 			<p><?php esc_html_e('This will delete both basic and advance settings used by this plugin.', 'prime-mover')?></p>
-			<p><strong><?php esc_html_e('Once deleted, the process cannot be undone.')?></strong></p>		      	  	
+			<p><strong><?php esc_html_e('Once deleted, the process cannot be undone.', 'prime-mover')?></strong></p>		      	  	
         </div>
     <?php
     }

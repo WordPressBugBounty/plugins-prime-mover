@@ -120,7 +120,7 @@ class PrimeMoverCoreSaltDependencies
             'NONCE_SALT');       
     }
  
-    /**
+        /**
      * Report error
      */
     public function duplicatedSaltConstants()
@@ -128,19 +128,39 @@ class PrimeMoverCoreSaltDependencies
         ?>
         <div class="error">
             <p>
-            <?php 
-            printf( esc_html__( 'The %s plugin cannot be activated because it requires %s defined in wp-config.php. Some of your security constants are duplicated which is not advisable for best security.', 
-                'prime-mover'), '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>', 
-                '<a href="https://wordpress.org/support/article/editing-wp-config-php/#security-keys">' . esc_html__('unique security keys', 'prime-mover') . '</a>'); 
+            <?php            
+            printf( 
+                wp_kses(
+                /* translators: %1$s: Formatted plugin title codename, %2$s: Securely permitted link pointing to the unique security keys documentation section */
+                    __( 'The %1$s plugin cannot be activated because it requires %2$s defined in wp-config.php. Some of your security constants are duplicated which is not advisable for best security.', 'prime-mover' ), 
+                    [
+                        'strong' => [],
+                        'a'      => [ 'href' => true ],
+                    ]
+                ), 
+                '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>', 
+                '<a href="https://wordpress.org/support/article/editing-wp-config-php/#security-keys">' . esc_html__('unique security keys', 'prime-mover') . '</a>'
+            ); 
             ?>
             </p>
             <p>
-            <?php printf(esc_html__( 'Please use this tool to re-generate all keys : %s . Clear your browser cache and re-activate the plugin again.', 'prime-mover'), 
-                '<a href="https://api.wordpress.org/secret-key/1.1/salt/">https://api.wordpress.org/secret-key/1.1/salt/</a>'); ?>
+            <?php             
+            printf(            
+                wp_kses(
+                /* translators: %s: Securely permitted hyperlink anchor element pointing directly to the raw secret key api generator url page */
+                    __( 'Please use this tool to re-generate all keys : %s . Clear your browser cache and re-activate the plugin again.', 'prime-mover' ),
+                    [
+                        'a' => [ 'href' => true ],
+                    ]
+                ), 
+                '<a href="https://api.wordpress.org/secret-key/1.1/salt/">https://api.wordpress.org/secret-key/1.1/salt/</a>'
+            ); 
+            ?>
             </p>
         </div>
         <?php 
     }
+
     
     /**
      * Report error
@@ -150,26 +170,45 @@ class PrimeMoverCoreSaltDependencies
         ?>
         <div class="error">
             <p>
-            <?php 
-            printf( esc_html__( 'The %s plugin cannot be activated because it requires %s defined in wp-config.php. The following constants are not set or does not have constant values :', 
-                'prime-mover'), '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>', 
-                '<a href="https://wordpress.org/support/article/editing-wp-config-php/#security-keys">' . esc_html__('complete security keys', 'prime-mover') . '</a>'); 
+            <?php            
+            printf( 
+                wp_kses(
+                /* translators: %1$s: Formatted plugin title codename, %2$s: Securely permitted link pointing to the complete security keys documentation section */
+                    __( 'The %1$s plugin cannot be activated because it requires %2$s defined in wp-config.php. The following constants are not set or does not have constant values :', 'prime-mover' ), 
+                    [
+                        'strong' => [],
+                        'a'      => [ 'href' => true ],
+                    ]
+                ), 
+                '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>', 
+                '<a href="https://wordpress.org/support/article/editing-wp-config-php/#security-keys">' . esc_html__('complete security keys', 'prime-mover') . '</a>'
+            ); 
             ?>
             </p>
             <ul>
             <?php 
             foreach ($this->set_constants as $constant) {
             ?>
-                <li><code><?php echo $constant; ?></code></li>                  
+                <li><code><?php echo esc_html($constant); ?></code></li>                  
             <?php 
             } 
             ?>
             </ul>
             <p>
-            <?php printf(esc_html__( 'Please use this tool to re-generate all keys : %s . Clear your browser cache and re-activate the plugin again.', 'prime-mover'), 
-                '<a href="https://api.wordpress.org/secret-key/1.1/salt/">https://api.wordpress.org/secret-key/1.1/salt/</a>'); ?>
+            <?php            
+            printf(
+                wp_kses(
+                /* translators: %s: Securely permitted hyperlink anchor element pointing directly to the raw secret key api generator url page */
+                    __( 'Please use this tool to re-generate all keys : %s . Clear your browser cache and re-activate the plugin again.', 'prime-mover' ),
+                    [
+                        'a' => [ 'href' => true ],
+                    ]
+                ), 
+                '<a href="https://api.wordpress.org/secret-key/1.1/salt/">https://api.wordpress.org/secret-key/1.1/salt/</a>'
+            ); 
+            ?>
             </p>
         </div>
         <?php 
-    }
+    }    
 }

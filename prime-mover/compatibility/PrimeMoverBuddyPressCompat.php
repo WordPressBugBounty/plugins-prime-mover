@@ -393,14 +393,16 @@ class PrimeMoverBuddyPressCompat
         }        
        
         $wpdb = $this->getSystemInitialization()->getWpdB();        
-        $notifications_table = $this->getBasePrefix() . $table;        
+        $notifications_table = $this->getBasePrefix() . $table;
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $query = $wpdb->prepare("
                    UPDATE {$notifications_table}
                    SET {$user_id_column} = %d
                    WHERE {$primary_index} = %d",
                    $target_blog_id, $primary_index_id
         ); 
-       
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        
         return $this->getUserQueries()->updateCustomerUserIdBySQL($primary_index_id, 0, '', '', '', $query);        
     }
     
@@ -987,10 +989,12 @@ class PrimeMoverBuddyPressCompat
         
         $update_directories_progress = '';
         if ($directories_updated) {
+            /* translators: %d: Number of directories updated */
             $update_directories_progress = sprintf(esc_html__('%d completed', 'prime-mover'), $directories_updated);
         }
         
-        $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Updating %s.. %s', 'prime-mover'), $progress_identifier, $update_directories_progress), 'import' );
+        /* translators: %1$s: Progress identifier, %2$s: Update directories progress */
+        $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Updating %1$s.. %2$s', 'prime-mover'), $progress_identifier, $update_directories_progress), 'import' );
         $user_equivalence = $ret['user_equivalence'];         
         $start_index = 0;
         
@@ -2271,13 +2275,14 @@ class PrimeMoverBuddyPressCompat
      */
     protected function getBuddyPressTables()
     {
-        $wpdb = $this->getSystemInitialization()->getWpdB();
-      
+        $wpdb = $this->getSystemInitialization()->getWpdB();      
         $db_search = "SHOW TABLES LIKE %s";        
         $prefixed_tables = [];
         foreach ($this->getTables() as $table) {
             $prefixed_table = $this->getBasePrefix() . $table;
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
             $sql = $wpdb->prepare($db_search , $prefixed_table);
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             if ($wpdb->get_var($sql) === $prefixed_table) {
                 $prefixed_tables[] = $prefixed_table;
             }            

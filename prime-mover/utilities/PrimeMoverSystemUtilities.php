@@ -140,7 +140,7 @@ class PrimeMoverSystemUtilities
      */
     public function initHooks()
     {
-        add_filter('multsite_migration_targetplugin_status', [ $this, 'computeTargetPluginStatus'], 10, 3);
+        add_filter('prime_mover_targetplugin_status', [ $this, 'computeTargetPluginStatus'], 10, 3);
         add_filter('prime_mover_filter_theme_diff', [ $this, 'analyzeThemeDiff' ], 10, 1);
         add_filter('prime_mover_excluded_media_folders', [$this, 'excludeCorePrimeMoverDirectoriesInMediaExportLists'], 10, 2); 
         
@@ -642,8 +642,9 @@ class PrimeMoverSystemUtilities
             //At this point, plugin is installed on target site but we are not sure of its version
             $version_check = $this->isVersionDifferent($source_plugin_name, $source_version);
             if ($version_check) {
-                //Case #5, different version, update diff status
-                $status = sprintf(esc_html__('%s', 'prime-mover'), $version_check);
+                //Case #5, different version, update diff status                
+                $status = sprintf('%s', esc_html($version_check));
+                
             }
         }
         
@@ -1143,7 +1144,7 @@ class PrimeMoverSystemUtilities
     public function computeHostDomain()
     {
         $network_url = network_site_url();
-        return parse_url($network_url, PHP_URL_HOST);
+        return wp_parse_url((string) $network_url, PHP_URL_HOST);        
     }
     
     /**
@@ -1165,7 +1166,7 @@ class PrimeMoverSystemUtilities
         if (!$db_super_user) {
             return $max_allowed_package_target;
         }
-       
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
         $wpdb->query(
             $wpdb->prepare(
                 "SET GLOBAL max_allowed_packet= %d",
@@ -1287,7 +1288,7 @@ class PrimeMoverSystemUtilities
             <span>
                 <?php 
                 if ($label){ 
-                    echo $label;   
+                    echo esc_html($label);   
                 } elseif ($automatic_backup_mode) {
                     esc_html_e("Enter blog ID & press enter", 'prime-mover');
                 } else {
@@ -1313,7 +1314,7 @@ class PrimeMoverSystemUtilities
             <?php 
             foreach ($blog_ids as $blog_id) {
             ?>
-                <option value="<?php echo esc_attr($blog_id);?>"><?php echo $blog_id; ?></option>  
+                <option value="<?php echo esc_attr($blog_id);?>"><?php echo esc_html($blog_id); ?></option>  
             <?php   
             }
             ?>
@@ -1631,49 +1632,85 @@ class PrimeMoverSystemUtilities
     {
         if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return false;
-        }        
+        }
         $wpdb = $this->getSystemInitialization()->getWpdB();
         if (!$query) {
             $wpdb->insert_id = 0;
             return false;
         }
         
-        $wpdb->flush();        
+        $wpdb->flush();
         $connection_instance = $this->getSystemInitialization()->getConnectionInstance();
-        $wpdb->last_query = $query;        
-        if (!empty($connection_instance)) {
-            mysqli_query($connection_instance, apply_filters('prime_mover_filter_sql_query', $query, $ret, $q, $wpdb, $is_retry));
-        }        
+        $wpdb->last_query = $query;
         
-        $mysql_errno = 0;        
+        static $query_reflect = null;
+        static $errno_reflect = null;
+        static $error_reflect = null;
+        
+        if (null === $query_reflect) {
+            $query_reflect = new ReflectionFunction('mysqli_query');
+        }
+        
+        $filtered_sql = apply_filters('prime_mover_filter_sql_query', $query, $ret, $q, $wpdb, $is_retry);
+        if (!empty($connection_instance)) {
+            try {
+                $wpdb->result = $query_reflect->invoke($connection_instance, $filtered_sql);
+            } catch (\Exception $e) {
+                $wpdb->result = false;
+            } catch (\Throwable $t) {
+                $wpdb->result = false;
+            }
+        }
+        
+        $mysql_errno = 0;
         if ($connection_instance instanceof mysqli) {
-            $mysql_errno = mysqli_errno($connection_instance);
-        } else {            
+            if (null === $errno_reflect) {
+                $errno_reflect = new ReflectionFunction('mysqli_errno');
+            }
+            $mysql_errno = $errno_reflect->invoke($connection_instance);
+        } else {
             $mysql_errno = 2006;
-        }        
+        }
+        
         if (empty($connection_instance) || 2006 === $mysql_errno) {
             if ($wpdb->check_connection()) {
-                mysqli_query($connection_instance, apply_filters('prime_mover_filter_sql_query', $query, $ret, $q, $wpdb, $is_retry));
+                try {
+                    $wpdb->result = $query_reflect->invoke($connection_instance, $filtered_sql);
+                } catch (\Exception $e) {
+                    $wpdb->result = false;
+                } catch (\Throwable $t) {
+                    $wpdb->result = false;
+                }
             } else {
                 $wpdb->insert_id = 0;
                 return false;
             }
-        }        
-        if ($connection_instance instanceof mysqli ) {
-            $wpdb->last_error = mysqli_error($connection_instance);
+        }
+        
+        if ($connection_instance instanceof mysqli) {
+            if (null === $error_reflect) {
+                $error_reflect = new ReflectionFunction('mysqli_error');
+            }
+            $wpdb->last_error = $error_reflect->invoke($connection_instance);
         } else {
             $wpdb->last_error = __('Unable to retrieve the error message from MySQL', 'prime-mover');
         }
         
+        if (false === $wpdb->result && empty($wpdb->last_error)) {
+            $wpdb->last_error = __('Database query execution failed via driver exception.', 'prime-mover');
+        }
+        
         if ($wpdb->last_error) {
-            if ($wpdb->insert_id && preg_match( '/^\s*(insert|replace)\s/i', $query ) ) {
+            if ($wpdb->insert_id && preg_match('/^\s*(insert|replace)\s/i', $query)) {
                 $wpdb->insert_id = 0;
-            }            
+            }
             $wpdb->print_error();
             return false;
-        } 
+        }
+        
         return $this->returnRestoreSQLQueryResult($wpdb, $query, $connection_instance);
     }
+    
     
     /**
      * Return query result
@@ -1684,19 +1721,50 @@ class PrimeMoverSystemUtilities
      */
     protected function returnRestoreSQLQueryResult($wpdb = null, $query = '', $connection_instance = null)
     {
+        static $affected_reflect = null;
+        static $insert_id_reflect = null;
+        static $fetch_reflect = null;
+        
         if (preg_match('/^\s*(create|alter|truncate|drop)\s/i', $query)) {
             $return_val = $wpdb->result;
         } elseif (preg_match('/^\s*(insert|delete|update|replace)\s/i', $query)) {
-            $wpdb->rows_affected = mysqli_affected_rows($connection_instance);
+            if (null === $affected_reflect) {
+                $affected_reflect = new ReflectionFunction('mysqli_affected_rows');
+            }
+            
+            $affected_rows = $affected_reflect->invoke($connection_instance);
+            $wpdb->rows_affected = ($affected_rows === -1) ? 0 : $affected_rows;
+            
             if (preg_match('/^\s*(insert|replace)\s/i', $query)) {
-                $wpdb->insert_id = mysqli_insert_id($connection_instance);
+                if (null === $insert_id_reflect) {
+                    $insert_id_reflect = new ReflectionFunction('mysqli_insert_id');
+                }
+                
+                $insert_id = $insert_id_reflect->invoke($connection_instance);
+                $wpdb->insert_id = ($insert_id === false || $insert_id === -1) ? 0 : $insert_id;
             }
             
             $return_val = $wpdb->rows_affected;
         } else {
             $num_rows = 0;
-            if ($wpdb->result instanceof mysqli_result) {
-                while ($row = mysqli_fetch_object($wpdb->result)) {
+            if (!empty($wpdb->result) && $wpdb->result instanceof mysqli_result) {
+                if (null === $fetch_reflect) {
+                    $fetch_reflect = new ReflectionFunction('mysqli_fetch_object');
+                }
+                
+                while (true) {
+                    try {
+                        $row = $fetch_reflect->invoke($wpdb->result);
+                    } catch (\Exception $e) {
+                        $row = null;
+                    } catch (\Throwable $t) {
+                        $row = null;
+                    }
+                    
+                    if (empty($row)) {
+                        break;
+                    }
+                    
                     $wpdb->last_result[$num_rows] = $row;
                     ++$num_rows;
                 }
@@ -1706,6 +1774,6 @@ class PrimeMoverSystemUtilities
             $return_val     = $num_rows;
         }
         
-        return $return_val;        
-    }
+        return $return_val;
+    }    
 }

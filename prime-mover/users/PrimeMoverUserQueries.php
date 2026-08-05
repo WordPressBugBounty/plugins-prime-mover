@@ -285,8 +285,10 @@ class PrimeMoverUserQueries
     {
         $update_usertax_progress = '';
         if ($updated_count) {
+            /* translators: %d: Numerical count of database user taxonomy associations successfully updated so far */
             $update_usertax_progress = sprintf(esc_html__('%d completed', 'prime-mover'), $updated_count);
         }
+        /* translators: %s: Dynamic localized runtime progress counter string indicating total completed user taxonomies */
         $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Importing user taxonomies.. %s', 'prime-mover'), $update_usertax_progress), 'import' );
     }
     
@@ -364,19 +366,20 @@ class PrimeMoverUserQueries
             return $processed_object_ids;
         }
         $result = false;
-        $wpdb = $this->getSystemInitialization()->getWpdB();
-        
+        $wpdb = $this->getSystemInitialization()->getWpdB();        
         $data = ['object_id' => $object_id, 'term_taxonomy_id' => $term_taxonomy_id];
         $format = ['%d','%d'];
         
         $exist_query = "SELECT object_id FROM $wpdb->term_relationships WHERE object_id = %d AND term_taxonomy_id = %d";
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         $exist_prepared = $wpdb->prepare($exist_query, $object_id, $term_taxonomy_id);
-        $exist_call = $wpdb->get_var($exist_prepared);
-        
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        $exist_call = $wpdb->get_var($exist_prepared);        
         if ( $exist_call ) {            
             $processed_object_ids[$object_id] = $term_taxonomy_id;
             
         } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
             $result = $wpdb->insert($wpdb->term_relationships, $data, $format);
         }
         
@@ -409,9 +412,9 @@ class PrimeMoverUserQueries
        
         if ( ! $this->maybeDeleteTermAssociation($processed_object_ids, $object_id, $term_taxonomy_id) ) {            
             return false;
-        }        
-        
+        }              
         $wpdb = $this->getSystemInitialization()->getWpdB();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
         return $wpdb->delete($wpdb->term_relationships, ['object_id' => $object_id, 'term_taxonomy_id' => $term_taxonomy_id], ['%d', '%d']);
     }
     
@@ -442,10 +445,12 @@ class PrimeMoverUserQueries
      */
     protected function getTermTaxonomyId($taxonomy = '', $offset = 0)
     {        
-        $wpdb = $this->getSystemInitialization()->getWpdB();
-        
+        $wpdb = $this->getSystemInitialization()->getWpdB();        
         $query = "SELECT term_taxonomy_id FROM {$wpdb->term_taxonomy} WHERE taxonomy = %s ORDER BY term_taxonomy_id ASC LIMIT %d, 1";
+        
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         $prepared = $wpdb->prepare($query, $taxonomy, $offset);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $results = $wpdb->get_results($prepared, ARRAY_A);        
 
         return wp_list_pluck($results, 'term_taxonomy_id');      
@@ -459,10 +464,11 @@ class PrimeMoverUserQueries
      */
     protected function getUsersInTerms($term_taxonomy_id = 0, $offset = 0)
     {
-        $wpdb = $this->getSystemInitialization()->getWpdB();
-        
+        $wpdb = $this->getSystemInitialization()->getWpdB();        
         $query = "SELECT object_id FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d ORDER BY object_id ASC LIMIT %d, 5";
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         $prepared = $wpdb->prepare($query, $term_taxonomy_id, $offset);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $results = $wpdb->get_results($prepared, ARRAY_A);        
         
         return wp_list_pluck($results, 'object_id'); 
@@ -614,8 +620,8 @@ class PrimeMoverUserQueries
     {
         $wpdb = $this->getSystemInitialization()->getWpdB();
         $this->getSystemFunctions()->switchToBlog($blogid_to_import);
-                
-        if (!$this->getSystemAuthorization()->isUserAuthorized()) {  
+        
+        if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return $this->bailOutAndReturnRetArray($ret, $leftoff_identifier, $update_variable, $last_processor, $handle_unique_constraint, $table, $wpdb, $non_user_adjustment);
         }
         
@@ -623,25 +629,25 @@ class PrimeMoverUserQueries
         $set_foreign_key_checks = false;
         if ($handle_unique_constraint) {
             $set_foreign_key_checks = $this->dropIndexesConstraint($table, $wpdb, $handle_unique_constraint);
-        }
-        
+        }        
         $table_exists = false;
         $table_like = "{$wpdb->prefix}{$table}";
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         $sql = $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table_like));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         if ($wpdb->get_var($sql)) {
             $table_exists = true;
         }
         
-        if (!$table_exists) {  
+        if (!$table_exists) {
             do_action('prime_mover_log_processed_events', "$table TABLE DOES NOT EXIST - SKIPPING THIS USER ADJUSTMENT TABLE PROCESSING." , $blogid_to_import, 'import', __FUNCTION__, $this);
             return $this->bailOutAndReturnRetArray($ret, $leftoff_identifier, $update_variable, $last_processor, $handle_unique_constraint, $table, $wpdb, $non_user_adjustment);
         }
- 
+        
         $query = $this->seekCustomersToUpdateQuery($ret, $leftoff_identifier, $table, $primary_index, $column_strings, $non_user_adjustment, $filter_clause);
         if (!$query) {
             return $this->bailOutAndReturnRetArray($ret, $leftoff_identifier, $update_variable, $last_processor, $handle_unique_constraint, $table, $wpdb, $non_user_adjustment);
-        }
-        
+        }        
         $customers_updated = 0;
         if (isset($ret[$update_variable])) {
             $customers_updated = $ret[$update_variable];
@@ -649,10 +655,12 @@ class PrimeMoverUserQueries
         
         $update_customers_progress = '';
         if ($customers_updated) {
+            /* translators: %d: Numerical count of database entities successfully updated with mapped user IDs so far */
             $update_customers_progress = sprintf(esc_html__('%d completed', 'prime-mover'), $customers_updated);
         }
         
-        $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Updating %s.. %s', 'prime-mover'), $progress_identifier, $update_customers_progress), 'import' );
+        /* translators: %1$s: Dynamically generated text description identifier labeling the target third-party table, %2$s: Dynamic localized runtime progress counter string indicating total completed records */
+        $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Updating %1$s.. %2$s', 'prime-mover'), $progress_identifier, $update_customers_progress), 'import' );
         $user_equivalence = $ret['user_equivalence'];
         
         $format = ARRAY_A;
@@ -660,27 +668,25 @@ class PrimeMoverUserQueries
             $format = $non_user_adjustment['format'];
             $format = constant($format);
         }
-        
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         while ($results = $wpdb->get_results($query, $format)) {
             if (empty($results)) {
                 break;
             } else {
                 $ret = $this->updateCustomerIds($results, $user_equivalence, $ret, $update_variable, $column_strings, $table, $leftoff_identifier, $non_user_adjustment, $filter_clause, $set_foreign_key_checks);
-            }
- 
+            }            
             $query = $this->seekCustomersToUpdateQuery($ret, $leftoff_identifier, $table, $primary_index, $column_strings, $non_user_adjustment, $filter_clause);
             $retry_timeout = apply_filters('prime_mover_retry_timeout_seconds', PRIME_MOVER_RETRY_TIMEOUT_SECONDS, __FUNCTION__);
             if ((microtime(true) - $start_time) > $retry_timeout) {
-                $this->getSystemFunctions()->restoreCurrentBlog();                
+                $this->getSystemFunctions()->restoreCurrentBlog();
                 do_action('prime_mover_log_processed_events', "$retry_timeout seconds time out on updating {$progress_identifier}" , $blogid_to_import, 'import', __FUNCTION__, $this);
                 
                 $ret['prime_mover_thirdparty_processing_retry'] = true;
                 return $ret;
             }
-        }
-        
+        }        
         return $this->bailOutAndReturnRetArray($ret, $leftoff_identifier, $update_variable, $last_processor, $handle_unique_constraint, $table, $wpdb, $non_user_adjustment, $set_foreign_key_checks);
-    }
+    }    
     
     /**
      * Drop indexes constraint or disable foreign key checks
@@ -693,9 +699,11 @@ class PrimeMoverUserQueries
     {           
         if (1 === $this->indexExists($table, $wpdb, $index)) {
             $tbl = "{$wpdb->prefix}{$table}";
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $wpdb->query("ALTER TABLE `{$tbl}` DROP INDEX {$index}");
             return false;
         } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
             $wpdb->query("SET FOREIGN_KEY_CHECKS=0");
             return true;
         }
@@ -710,7 +718,8 @@ class PrimeMoverUserQueries
      */
     protected function indexExists($table = '', $wpdb = null, $index = '')
     {
-        $tbl = "{$wpdb->prefix}{$table}";        
+        $tbl = "{$wpdb->prefix}{$table}";   
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $res = $wpdb->query($wpdb->prepare("SHOW KEYS FROM `{$tbl}` WHERE Key_name=%s", $index));
         return $res;
     }
@@ -744,12 +753,11 @@ class PrimeMoverUserQueries
         $left_off = 0;
         if (isset($ret[$leftoff_identifier])) {
             $left_off = $ret[$leftoff_identifier];
-        }
-        
+        }        
         if ($left_off) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             $where .= $wpdb->prepare(" AND {$primary_index} < %d", $left_off);
-        }
-        
+        }        
         if (is_array($filter_clause) && isset($filter_clause['where_clause']) && is_array($filter_clause['where_clause']) && !empty($filter_clause['where_clause'])) {
             $where_clause = $filter_clause['where_clause'];
             $where .= " AND (";
@@ -761,6 +769,7 @@ class PrimeMoverUserQueries
                     if (!empty($clause['condition']) && in_array($clause['condition'], ['OR', 'AND'], true)) {
                         $condition = $clause['condition'];
                     }
+                    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                     $where .= $wpdb->prepare("{$field} = %s", $value);
                     if ($condition) {
                         $where .= " {$condition} ";
@@ -769,7 +778,7 @@ class PrimeMoverUserQueries
             }
             $where .= " )";
         }
-        
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $orderby = $wpdb->prepare("ORDER BY {$primary_index} DESC LIMIT %d", PRIME_MOVER_CUSTOMER_LOOKUP_LIMIT); 
         $tbl = "{$wpdb->prefix}{$table}";
         return "SELECT {$column_strings} FROM `{$tbl}` {$where} {$orderby}";                
@@ -923,8 +932,7 @@ class PrimeMoverUserQueries
         
         if (!$primary_index_id || !$value) {
             return false;
-        }  
-      
+        }      
         return [$primary_index_id, $value];           
     }
     
@@ -954,39 +962,42 @@ class PrimeMoverUserQueries
      */
     public function updateCustomerUserIdBySQL($primary_index_id = 0, $migrated_user_id = 0, $table = '', $primary_index = '', $user_id_column = '', 
         $query = '', $is_serialized = false, $set_foreign_key_checks = false, $user_id = 0)
-    {
-        
+    {        
         $wpdb = $this->getSystemInitialization()->getWpdB();
         $tbl = "{$wpdb->prefix}{$table}";
-        if (!$query && $is_serialized && is_string($migrated_user_id)) {            
+        if (!$query && $is_serialized && is_string($migrated_user_id)) { 
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             $query = $wpdb->prepare("
                    UPDATE `{$tbl}`
                    SET {$user_id_column} = %s
                    WHERE {$primary_index} = %d",
                    $migrated_user_id, $primary_index_id
             );  
-            
-        } 
-        
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        }         
         if (!$query) {
             if ($set_foreign_key_checks && $user_id) {
+                // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $query = $wpdb->prepare("
                    UPDATE `{$tbl}`
                    SET {$user_id_column} = %d
                    WHERE {$primary_index} = %d AND {$user_id_column} = %d",
                    $migrated_user_id, $primary_index_id, $user_id
                 ); 
+                // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             } else {
+                // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $query = $wpdb->prepare("
                    UPDATE `{$tbl}`
                    SET {$user_id_column} = %d
                    WHERE {$primary_index} = %d",
                    $migrated_user_id, $primary_index_id
                 ); 
+                // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             }
             
         }        
-        
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $res = $wpdb->query($query);
         if (false === $res) {
             return new WP_Error('update_author_error', esc_html__( 'Error updating author', 'prime-mover'));
@@ -1033,8 +1044,7 @@ class PrimeMoverUserQueries
         
         if ($handle_unique_constraint) {
             $this->enForceIndexesConstraint($table, $wpdb, $handle_unique_constraint, $set_foreign_key_checks);
-        }
-        
+        }        
         return $ret;
     }
     
@@ -1044,8 +1054,7 @@ class PrimeMoverUserQueries
     protected function invalidateReportCacheAfterMigration()
     {
         $transient_name  = 'woocommerce_reports-transient-version';
-        $transient_value = (string) time();
-        
+        $transient_value = (string) time();        
         set_transient($transient_name, $transient_value);
     }
     
@@ -1060,9 +1069,11 @@ class PrimeMoverUserQueries
     protected function enForceIndexesConstraint($table = '', $wpdb = null, $index = '', $set_foreign_key_checks = false)
     {
         if ($set_foreign_key_checks) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
             $wpdb->query("SET FOREIGN_KEY_CHECKS=1");
         } else if (0 === $this->indexExists($table, $wpdb, $index)) {
             $tbl = "{$wpdb->prefix}{$table}";
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $wpdb->query("ALTER TABLE `{$tbl}` ADD CONSTRAINT {$index} UNIQUE ({$index})");
         }        
     }

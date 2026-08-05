@@ -238,7 +238,7 @@ class PrimeMoverUserFunctions
      * @return void|number|boolean
      */
     public function updatePostAuthors($user_equivalence = null, $total_post_count = 0, $blog_id = 0, $start_time = 0, $ret = [])
-    {        
+    {
         if (! $this->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
@@ -246,42 +246,44 @@ class PrimeMoverUserFunctions
         $this->getSystemFunctions()->switchToBlog($blog_id);
         $wpdb = $this->getSystemInitialization()->getWpdB();
         $wpdb->flush();
-             
+        
         $query = $this->seekPostsToUpdateQuery($ret);
         $posts_updated = 0;
         if (isset($ret['posts_updated'])) {
             $posts_updated = $ret['posts_updated'];
-        }
-        
+        }        
         $update_authors_progress = '';
-        if ($posts_updated) {            
+        if ($posts_updated) {
+            /* translators: %d: Numerical count of database posts successfully updated with new authors so far */
             $update_authors_progress = sprintf(esc_html__('%d completed', 'prime-mover'), $posts_updated);
         }
-        $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Updating authors.. %s', 'prime-mover'), $update_authors_progress), 'import' );        
-        while ( $results = $wpdb->get_results($query, ARRAY_A) ) {   
+        /* translators: %s: Dynamic localized runtime progress counter string indicating total completed posts */
+        $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Updating authors.. %s', 'prime-mover'), $update_authors_progress), 'import' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        while ( $results = $wpdb->get_results($query, ARRAY_A) ) {
             if (empty($results)) {
-                break;                
-            } else { 
-                $ret = $this->updatePostAuthor($results, $user_equivalence, $ret);             
-            }         
+                break;
+            } else {
+                $ret = $this->updatePostAuthor($results, $user_equivalence, $ret);
+            }
             
-            $query = $this->seekPostsToUpdateQuery($ret);                          
+            $query = $this->seekPostsToUpdateQuery($ret);
             $retry_timeout = apply_filters('prime_mover_retry_timeout_seconds', PRIME_MOVER_RETRY_TIMEOUT_SECONDS, __FUNCTION__);
-            if ( (microtime(true) - $start_time) > $retry_timeout) {                
-                $this->getSystemFunctions()->restoreCurrentBlog();                
+            if ( (microtime(true) - $start_time) > $retry_timeout) {
+                $this->getSystemFunctions()->restoreCurrentBlog();
                 do_action('prime_mover_log_processed_events', "$retry_timeout seconds time out on updating user authors" , $blog_id, 'import', __FUNCTION__, $this);
-               
+                
                 return $ret;
             }
         }
         
         if (isset($ret['post_authors_leftoff'])) {
-            unset($ret['post_authors_leftoff']);    
+            unset($ret['post_authors_leftoff']);
         }
         
         $this->getSystemFunctions()->restoreCurrentBlog();
         return $ret;
-    }
+    }    
     
     /**
      * Update post author
@@ -340,8 +342,7 @@ class PrimeMoverUserFunctions
             if ( ! is_wp_error($post_id) || ! $post_id ) {
                 $posts_updated++;                
             }
-        }
-        
+        }        
         if ($post_id) {
             $ret['post_authors_leftoff'] = $post_id;
         }        
@@ -366,7 +367,7 @@ class PrimeMoverUserFunctions
             WHERE ID = %d",
             $new_author, $post_id
             );
-        
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $res = $wpdb->query($prep);        
         if (false === $res) {
             return new WP_Error('update_author_error', esc_html__( 'Error updating author', 'prime-mover'));
@@ -402,8 +403,7 @@ class PrimeMoverUserFunctions
         $page_templates = wp_get_theme()->get_page_templates($post);            
         if ( 'default' !== $original_template && !isset($page_templates[$original_template])) {
             $overwritten = true;
-        }
-        
+        }        
         return $overwritten;        
     }
     
@@ -450,6 +450,7 @@ class PrimeMoverUserFunctions
     public function countUserMaxId()
     {
         $wpdb = $this->getSystemInitialization()->getWpdB();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
         return $wpdb->get_var("SELECT MAX(post_author) FROM {$wpdb->prefix}posts");
     }
     
@@ -460,6 +461,7 @@ class PrimeMoverUserFunctions
     public function countTotalPosts()
     {
         $wpdb = $this->getSystemInitialization()->getWpdB();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
         return $wpdb->get_var("SELECT count(ID) FROM {$wpdb->prefix}posts");
     }
     
@@ -559,8 +561,7 @@ class PrimeMoverUserFunctions
 
         if ( ! $given_db_prefix ) {
             $given_db_prefix = $this->getSystemFunctions()->getDbPrefixOfSite($blog_id);
-        }
-        
+        }        
         $wpdb = $this->getSystemInitialization()->getWpdB();
         $escaped_like = $wpdb->esc_like($given_db_prefix);
         $target_prefix = $escaped_like . '%';        
@@ -569,11 +570,13 @@ class PrimeMoverUserFunctions
         if ($this->getSystemFunctions()->isMultisiteMainSite($blog_id, true)) {
             $regex = $escaped_like . '[0-9]+';
             $db_search = "SELECT DISTINCT meta_key FROM {$usermeta_table} where meta_key LIKE %s AND meta_key NOT REGEXP %s";
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
             $prepared = $wpdb->prepare($db_search, $target_prefix, $regex);
-            $user_meta_keys = $wpdb->get_results($prepared, ARRAY_A);
-            
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $user_meta_keys = $wpdb->get_results($prepared, ARRAY_A);            
         } else {           
             $db_search = "SELECT DISTINCT meta_key FROM {$usermeta_table} where meta_key LIKE %s";
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $user_meta_keys = $wpdb->get_results($wpdb->prepare($db_search, $target_prefix), ARRAY_A);            
         }        
         

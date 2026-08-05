@@ -17,6 +17,7 @@ use Generator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ZipArchive;
+use Codexonics\PrimeMoverBridgeIO;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -407,7 +408,7 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
         if ( ! $source || ! $destination ) {
             return false;
         }
-        if ((false === $this->primeMoverEssentialRequisites()) || !$this->getSystemFunctions()->nonCachedFileExists($source) || !is_writeable(dirname($destination))) {
+        if ((false === $this->primeMoverEssentialRequisites()) || !$this->getSystemFunctions()->nonCachedFileExists($source) || !PrimeMoverBridgeIO::call('is_writeable', dirname($destination))) {
             return false;
         }
         return true;
@@ -696,8 +697,9 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
             $res = $zip->open($destination, ZipArchive::CREATE);
         }
         
-        if (true !== $res) {            
-            $ret['error'] = sprintf(esc_html__("ERROR: Unable to open zip archive: %d", 'prime-mover'), $destination);
+        if (true !== $res) {
+            /* translators: %s: Destination */
+            $ret['error'] = sprintf(esc_html__("ERROR: Unable to open zip archive: %s", 'prime-mover'), $destination);
             return ['close' => false, 'ret' => $ret];
         }
         
@@ -834,7 +836,7 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
     protected function getFileGenerator($ret = [], $exporting_mode = '', $files = [], $source = '', $shell_mode = false)
     {               
         if ( ! empty($ret['copymedia_shell_tmp_list']) && file_exists($ret['copymedia_shell_tmp_list'])) {            
-            $handle = fopen($ret['copymedia_shell_tmp_list'], "rb");
+            $handle = PrimeMoverBridgeIO::call('fopen', $ret['copymedia_shell_tmp_list'], "rb");
             $file_position = 0;
             if (isset($ret['file_reading_position'])) {
                 $file_position = (int)$ret['file_reading_position'];
@@ -850,11 +852,11 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
                 }
                 $pos = ftell($handle);
                 yield $pos => $line;
-            }
-            fclose($handle);
+            }            
+            PrimeMoverBridgeIO::call('fclose', $handle);
             
         } elseif (!empty($ret['master_tmp_shell_files']) && !empty($ret['master_tmp_shell_dirs'])) {            
-            $handler = fopen($ret['master_tmp_shell_dirs'], "rb");
+            $handler = PrimeMoverBridgeIO::call('fopen', $ret['master_tmp_shell_dirs'], "rb");
             while(!feof($handler)) {
                 $line = trim(fgets($handler));
                 if (!$line) {
@@ -862,7 +864,7 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
                 }
                 yield $line;
             }
-            fclose($handler);            
+            PrimeMoverBridgeIO::call('fclose', $handler);
                      
         } elseif (empty($files)) {  
             $this->getSystemFunctions()->temporarilyIncreaseMemoryLimits();

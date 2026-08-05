@@ -149,9 +149,9 @@ class PrimeMoverHotFix
         
         if ('export' !== $mode) {
             return $ret;
-        }
-        
+        }        
         $wpdb = $this->getSystemInitialization()->getWpdB();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
         $res = $wpdb->get_results("SELECT @@SESSION.sql_mode", ARRAY_A);
         
         if (!is_array($res)) {
@@ -259,10 +259,21 @@ class PrimeMoverHotFix
      * @return array
      */
     public function bailOutDefaultUpload(array $args)
-    {
-        $args['prime_mover_bailout_upload_text'] = sprintf(esc_html__("Upload package restore is not possible due to server security policy . Please %s .", 'prime-mover'), 
-            '<a class="prime-mover-external-link" target="_blank" href="' .
-            esc_url(CODEXONICS_PACKAGE_MANAGER_RESTORE_GUIDE . "#packagemanager") . '">' . esc_html__('restore using package manager', 'prime-mover') . '</a>');
+    {        
+        $args['prime_mover_bailout_upload_text'] = sprintf(
+            wp_kses(
+            /* translators: %s: Codexonics package manager restore documentation URL address link string path */
+                __( 'Upload package restore is not possible due to server security policy. Please <a class="prime-mover-external-link" target="_blank" href="%s">restore using package manager</a>.', 'prime-mover' ),
+                [
+                    'a' => [
+                        'class'  => true,
+                        'target' => true,
+                        'href'   => true,
+                    ],
+                ]
+            ),
+            esc_url( CODEXONICS_PACKAGE_MANAGER_RESTORE_GUIDE)
+        );
         
         return $args;
     }
@@ -301,8 +312,7 @@ class PrimeMoverHotFix
             }
         } else {
             $value = call_user_func($callback, $value);
-        }
-        
+        }        
         return $value;
     }
     
@@ -332,8 +342,7 @@ class PrimeMoverHotFix
         $table = _get_meta_table($meta_type);
         if (!$table) {
             return false;
-        }
-        
+        }        
         $meta_subtype = get_object_subtype($meta_type, $user_id);        
         $column = sanitize_key($meta_type . '_id');
         $id_column = ('user' === $meta_type) ? 'umeta_id' : 'meta_id';        
@@ -347,12 +356,12 @@ class PrimeMoverHotFix
                     return false;
                 }
             }
-        }        
+        }    
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $meta_ids = $wpdb->get_col($wpdb->prepare("SELECT $id_column FROM $table WHERE meta_key = %s AND $column = %d", $meta_key, $user_id));
         if (empty($meta_ids)) {
             return $this->insertData($user_id, $meta_key, $meta_value, $table, $column);
-        }
-     
+        }     
         $meta_value = maybe_serialize($meta_value);        
         $data  = compact('meta_value');
         $where = [$column => $user_id, 'meta_key'=> $meta_key,];
@@ -361,6 +370,7 @@ class PrimeMoverHotFix
             $prev_value = maybe_serialize($prev_value);
             $where['meta_value'] = $prev_value;
         }        
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
         $result = $wpdb->update($table, $data, $where);
         if (!$result) {
             return false;
@@ -381,6 +391,7 @@ class PrimeMoverHotFix
     private function insertData($user_id, $meta_key, $meta_value, $table, $column) 
     {
         $wpdb = $this->getSystemInitialization()->getWpdB();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
         $result = $wpdb->insert($table, [$column => $user_id, 'meta_key' => $meta_key, 'meta_value' => maybe_serialize($meta_value)]);            
         if (!$result) {
             return false;

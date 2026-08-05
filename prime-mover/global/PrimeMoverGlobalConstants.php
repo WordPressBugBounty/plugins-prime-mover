@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PRIME_MOVER_VERSION', '2.1.6');
+define('PRIME_MOVER_VERSION', '2.2.0');
 define('PRIME_MOVER_PLUGIN_CODENAME', 'Prime Mover');
 define('PRIME_MOVER_PRO_PLUGIN_CODENAME', 'Prime Mover PRO');
 define('PRIME_MOVER_BACKUP_MARKUP_VERSION', '1.2.0');
@@ -417,6 +417,10 @@ if (!defined('PRIME_MOVER_MYSQLI_QUERY_RETRY_COUNT')) {
 
 if (!defined('PRIME_MOVER_MYSQLI_QUERY_DELAY_MS')) {
     define('PRIME_MOVER_MYSQLI_QUERY_DELAY_MS', 1000);
+}
+
+if (!defined('PRIME_MOVER_FORCE_RESUMABLE_METHOD')) {
+    define('PRIME_MOVER_FORCE_RESUMABLE_METHOD', false);
 }
 
 if (!defined('PRIME_MOVER_PREVIEW_DOMAINS')) {

@@ -103,7 +103,7 @@ class PrimeMoverCachingCompat
     {
     ?>
        <div style="display:none;" id="js-prime-mover-block-free-restore-cached-enabled" title="<?php esc_attr_e('Error!', 'prime-mover')?>"> 
-           <?php echo $this->generateErrorMarkupText(); ?>  	
+           <?php echo wp_kses_post($this->generateErrorMarkupText()); ?>  	
        </div>
     <?php 
     }
@@ -115,9 +115,20 @@ class PrimeMoverCachingCompat
      */
     protected function generateErrorMarkupText()
     {
-        $markup = '';
-        $markup .= '<p>' .  sprintf(esc_html__('Unable to restore package because of caching enabled. Please deactivate caching plugin and
-           remove %s constant in %s.', 'prime-mover'), '<code>' . 'WP_CACHE' . '</code>', '<strong>wp-config.php</strong>') . '</p>';
+        $markup = '';        
+        
+        $markup .= '<p>' . sprintf(
+        wp_kses(
+        /* translators: %1$s: The WP_CACHE constant identifier tag name, %2$s: The wp-config.php configuration setup base file name string label */
+        __( 'Unable to restore package because of caching enabled. Please deactivate caching plugin and remove <code>%1$s</code> constant in <strong>%2$s</strong>.', 'prime-mover' ),
+        [
+        'strong' => [],
+        'code'   => [],
+        ]
+        ),
+        'WP_CACHE',
+        'wp-config.php'
+         ) . '</p>';
         
         $markup .= '<p>' . esc_html__('Once completed, please refresh this page and restore again.', 'prime-mover') . '</p>';
         return $markup;

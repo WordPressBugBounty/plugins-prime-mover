@@ -101,10 +101,11 @@ class PrimeMoverDisplayExcludedUploadSettings
                     ?>                        
                     </p>
                     <p class="description prime-mover-settings-paragraph">
-                    <?php printf( esc_html__('Please add ONE LINE per excluded file/folder using %s format where %s is the blog id if using multisite. It should be 1 in single-site.
-                     Please see examples below on how to add your own exclusion rules :',
-                        'prime-mover'), '<strong>IDENTIFIER-{blogid} : RESOURCES</strong>', '<strong>{blogid}</strong>');
-                    ?>                        
+                     <?php 
+                     echo wp_kses(
+                         __( 'Please add ONE LINE per excluded file/folder using <strong>IDENTIFIER-{blogid} : RESOURCES</strong> format where <strong>{blogid}</strong> is the blog id if using multisite. It should be 1 in single-site. Please see examples below on how to add your own exclusion rules :', 'prime-mover' ),
+                         [ 'strong' => [] ]
+                     ); ?>                        
                     </p>
                     <div class="description">
                     <ul class="ul-disc prime-mover-exclusion-uploads-example">
@@ -120,10 +121,11 @@ class PrimeMoverDisplayExcludedUploadSettings
                     </ul>                       
                     </div>
                      <p class="description prime-mover-settings-paragraph">
-                         <?php printf( esc_html__('Replace %s with the multisite blog id where this exclusion applies if you are using multisite. %s.',
-                             'prime-mover'), '<strong>{blogid}</strong>', 
-                             '<strong>' . esc_html__('Set 1 as the blogid if you are in single-site configuration', 'prime-mover') . '</strong>');
-                         ?> <?php esc_html_e('Always wrap each resource in double quotes and separate each of them with a comma.', 'prime-mover'); ?>
+                         <?php 
+                         echo wp_kses(
+                             __( 'Replace <strong>{blogid}</strong> with the multisite blog id where this exclusion applies if you are using multisite. <strong>Set 1 as the blogid if you are in single-site configuration.</strong>', 'prime-mover' ),
+                             [ 'strong' => [] ]
+                         ); ?> <?php esc_html_e('Always wrap each resource in double quotes and separate each of them with a comma.', 'prime-mover'); ?>
                     </p> 
                     <?php 
                     if (is_multisite()) {

@@ -170,16 +170,32 @@ class PrimeMoverSettingsHelper
         }
         
         if ($html_on_message) {
-            $message =  sprintf(esc_html__('Success! %s is %s.', 'prime-mover'), esc_html($description), $on_status);
-        } else {
-            $message =  sprintf(esc_html__('Success! %s is %s.', 'prime-mover'), esc_html($description), '<strong>' . esc_html($on_status) . '</strong>');
+            /* translators: %1$s: Description, %2$s: On status */
+            $message = sprintf(esc_html__('Success! %1$s is %2$s.', 'prime-mover'), esc_html($description), $on_status);
+        } else {            
+            $message = sprintf(
+                wp_kses(
+                    /* translators: %1$s: Description, %2$s: On status value phrase wrapped in bold styling tags */
+                    __( 'Success! %1$s is <strong>%2$s</strong>.', 'prime-mover' ),
+                    [ 'strong' => [] ]
+                    ),
+                esc_html($description),
+                esc_html($on_status)
+                );
         }
         
-        
-        if ('false' === $setting_params) {
-            $message =  sprintf( esc_html__('Success! %s is %s.', 'prime-mover'), esc_html($description), '<strong>' . esc_html($off_status) . '</strong>');
+        if ('false' === $setting_params) {            
+            $message = sprintf(
+                wp_kses(
+                    /* translators: %1$s: Description, %2$s: Off status value phrase wrapped in bold styling tags */
+                    __( 'Success! %1$s is <strong>%2$s</strong>.', 'prime-mover' ),
+                    [ 'strong' => [] ]
+                    ),
+                esc_html($description),
+                esc_html($off_status)
+                );
         }
         
         return ['status' => $status, 'message' => $message];
-    }
+    }    
 }

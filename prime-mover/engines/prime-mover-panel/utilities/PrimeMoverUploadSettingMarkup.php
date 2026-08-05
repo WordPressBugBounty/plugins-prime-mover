@@ -58,7 +58,7 @@ class PrimeMoverUploadSettingMarkup
                <strong><?php esc_html_e('Google Drive download chunk size (bytes, integers only)', 'prime-mover');?></strong> : 
                <input id="js-prime_mover_gdrivedownload_chunksize" autocomplete="off" name="prime_mover_gdrivedownload_chunk_size" 
                class="prime_mover_gdrivedownload_chunk_size" type="text" name="prime_mover_gdrivedownload_chunk_size" value="<?php echo esc_attr($current_gdrivedownload_chunk_size);?>" > 
-               (<?php esc_html_e('Default value', 'prime-mover');?> : <?php echo round($default, 0);?> 
+               (<?php esc_html_e('Default value', 'prime-mover');?> : <?php echo esc_html(round($default, 0));?> 
                <?php esc_html_e('bytes', 'prime-mover') ?>)              
          </label>
         </p> 
@@ -89,7 +89,7 @@ class PrimeMoverUploadSettingMarkup
                <strong><?php esc_html_e('Dropbox upload chunk size (bytes, integers only)', 'prime-mover');?></strong> : 
                <input id="js-prime_mover_dropbox_chunksize" autocomplete="off" name="prime_mover_dropbox_chunk_size" 
                class="prime_mover_dropbox_chunk_size" type="text" name="prime_mover_dropbox_chunk_size" value="<?php echo esc_attr($current_dropbox_chunk_size);?>" > 
-               (<?php esc_html_e('Default value', 'prime-mover');?> : <?php echo round($default, 0);?> 
+               (<?php esc_html_e('Default value', 'prime-mover');?> : <?php echo esc_html(round($default, 0));?> 
                <?php esc_html_e('bytes', 'prime-mover') ?>)              
          </label>
         </p> 
@@ -120,7 +120,7 @@ class PrimeMoverUploadSettingMarkup
                <strong><?php esc_html_e('Google Drive upload chunk size (bytes, integers only)', 'prime-mover');?></strong> : 
                <input id="js-prime_mover_gdrive_chunksize" autocomplete="off" name="prime_mover_gdrive_chunk_size" 
                class="prime_mover_gdrive_chunk_size" type="text" name="prime_mover_gdrive_chunk_size" value="<?php echo esc_attr($current_gdrive_chunk_size);?>" > 
-               (<?php esc_html_e('Default value', 'prime-mover');?> : <?php echo round($default, 0);?> 
+               (<?php esc_html_e('Default value', 'prime-mover');?> : <?php echo esc_html(round($default, 0));?> 
                <?php esc_html_e('bytes', 'prime-mover') ?>)              
          </label>
         </p> 
@@ -201,7 +201,7 @@ class PrimeMoverUploadSettingMarkup
                <strong><?php esc_html_e('Upload refresh interval (milliseconds, integers only)', 'prime-mover');?></strong> : <input id="js-prime_mover_upload_refreshinterval" 
                autocomplete="off" name="prime_mover_upload_refreshinterval" 
                class="prime_mover_upload_refreshinterval" type="text" name="prime_mover_upload_refreshinterval" value="<?php echo esc_attr($current_upload_refresh_interval);?>" > 
-               (<?php esc_html_e('Default value', 'prime-mover');?> : <?php echo $defaults; ?> 
+               (<?php esc_html_e('Default value', 'prime-mover');?> : <?php echo esc_html($defaults); ?> 
                <?php esc_html_e('milliseconds', 'prime-mover') ?>)              
          </label>
         </p> 
@@ -231,7 +231,7 @@ class PrimeMoverUploadSettingMarkup
           <label for="js-prime_mover_upload_chunksize">
                <strong><?php esc_html_e('Upload chunk size (bytes, integers only)', 'prime-mover');?></strong> : <input id="js-prime_mover_upload_chunksize" autocomplete="off" name="prime_mover_upload_chunk_size" 
                class="prime_mover_upload_chunk_size" type="text" name="prime_mover_upload_chunk_size" value="<?php echo esc_attr($current_upload_chunk_size);?>" > 
-               (<?php esc_html_e('Default value', 'prime-mover');?> : <?php echo round($this->getPrimeMover()->getSystemFunctions()->getSliceSize(true), 0);?> 
+               (<?php esc_html_e('Default value', 'prime-mover');?> : <?php echo esc_html(round($this->getPrimeMover()->getSystemFunctions()->getSliceSize(true), 0));?> 
                <?php esc_html_e('bytes', 'prime-mover') ?>)              
          </label>
         </p> 

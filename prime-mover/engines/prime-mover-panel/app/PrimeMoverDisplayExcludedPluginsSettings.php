@@ -144,22 +144,20 @@ class PrimeMoverDisplayExcludedPluginsSettings
         ];
         
         
-        $config = $settings_api[$identifier];        
+        $config = $settings_api[$identifier];
         $heading_text = esc_html__('Excluded plugins', 'prime-mover');
         
         $first_paragraph = '';
         $first_paragraph .= '<div class="prime-mover-setting-description">';
         $first_paragraph .= '<p class="description prime-mover-settings-paragraph">';
         
-        $first_paragraph .= esc_html__('By default, all plugins that is activated for the exported site will be included in the export package.', 'prime-mover'); 
+        $first_paragraph .= esc_html__('By default, all plugins that is activated for the exported site will be included in the export package.', 'prime-mover');
         $first_paragraph .= '</p>';
         $first_paragraph .= '<p class="description">';
         
-        $first_paragraph .= sprintf(esc_html__('It is possible to exclude plugins from being exported by adding the %s in the above text area. 
-                  Use the tool below to add or updated excluded plugins to the text area (Prime Mover is already excluded by default):',
-                        'prime-mover'), esc_html__('plugin basename', 'prime-mover'));
+        $first_paragraph .= esc_html__('It is possible to exclude plugins from being exported by adding the plugin basename in the above text area. Use the tool below to add or updated excluded plugins to the text area (Prime Mover is already excluded by default):', 'prime-mover');
         
-        $first_paragraph .= '</p>';        
+        $first_paragraph .= '</p>';
         $toggle_btn_title = esc_attr(esc_html__('Click this button to expand activated plugins.', 'prime-mover'));
         $validated_array = $this->buildPluginsArray();
         $empty_text = esc_html__('No other plugins found', 'prime-mover');
@@ -167,16 +165,18 @@ class PrimeMoverDisplayExcludedPluginsSettings
         $second_paragraph = '';
         $second_paragraph .= '<p class="description prime-mover-settings-paragraph">';
         $second_paragraph .= esc_html__('Take note this is a global setting and applies to every export generated in this site. You can use this setting to exclude plugins that is is not needed in the target site.',
-            'prime-mover'); 
+            'prime-mover');
         
         $second_paragraph .= '</p>';
         $second_paragraph .= '<p class="description">';
-        $second_paragraph .= sprintf(esc_html__('As a result, this excluded plugin is %s at the target site after the package is imported.',
-            'prime-mover'), '<strong>' . esc_html__('DEACTIVATED', 'prime-mover') . '</strong>');
+        $second_paragraph .= wp_kses(
+            __( 'As a result, this excluded plugin is <strong>DEACTIVATED</strong> at the target site after the package is imported.', 'prime-mover' ),
+            [ 'strong' => [] ]
+            );
         
-        $second_paragraph .= '</p>'; 
-                    
+        $second_paragraph .= '</p>';
+        
         $this->getPrimeMoverSettingsTemplate()->renderCheckBoxesTextAreaDisplayTemplate($heading_text, $identifier, $config, true, $first_paragraph, $toggle_btn_title,
-            $validated_array, $empty_text, $second_paragraph, $button_specs);        
+            $validated_array, $empty_text, $second_paragraph, $button_specs);
     }    
 }

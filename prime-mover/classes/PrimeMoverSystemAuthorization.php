@@ -110,12 +110,12 @@ class PrimeMoverSystemAuthorization
         }
         
         $auto_backup_identity = $prime_mover_plugin_manager->getAutoBackupIdentity();
-        $request_api_key = primeMoverGetApiRequestKey();
+        $request_api_key = prime_mover_get_api_request_key();
         if (!$request_api_key || !$auto_backup_identity) {
             return false;
         }
                 
-        $decrypted = primeMoverOpenSSLDecrypt($auto_backup_identity, $request_api_key, true);
+        $decrypted = prime_mover_openssl_decrypt($auto_backup_identity, $request_api_key, true);
         if (!$decrypted) {
             return false;
         }

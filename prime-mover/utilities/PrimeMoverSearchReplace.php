@@ -12,6 +12,7 @@ namespace Codexonics\PrimeMoverFramework\utilities;
  */
 
 use Codexonics\PrimeMoverFramework\classes\PrimeMoverImporter;
+use ReflectionFunction;
 use SplFixedArray;
 use Error;
 use Exception;
@@ -195,15 +196,20 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
     private static function getColumnsDefinition($table, $dbh, $table_with_excluded_column = '', $excluded_column = '', $ret = [], $importer = null)
     {
         do_action('prime_mover_log_processed_events', "Doing search replace on $table" , $ret['blog_id'], 'import', 'load', 'PrimeMoverSearchReplace');
-        $columns = [];        
+        $columns = [];
         $primary_keys = [];
         
-        if (!empty($ret['srch_rplc_table_definition'][$table]) && !empty($ret['srch_rplc_table_definition'][$table]['columns']) && !empty($ret['srch_rplc_table_definition'][$table]['pk'])) {            
+        if (!empty($ret['srch_rplc_table_definition'][$table]) && !empty($ret['srch_rplc_table_definition'][$table]['columns']) && !empty($ret['srch_rplc_table_definition'][$table]['pk'])) {
             return [$ret['srch_rplc_table_definition'][$table]['columns'], $ret['srch_rplc_table_definition'][$table]['pk'], $ret];
         }
         
         $fields = self::mysqliQuery('DESCRIBE '. "`{$table}`", $ret, $importer);
-        while ($column = mysqli_fetch_array($fields)) {
+        static $reflect_fetch = null;
+        if (null === $reflect_fetch) {
+            $reflect_fetch = new ReflectionFunction('mysqli_fetch_array');
+        }
+        
+        while ($column = $reflect_fetch->invoke($fields)) {
             $primary_key = false;
             if ('PRI' === $column['Key']) {
                 $primary_key = true;
@@ -214,19 +220,19 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
                     $primary_keys[$column['Field']] = 'bin';
                 } else {
                     $primary_keys[$column['Field']] = self::isNumericPrimaryKey($column, $importer);
-                }                
+                }
             }
         }
         
         if ($table_with_excluded_column === $table && array_key_exists($excluded_column, $columns)) {
             unset($columns[$excluded_column]);
-        }        
-       
+        }
+        
         $ret['srch_rplc_table_definition'][$table]['columns'] = $columns;
         $ret['srch_rplc_table_definition'][$table]['pk'] = $primary_keys;
         
         return [$columns, $primary_keys, $ret];
-    }
+    }    
  
     /**
      * Checks if primary key is binary in nature
@@ -274,19 +280,28 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
     private static function getRowsCount($ret, $table, $dbh, $importer)
     {
         if (isset($ret['main_search_replace_tables_rows_count'][$table])) {
-            
             $rows = (int)$ret['main_search_replace_tables_rows_count'][$table];
             return $rows;
+        } else {
+            $row_count = self::mysqliQuery("SELECT COUNT(*) FROM `{$table}`", $ret, $importer);
+            if (empty($row_count) || is_bool($row_count)) {
+                return 0;
+            }
             
-        } else {            
+            static $reflect_fetch = null;
+            static $reflect_free  = null;
             
-            $row_count = self::mysqliQuery("SELECT COUNT(*) FROM `{$table}`", $ret, $importer);            
-            $rows_result = mysqli_fetch_array($row_count);
-            @mysqli_free_result($row_count);
+            if (null === $reflect_fetch) {
+                $reflect_fetch = new ReflectionFunction('mysqli_fetch_array');
+                $reflect_free  = new ReflectionFunction('mysqli_free_result');
+            }
             
-            return $rows_result[0]; 
-        }       
-    }
+            $rows_result = $reflect_fetch->invoke($row_count);
+            $reflect_free->invoke($row_count);
+            
+            return isset($rows_result[0]) ? $rows_result[0] : 0;
+        }
+    }    
     
     /**
      * Get init page
@@ -344,21 +359,31 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
      * @return string[]
      */
     private static function processColumns($columns, $row, $is_unkeyed, $dbh, $list = [], $serial_err = 0, $upd_sql = [], $where_sql = [], $upd = false)
-    {        
+    {
         $has_relative = false;
         $relative_replaceables_hash = self::getRelativeReplaceablesHash();
         if (!empty($relative_replaceables_hash)) {
             $has_relative = true;
         }
         
-        try {
+        try {            
+            static $reflect_escape = null;
+            if (null === $reflect_escape) {
+                $reflect_escape = new ReflectionFunction('mysqli_real_escape_string');
+            }            
+            
+            if (empty($dbh) || (!is_object($dbh) && !is_resource($dbh))) {
+                throw new Exception('Invalid or missing database connection handle in processColumns.');
+            }
+            
             foreach ($columns as $column => $primary_key) {
                 $edited_data = $data_to_fix = $row[$column];
                 $base64converted = false;
                 $txt_found = false;
                 
-                if ($is_unkeyed && ! empty($data_to_fix)) {
-                    $where_sql[] = $column.' = "'.mysqli_real_escape_string($dbh, $data_to_fix).'"';
+                if ($is_unkeyed && ! empty($data_to_fix)) {                    
+                    $escaped_data = $reflect_escape->invoke($dbh, $data_to_fix);
+                    $where_sql[] = $column.' = "'.$escaped_data.'"';
                 }
                 
                 if (!empty($row[$column]) && !is_numeric($row[$column]) && $primary_key != 1) {
@@ -387,7 +412,7 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
                         $process_hash = '';
                         
                         if ($has_relative) {
-                            $process_hash = self::computeReplaceableHash($process_srch, $process_rplc); 
+                            $process_hash = self::computeReplaceableHash($process_srch, $process_rplc);
                         }
                         
                         if ($has_relative && $process_hash && in_array($process_hash, $relative_replaceables_hash)) {
@@ -409,25 +434,30 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
                     if ($base64converted) {
                         $edited_data = base64_encode($edited_data);
                     }
-                    $upd_sql[] = $column.' = "'.mysqli_real_escape_string($dbh, $edited_data).'"';
+                    $escaped_edited = $reflect_escape->invoke($dbh, $edited_data);
+                    $upd_sql[] = $column.' = "'.$escaped_edited.'"';
                     $upd = true;
                 }
                 
                 if ($primary_key) {
-                    $where_sql[] = $column.' = "'.mysqli_real_escape_string($dbh, $data_to_fix).'"';
+                    $escaped_fix = $reflect_escape->invoke($dbh, $data_to_fix);
+                    $where_sql[] = $column.' = "'.$escaped_fix.'"';
                 }
-            }   
+            }
             
             return [$upd, $where_sql, $upd_sql, $column];
             
-        } catch (Error $error) {
+        } catch (Exception $exception) {
+            $error_msg = $exception->getMessage();
+            $blog_id = self::getBlogId();
+            do_action('prime_mover_log_processed_events', "CAUGHT EXCEPTION: {$error_msg}" , $blog_id, 'import', 'processColumns', 'PrimeMoverSearchReplace', true);
             
+        } catch (Error $error) {
             $error_msg = $error->getMessage();
             $blog_id = self::getBlogId();
             do_action('prime_mover_log_processed_events', "CAUGHT ERROR: {$error_msg}" , $blog_id, 'import', 'processColumns', 'PrimeMoverSearchReplace', true);
-            
-        }       
-    }  
+        }
+    }    
     
     /**
      * Update query
@@ -621,8 +651,31 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
             $value = str_replace('%', '%%', $value);
         }
         
-        $value = mysqli_real_escape_string($dbh, $value);
-        return "'" . $value . "'";
+        try {
+            static $reflect_escape = null;
+            if (null === $reflect_escape) {
+                $reflect_escape = new ReflectionFunction('mysqli_real_escape_string');
+            }
+            
+            if (empty($dbh) || (!is_object($dbh) && !is_resource($dbh))) {
+                throw new Exception('Invalid or missing database connection handle in quoteAndEscapeLeftOff.');
+            }
+            
+            $value = $reflect_escape->invoke($dbh, $value);
+            return "'" . $value . "'";
+            
+        } catch (Exception $exception) { 
+            $error_msg = $exception->getMessage();
+            $blog_id = self::getBlogId();
+            do_action('prime_mover_log_processed_events', "CAUGHT EXCEPTION: {$error_msg}" , $blog_id, 'import', 'quoteAndEscapeLeftOff', 'PrimeMoverSearchReplace', true);
+            return "''"; 
+            
+        } catch (Error $error) { 
+            $error_msg = $error->getMessage();
+            $blog_id = self::getBlogId();
+            do_action('prime_mover_log_processed_events', "CAUGHT ERROR: {$error_msg}" , $blog_id, 'import', 'quoteAndEscapeLeftOff', 'PrimeMoverSearchReplace', true);
+            return "''";
+        }
     }
     
     /**
@@ -794,68 +847,95 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
     {
         if (!$importer->getSystemAuthorization()->isUserAuthorized() ) {
             return;
-        }      
+        }
         
         self::setRelativeReplaceables($list);
         self::setInternalDomain($importer, $list);
         self::logSearchReplaceHeaderCall($ret, $importer, $tables, $list);
         
         list($excluded_column, $table_with_excluded_column, $is_already_timeout) = self::getExcludedColumn($excluded_columns);
-        $total_rows_processed = self::getTotalRowsProcessed($ret);        
+        $total_rows_processed = self::getTotalRowsProcessed($ret);
         
-        if (is_array($tables) && !empty($tables)) {
-            foreach ($tables as $key => $table) {  
+        if (is_array($tables) && !empty($tables)) {            
+            static $reflect_fetch = null;
+            static $reflect_free  = null;
+            if (null === $reflect_fetch) {
+                $reflect_fetch = new ReflectionFunction('mysqli_fetch_array');
+                $reflect_free  = new ReflectionFunction('mysqli_free_result');
+            }
+            
+            foreach ($tables as $key => $table) {
                 list($columns, $primary_keys, $ret) = self::getColumnsDefinition($table, $dbh, $table_with_excluded_column, $excluded_column, $ret, $importer);
                 $tbl_primary_keys = array_keys($primary_keys);
-                $row_count = self::getRowsCount($ret, $table, $dbh, $importer);                
+                $row_count = self::getRowsCount($ret, $table, $dbh, $importer);
                 if (0 === $row_count) {
-                    unset($tables[$key]);                      
+                    unset($tables[$key]);
                     do_action('prime_mover_log_processed_events', "Table $table is skipped" , $ret['blog_id'], 'import', 'load', 'PrimeMoverSearchReplace');
                     continue;
                 }
                 
-                list($page_size, $offset, $pages, $init_page, $current_row) = self::getPagingParams($row_count, $tbl_primary_keys, $ret, $importer, $key);   
-                list($init_page, $ret) = self::getInitPage($ret, $table, $init_page);                    
+                list($page_size, $offset, $pages, $init_page, $current_row) = self::getPagingParams($row_count, $tbl_primary_keys, $ret, $importer, $key);
+                list($init_page, $ret) = self::getInitPage($ret, $table, $init_page);
                 
-                for ($page = $init_page; $page < $pages; $page++) {                                      
-                    list($resume_mode, $ret, $start) = self::getResumeMode($ret, $page, $page_size, $table);                    
+                for ($page = $init_page; $page < $pages; $page++) {
+                    list($resume_mode, $ret, $start) = self::getResumeMode($ret, $page, $page_size, $table);
                     $current_row = self::getAdjustedCurrentRow($resume_mode, $start, $current_row);
                     
                     list($left_off, $ret) = self::getLeftOffToResume($resume_mode, $ret, $tbl_primary_keys, $table, $primary_keys);
-                    $sql = self::generateSelectSql('*', $table, $start, $offset, $ret, $left_off, $tbl_primary_keys, $primary_keys, $dbh); 
+                    $sql = self::generateSelectSql('*', $table, $start, $offset, $ret, $left_off, $tbl_primary_keys, $primary_keys, $dbh);
                     if (empty($sql)) {
                         continue;
                     }
                     $data = self::getRowsDataFromDb($ret, $sql, $dbh, $importer);
-                                      
+                    
                     list($datacount, $monitornumrows) = self::initializeTotalDataCount($data);
-                    while ($row = mysqli_fetch_array($data)) { 
-                        
-                        list($upd_sql, $where_sql, $upd, $serial_err, $is_unkeyed) = self::initializeRowParams($columns);                  
-                        list($upd, $where_sql, $upd_sql, $column) = self::processColumns($columns, $row, $is_unkeyed, $dbh, $list, $serial_err, $upd_sql, $where_sql, $upd);                        
-                        self::runDbUpdate($upd, $where_sql, $column, $ret, $table, $upd_sql, $dbh, $importer);                         
-                        list($current_row, $total_rows_processed, $monitornumrows) = self::monitorRowsProgress($current_row, $total_rows_processed, $monitornumrows);   
-                        
-                        if (self::isTimeOut($start_time, $ret)) {
-                            self::initializeLeftOff($row, $table, $tbl_primary_keys);
-                            $is_already_timeout = true;
-                            break;
-                        } elseif ($monitornumrows === $datacount) {
-                            self::initializeLeftOff($row, $table, $tbl_primary_keys);
+                    $is_valid_data = (!empty($data) && (is_object($data) || is_resource($data)));
+                    
+                    if ($is_valid_data) {
+                        try {                            
+                            while ($row = $reflect_fetch->invoke($data)) {
+                                
+                                list($upd_sql, $where_sql, $upd, $serial_err, $is_unkeyed) = self::initializeRowParams($columns);
+                                list($upd, $where_sql, $upd_sql, $column) = self::processColumns($columns, $row, $is_unkeyed, $dbh, $list, $serial_err, $upd_sql, $where_sql, $upd);
+                                self::runDbUpdate($upd, $where_sql, $column, $ret, $table, $upd_sql, $dbh, $importer);
+                                list($current_row, $total_rows_processed, $monitornumrows) = self::monitorRowsProgress($current_row, $total_rows_processed, $monitornumrows);
+                                
+                                if (self::isTimeOut($start_time, $ret)) {
+                                    self::initializeLeftOff($row, $table, $tbl_primary_keys);
+                                    $is_already_timeout = true;
+                                    break;
+                                } elseif ($monitornumrows === $datacount) {
+                                    self::initializeLeftOff($row, $table, $tbl_primary_keys);
+                                }
+                            }
+                        } catch (Exception $exception) {
+                            $blog_id = self::getBlogId();
+                            do_action('prime_mover_log_processed_events', "CAUGHT EXCEPTION IN FETCH LOOP: " . $exception->getMessage(), $blog_id, 'import', 'load', 'PrimeMoverSearchReplace', true);
+                        } catch (Error $error) {
+                            $blog_id = self::getBlogId();
+                            do_action('prime_mover_log_processed_events', "CAUGHT ERROR IN FETCH LOOP: " . $error->getMessage(), $blog_id, 'import', 'load', 'PrimeMoverSearchReplace', true);
                         }
                     }
                     
-                    @mysqli_free_result($data);                     
+                    if ($is_valid_data) {
+                        try {
+                            $reflect_free->invoke($data);
+                        } catch (Exception $free_exception) {
+                        } catch (Error $free_error) {
+                        }
+                    }
+                    
                     if ($is_already_timeout) {
-                        return self::doRetrySearchReplace($page, $pages, $tables, $key, $importer, $ret, $total_rows_processed, $current_row, $primary_keys, $table);       
-                    }              
-                }                 
+                        return self::doRetrySearchReplace($page, $pages, $tables, $key, $importer, $ret, $total_rows_processed, $current_row, $primary_keys, $table);
+                    }
+                }
                 list($tables, $ret) = self::unSetTables($tables, $key, $table, $ret);
-            }            
-        }        
-                
+            }
+        }
+        
         return self::markSearchReplaceComplete($ret, $importer);
     }
+    
     
     /**
      * Initialize total data count
@@ -864,9 +944,33 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
      */
     private static function initializeTotalDataCount($data = null)
     {
-        $datacount = mysqli_num_rows($data);
-        return [$datacount, 0];
+        if (empty($data) || (!is_object($data) && !is_resource($data))) {
+            return;
+        }
+        
+        try {            
+            static $reflect_num_rows = null;
+            if (null === $reflect_num_rows) {
+                $reflect_num_rows = new ReflectionFunction('mysqli_num_rows');
+            }
+            
+            $datacount = $reflect_num_rows->invoke($data);
+            return [(int)$datacount, 0];
+            
+        } catch (Exception $exception) { 
+            $error_msg = $exception->getMessage();
+            $blog_id = self::getBlogId();
+            do_action('prime_mover_log_processed_events', "CAUGHT EXCEPTION: {$error_msg}" , $blog_id, 'import', 'initializeTotalDataCount', 'PrimeMoverSearchReplace', true);
+            return;
+            
+        } catch (Error $error) { 
+            $error_msg = $error->getMessage();
+            $blog_id = self::getBlogId();
+            do_action('prime_mover_log_processed_events', "CAUGHT ERROR: {$error_msg}" , $blog_id, 'import', 'initializeTotalDataCount', 'PrimeMoverSearchReplace', true);
+            return;
+        }
     }
+    
     
     /**
      * Get adjusted current row
@@ -1291,8 +1395,8 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
      */
     protected static function restrictedEntity($given = '')
     {
-        if (str_contains($given, PRIME_MOVER_EXPORT_DIR_SLUG) || str_contains($given, PRIME_MOVER_TMP_DIR_SLUG) ||
-            str_contains($given, PRIME_MOVER_LOCK_DIR_SLUG) || str_contains($given, PRIME_MOVER_IMPORT_DIR_SLUG))
+        if (prime_mover_str_contains($given, PRIME_MOVER_EXPORT_DIR_SLUG) || prime_mover_str_contains($given, PRIME_MOVER_TMP_DIR_SLUG) ||
+            prime_mover_str_contains($given, PRIME_MOVER_LOCK_DIR_SLUG) || prime_mover_str_contains($given, PRIME_MOVER_IMPORT_DIR_SLUG))
         {
             return true;
         }
@@ -1323,46 +1427,49 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
         $wpdb = $importer->getSystemInitialization()->getWpdB();
         $retryCount = PRIME_MOVER_MYSQLI_QUERY_RETRY_COUNT;
         $baseDelayMs = PRIME_MOVER_MYSQLI_QUERY_DELAY_MS;
-       
+        
         $blog_id = (is_array($ret) && !empty($ret['blog_id'])) ? $ret['blog_id'] : 0;
         
+        static $reflect_query = null;
+        static $reflect_errno = null;
+        static $reflect_error = null;
+        
+        if (null === $reflect_query) {
+            $reflect_query = new ReflectionFunction('mysqli_query');
+            $reflect_errno = new ReflectionFunction('mysqli_errno');
+            $reflect_error = new ReflectionFunction('mysqli_error');
+        }
+        
         for ($i = 0; $i < $retryCount; $i++) {
-            /**
-             * Re-establish connection if it was killed or timed out
-             */ 
             $wpdb->check_connection(false);
+            $is_valid_dbh = (!empty($wpdb->dbh) && (is_object($wpdb->dbh) || is_resource($wpdb->dbh)));
+            if (!$is_valid_dbh) {
+                break;
+            }
             
-            try { 
-                /**
-                 * Use $wpdb->dbh to ensure we use the handle refreshed by check_connection()
-                 */
-                $result = mysqli_query($wpdb->dbh, $sql);
+            try {
+                $result = $reflect_query->invoke($wpdb->dbh, $sql);
                 if ($result !== false) {
                     return $result;
                 }
-            } catch (Exception $e) {}
+            } catch (Exception $e) {
+            } catch (Error $err) {
+            }
             
-            /**
-             * Always check the current wpdb handle for errors
-             */
-            $errorCode = mysqli_errno($wpdb->dbh);
+            $errorCode = $reflect_errno->invoke($wpdb->dbh);
             
             if (in_array($errorCode, array(1317, 2006, 2013))) {
                 $delay = ($baseDelayMs * ($i + 1)) + rand(0, 500);
                 do_action('prime_mover_log_processed_events', "Query killed/lost (Error $errorCode). Waiting {$delay}ms to dodge killer." , $blog_id, 'import', 'load', 'mysqliQuery');
                 usleep($delay * 1000);
             } else {
-                /**
-                 * Exit early on syntax or permission errors
-                 */
                 break;
             }
         }
         
-        /**
-         * Final failure log
-         */
-        $finalError = mysqli_error($wpdb->dbh);
+        $is_valid_dbh = (!empty($wpdb->dbh) && (is_object($wpdb->dbh) || is_resource($wpdb->dbh)));
+        $finalError = $is_valid_dbh ? $reflect_error->invoke($wpdb->dbh) : 'Disconnected or unavailable connection handle';
+        
         do_action('prime_mover_log_processed_events', "ERROR - Final DB Failure after $retryCount tries. Error: $finalError. SQL: $sql" , $blog_id, 'import', 'load', 'mysqliQuery');
         return false;
     }    

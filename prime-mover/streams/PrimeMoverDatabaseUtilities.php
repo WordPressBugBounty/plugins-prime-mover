@@ -378,9 +378,9 @@ class PrimeMoverDatabaseUtilities
         
         if (!is_object($wpdb)) {
             return $query; 
-        }
-       
+        }       
         foreach ($this->restoredBFileHeaders() as $header) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $wpdb->query($header);
         }
               
@@ -548,7 +548,7 @@ class PrimeMoverDatabaseUtilities
         if (isset($ret['prime_mover_is_super_db_user'])) {
             return $ret;
         }
-        
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
         $grants = $wpdb->get_results('SHOW GRANTS');
         if (!is_array($grants)) {
             $ret['prime_mover_is_super_db_user'] = false;
@@ -625,14 +625,14 @@ class PrimeMoverDatabaseUtilities
     {
         $wpdb = $this->getSystemInitialization()->getWpdB();
         $usermeta_table = $this->getSystemFunctions()->getUserMetaTableName();
-        
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $umeta_id_max = $wpdb->get_var("SELECT max(umeta_id) FROM `{$usermeta_table}`");
         $umeta_id_max = (int)$umeta_id_max;       
         if (!$umeta_id_max) {
             return;
-        }
-        
-        $new_max = $umeta_id_max + 20;        
+        }        
+        $new_max = $umeta_id_max + 20; 
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $res = $wpdb->query(
             $wpdb->prepare(
                 "ALTER TABLE `{$usermeta_table}`
@@ -640,10 +640,12 @@ class PrimeMoverDatabaseUtilities
                  CHANGE COLUMN `umeta_id` `umeta_id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT",
                  $new_max                
                 )
-        );
-        
+        );   
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         if (false === $res) {
-            $this->terminatedBProcess(sprintf(
+            $this->terminatedBProcess(            
+            sprintf(
+            /* translators: %s: Usermeta table */
                 esc_html__("%s database table is corrupted. umeta_id field is not using AUTO_INCREMENT. Please check this with your WordPress administrator or hosting company.", 'prime-mover'), 
                 $usermeta_table));
         }
@@ -671,6 +673,7 @@ class PrimeMoverDatabaseUtilities
     {
         $wpdb = $this->getSystemInitialization()->getWpdB();
         $usermeta_table = $this->getSystemFunctions()->getUserMetaTableName();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $columns = $wpdb->get_results("SHOW COLUMNS FROM `{$usermeta_table}` WHERE Extra = 'auto_increment'", ARRAY_A);
         
         return (is_array($columns) && empty($columns));        
@@ -696,9 +699,9 @@ class PrimeMoverDatabaseUtilities
         
         if (!empty($ret['db_port'])) {
             return $ret['db_port'];
-        }       
-        
+        }        
         $wpdb = $this->getSystemInitialization()->getWpdB();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching 
         $result = $wpdb->get_results("SHOW VARIABLES WHERE Variable_name = 'port'", ARRAY_N);
         if (!is_array($result) ) {
             return $port;
@@ -838,10 +841,10 @@ class PrimeMoverDatabaseUtilities
     {
         if (!$table) {
             return null;
-        }
-        
+        }        
         $wpdb = $this->getSystemInitialization()->getWpdB();
         $sql = $wpdb->prepare('SHOW TABLE STATUS WHERE Name = %s', $table);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $res = $wpdb->get_results($sql, ARRAY_A);
         if (!is_array($res)) {
             return null;
@@ -896,12 +899,12 @@ class PrimeMoverDatabaseUtilities
         }
         
         $user_columns = $user_fields;
-        $user_columns[] = $primary_key;
-        
+        $user_columns[] = $primary_key;        
         $user_columns = esc_sql($user_columns);
         $user_columns_in_string = "'" . implode("','", $user_columns) . "'";
         
         $sql = "SHOW COLUMNS FROM `{$table}` WHERE Field IN ($user_columns_in_string)";
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $res = $wpdb->get_results($sql, ARRAY_A);
 
         if (!is_array($res) || empty($res)) {
@@ -991,14 +994,12 @@ class PrimeMoverDatabaseUtilities
         $bp_tables = [];
         if (isset($ret['buddypress_tables'])) {
             $bp_tables = $ret['buddypress_tables'];
-        }
-        
+        }        
         if (is_array($bp_tables) && in_array($table, $bp_tables)) {
             $prefix = $this->getSystemInitialization()->getBasePrefix();
         } else {            
             $prefix = $this->getSystemFunctions()->getDbPrefixOfSite($source_blog_id);
-        }
-       
+        }       
         return $this->getSystemFunctions()->removePrefix($prefix, $table);        
     }
         
@@ -1011,6 +1012,7 @@ class PrimeMoverDatabaseUtilities
     protected function queryPrimaryKeys($table = '')
     {
         $wpdb = $this->getSystemInitialization()->getWpdB();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         return $wpdb->get_results("SHOW KEYS FROM `{$table}` WHERE Key_name = 'PRIMARY' OR (Non_unique = 0 AND `Null` = '')", ARRAY_A);  
     }
     
@@ -1022,6 +1024,7 @@ class PrimeMoverDatabaseUtilities
     protected function processOrderByKeys($table = '', $primary_keys = [])
     {
         $wpdb = $this->getSystemInitialization()->getWpdB();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $columns = $wpdb->get_results("SHOW COLUMNS FROM `{$table}`", ARRAY_A);  
         $orderbycolumn = '';
         foreach ($columns as $column) {

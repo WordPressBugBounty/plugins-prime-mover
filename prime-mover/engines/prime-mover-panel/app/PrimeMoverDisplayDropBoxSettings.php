@@ -108,10 +108,22 @@ class PrimeMoverDisplayDropBoxSettings
                         'prime-mover'); ?>
                     </p>
                     <p class="description">
-                    <?php printf( esc_html__('To get an access token, you need to %s. Then in your app, go to %s.', 'prime-mover'), 
-                        '<a target="_blank" class="prime-mover-external-link" href="https://www.dropbox.com/developers">' . esc_html__('create Dropbox app', 'prime-mover') . '</a>',
-                        '<strong>' . esc_html__('Oauth 2 - Generate Access token', 'prime-mover') . '</strong>'
-                        ); ?>
+                    <?php                    
+                    printf(
+                        wp_kses(
+                            /* translators: %s: Dropbox developer console URL address string */
+                            __( 'To get an access token, you need to <a target="_blank" class="prime-mover-external-link" href="%s">create Dropbox app</a>. Then in your app, go to <strong>Oauth 2 - Generate Access token</strong>.', 'prime-mover' ),
+                            [
+                                'a' => [
+                                    'target' => true,
+                                    'class'  => true,
+                                    'href'   => true,
+                                ],
+                                'strong' => [],
+                            ]
+                        ),
+                        'https://www.dropbox.com/developers'
+                    ); ?>
                     </p>                    
                     <?php $this->getPrimeMoverSettings()->getSettingsMarkup()->renderSubmitButton('prime_mover_save_dropbox_settings_nonce', 'js-save-prime-mover-dropbox-access-token', 
                         'js-save-prime-mover-dropbox-access-token-spinner');?> 

@@ -878,7 +878,7 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
      */
     public function getSpecificationsFromIdentifier($identifier = '')
     {
-        $parameters = primeMoverDefaultUserAdjustments();
+        $parameters = prime_mover_default_user_adjustments();
         $specs = [];
         
         if (isset($parameters[$identifier])) {
@@ -1123,7 +1123,7 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
      */
     public function getDbEncryptionKey()
     {        
-        return primeMoverGetDbEncryptionKey();
+        return prime_mover_get_db_encryption_key();
     }
     
     /**
@@ -2449,7 +2449,7 @@ Options -Indexes
                 return PRIME_MOVER_COPY_MEDIA_SHELL_USER_IP;
         }
         
-        return primeMoverGetUserIp();
+        return prime_mover_get_user_ip();
     }
     
     /**
@@ -2845,7 +2845,7 @@ Options -Indexes
      */
     public function returnCommonWrongTargetSiteError()
     {
-        return esc_html__('Wrong import site package! Please check that the import zip package is correct for this site.', 'prime-mover');
+        return esc_html__('Wrong import site package! Please check that the import package is correct for this site.', 'prime-mover');
     }
     
     /**
@@ -2885,7 +2885,7 @@ Options -Indexes
      */
     public function getAuthKey()
     {
-        return primeMoverGetAuthKey();
+        return prime_mover_get_auth_key();
     }
     
     /**
@@ -3603,7 +3603,7 @@ Options -Indexes
      */
     public function getApiRequestKey()
     {        
-        return primeMoverGetApiRequestKey();
+        return prime_mover_get_api_request_key();
     }
     
     /**
@@ -3721,7 +3721,7 @@ Options -Indexes
      */
     public function removeSchemeFromUrl($given_url = '')
     {
-        $url_parsed = parse_url($given_url);
+        $url_parsed = wp_parse_url($given_url);        
         $given_url_parsed = '';
         if ((isset($url_parsed['host'])) && (!empty($url_parsed['host']))) {
             $given_url_parsed .= $url_parsed['host'];
@@ -3793,7 +3793,7 @@ Options -Indexes
         }
         
         foreach ($preview_domains as $preview_domain) {
-            if (str_contains($given, $preview_domain)) {
+            if (prime_mover_str_contains($given, $preview_domain)) {
                 return true;
             }
         }
@@ -3842,15 +3842,15 @@ Options -Indexes
         }
               
         $base = '';
-        if (str_contains($static, $this->getUploadTmpPathSlug())) {
+        if (prime_mover_str_contains($static, $this->getUploadTmpPathSlug())) {
             $base = $this->getDefaultImportFolder();
         }
         
-        if (!$base && str_contains($static, $this->getMultisiteExportFolderSlug())) {
+        if (!$base && prime_mover_str_contains($static, $this->getMultisiteExportFolderSlug())) {
             $base = $this->getExportPathOfThisSubsite($blog_id);
         }
         
-        if (!$base && str_contains($static, $this->getTmpDownloadsFolderSlug())) {
+        if (!$base && prime_mover_str_contains($static, $this->getTmpDownloadsFolderSlug())) {
             $base = $this->getTmpDownloadsFolder();
         }
         

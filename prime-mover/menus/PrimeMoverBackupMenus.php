@@ -190,8 +190,19 @@ class PrimeMoverBackupMenus
     {
         ?>
         <div class="notice notice-error"> 
-            <p><?php printf(esc_html__('%s No packages found and unable to export/import because %s is not writable.', 'prime-mover'), '<strong>' . 
-                esc_html__('ERROR!', 'prime__mover') . '</strong>', '<code>' . $backup_dir . '</code>'); ?>	    
+            <p><?php            
+            printf(
+                wp_kses(
+                    /* translators: %1$s: Formatted ERROR! title prefix context, %2$s: Absolute file system directory path string location */
+                    __( '<strong>%1$s</strong> No packages found and unable to export/import because <code>%2$s</code> is not writable.', 'prime-mover' ),
+                    [
+                        'strong' => [],
+                        'code'   => [],
+                    ]
+                ), 
+                esc_html__( 'ERROR!', 'prime-mover' ), 
+                esc_html( $backup_dir )
+            ); ?>	    
 		</div>               
         <?php   
     }
@@ -539,7 +550,7 @@ class PrimeMoverBackupMenus
             return '';    
         }
         
-        $logo = $plugins_url . '/freemius/assets/img/prime-mover.jpg';        
+        $logo = $plugins_url . '/vendor/freemius/assets/img/prime-mover.jpg';        
         return $logo;
     }
     
@@ -592,13 +603,14 @@ class PrimeMoverBackupMenus
         
         if (is_multisite() && !$blog_id) {
  
-            $url = '#';
-            $note = sprintf(esc_html__('You are not on a valid blog ID, you cannot create backups. Please enter blog ID.', 'prime-mover'), $blog_id);
+            $url = '#';            
+            $note = esc_html__('You are not on a valid blog ID, you cannot create backups. Please enter blog ID.', 'prime-mover');
             $class = "page-title-action button disabled prime-mover-autoexport-disabled";
             
         } elseif (is_multisite() && !get_blogaddress_by_id($blog_id)) {
             
             $url = '#';
+            /* translators: %d: Subsite numerical blog ID value */
             $note = sprintf(esc_html__('Subsite with blog ID: %d does not exist, please create the subsite first.', 'prime-mover'), $blog_id);
             $class = "page-title-action button disabled prime-mover-autoexport-disabled";
             
@@ -632,7 +644,7 @@ class PrimeMoverBackupMenus
         
         $testListTable = $this->getBackupsMenuListTableInstance();
         $testListTable->initHooks();
-        $testListTable->prepare_items();       
+        $testListTable->prepare_items();
         
         $blog_id = $this->getBlogIdUnderQuery();
         $blogexport_path = $this->getSystemFunctions()->getExportPathOfThisSubsite($blog_id);
@@ -646,23 +658,23 @@ class PrimeMoverBackupMenus
         }
         ?>
       <div class="wrap prime-mover-backup-menu-wrap">
-         <h1 class="wp-heading-inline"><?php echo apply_filters('prime_mover_filter_backuppage_heading', esc_html__('Prime Mover Package Manager', 'prime-mover'), $blog_id);?></h1>
+         <h1 class="wp-heading-inline"><?php echo esc_html(apply_filters('prime_mover_filter_backuppage_heading', esc_html__('Prime Mover Package Manager', 'prime-mover'), $blog_id));?></h1>
          
          <p class="edit-site-actions prime-mover-edit-site-actions">
              <?php
              if (!$this->getSystemInitialization()->getRootBackupDirUnwritable($blog_id)) {
-                 echo $this->getAddNewBackupMarkup($blog_id, 'native'); 
+                 echo wp_kses_post($this->getAddNewBackupMarkup($blog_id, 'native')); 
              }                 
              ?>  
-             <?php echo $this->getAddNewBackupMarkup($blog_id, 'automaticbackup'); ?>
-             <?php echo $this->getAddNewBackupMarkup($blog_id, 'eventviewer'); ?>      
+             <?php echo wp_kses_post($this->getAddNewBackupMarkup($blog_id, 'automaticbackup')); ?>
+             <?php echo wp_kses_post($this->getAddNewBackupMarkup($blog_id, 'eventviewer')); ?>      
          </p>
          
          <?php 
          if ($this->getBackupUtilities()->blogIsUsable($blog_id)) {
          ?>
              <p class="edit-site-actions prime-mover-edit-site-actions"><a href="<?php echo esc_url($this->getSystemFunctions()->getPublicSiteUrl($blog_id)); ?>"><?php esc_html_e('Visit Site', 'prime-mover');?></a> | 
-             <a href="<?php echo $this->getCreateExportUrl($blog_id, true); ?>"><?php esc_html_e('Migration Tools', 'prime-mover'); ?></a> |
+             <a href="<?php echo esc_url($this->getCreateExportUrl($blog_id, true)); ?>"><?php esc_html_e('Migration Tools', 'prime-mover'); ?></a> |
              <a class="prime-mover-external-link" target="_blank" href="<?php echo esc_url(CODEXONICS_PACKAGE_MANAGER_RESTORE_GUIDE); ?>">
              <?php esc_html_e('Restore Guide', 'prime-mover'); ?></a>
              </p>
@@ -673,11 +685,19 @@ class PrimeMoverBackupMenus
         <?php do_action('prime_mover_package_manager_notices', $blog_id); ?>   
         <div class="prime-mover-backupmenu-notes-div">        
             <p>
-                <?php printf(esc_html__('This page shows all the packages controlled by %s', 'prime-mover'), '<strong>' . PRIME_MOVER_PLUGIN_CODENAME . '</strong>');?>.
+                <?php                
+                printf(
+                    wp_kses(
+                        /* translators: %s: Formatted plugin title codename string */
+                        __( 'This page shows all the packages controlled by %s.', 'prime-mover' ),
+                        [ 'strong' => [] ]
+                    ), 
+                    '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>'
+                ); ?>
                 <?php if ($export_path_exist) { ?> 
                 <?php esc_html_e('This is the current site package path:', 'prime-mover'); ?> 
                 <tt>
-                <code title="<?php esc_attr_e('You can manually add or upload Prime Mover package zip in this path via SFTP.', 'prime-mover');?>"><?php echo $blogexport_path; ?></code></tt>
+                <code title="<?php esc_attr_e('You can manually add or upload Prime Mover package zip in this path via SFTP.', 'prime-mover');?>"><?php echo esc_html($blogexport_path); ?></code></tt>
                 <?php } ?>
             </p> 
         </div>
@@ -688,14 +708,14 @@ class PrimeMoverBackupMenus
             <?php $this->getUserConfirmationFreeRestoreDialog(); ?>
             <?php do_action('prime_mover_dosomething_freerestore_form'); ?>
             <!-- For plugins, we also need to ensure that the form posts back to our current page -->
-            <input type="hidden" name="page" value="<?php esc_attr_e($_REQUEST['page']) ?>" />
-            <input type="hidden" name="prime-mover-blog-id-menu" value="<?php esc_attr_e($this->getBlogIdUnderQuery())?>" />
+            <input type="hidden" name="page" value="<?php echo esc_attr($_REQUEST['page']); ?>" />            
+            <input type="hidden" name="prime-mover-blog-id-menu" value="<?php echo esc_attr($this->getBlogIdUnderQuery()); ?>" />
             <!-- Now we can render the completed list table -->
             <?php $testListTable->display() ?>
         </form>         
       </div>       
     <?php
-    }
+    }    
     
     /**
      * Get user confirmation dialog when deleting backups
@@ -721,7 +741,7 @@ class PrimeMoverBackupMenus
         ?>
        <div style="display:none;" id="js-prime-mover-confirm-backups-free-restore" title="<?php esc_attr_e('Warning!', 'prime-mover')?>"> 
 			<h3><?php esc_html_e('Are you sure you want restore this package?', 'prime-mover');?></h3>  
-			<p><span><?php echo $text; ?></span></p>	  	
+			<p><span><?php echo wp_kses_post($text); ?></span></p>	  	
         </div>
     <?php      
     }

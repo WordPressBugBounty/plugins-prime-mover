@@ -14,6 +14,7 @@ namespace Codexonics\PrimeMoverFramework\streams;
  */
 
 use Codexonics\PrimeMoverFramework\classes\PrimeMoverSystemFunctions;
+use Codexonics\PrimeMoverBridgeIO;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -71,7 +72,7 @@ class PrimeMoverResumableDownloadStream
         if ( ! $file ) {
             return;
         }
-        $handle = fopen($file, "r");
+        $handle = PrimeMoverBridgeIO::call('fopen', $file, "r");
         if ($handle) {
             $this->file = $handle;
         }
@@ -98,7 +99,12 @@ class PrimeMoverResumableDownloadStream
         $this->name = basename($file);
     }
     
-    public function process() 
+    /**
+     * Refactored
+     * since version 2.2
+     *
+     */
+    public function process()
     {
         if ( ! $this->canProcess() ) {
             return;
@@ -111,31 +117,51 @@ class PrimeMoverResumableDownloadStream
             $t = count($ranges);
         }
         header("Accept-Ranges: bytes");
-        header("Content-Type: application/octet-stream");
         header("Content-Transfer-Encoding: binary");
         header(sprintf('Content-Disposition: attachment; filename="%s"', $this->name));
+        
         if ($t > 0) {
-            header("HTTP/1.1 206 Partial content");
-            $t === 1 ? $this->pushSingle($range) : $this->pushMulti($ranges);            
+            header("HTTP/1.1 206 Partial Content");
+            
+            if ($t === 1) {
+                header("Content-Type: application/octet-stream");                
+                $this->pushSingle($ranges[0]);
+            } else {
+                $this->pushMulti($ranges);
+            }
         } else {
+            header("Content-Type: application/octet-stream");
             header("Content-Length: " . $this->size);
             $this->getSystemFunctions()->flush();
             $this->readFile();
         }
-    }
+    }    
     
-    private function pushSingle($range) 
+    /**
+     * Refactored
+     * since version 2.2
+     *
+     */
+    private function pushSingle($range)
     {
         $start = $end = 0;
         $this->getRange($range, $start, $end);
-        header("Content-Length: " . ($end - $start + 1));
+        
+        header("Content-Length: " . ($end - $start + 1));        
         header(sprintf("Content-Range: bytes %d-%d/%d", $start, $end, $this->size));
-        fseek($this->file, $start);
-        $this->getSystemFunctions()->flush();
+        
+        PrimeMoverBridgeIO::call('fseek', $this->file, $start);
+        $this->getSystemFunctions()->flush();        
+        
         $this->readFile();
     }
     
-    private function pushMulti($ranges) 
+    /**
+     * Refactored
+     * since version 2.2
+     * 
+     */
+    private function pushMulti($ranges)
     {
         $length = $start = $end = 0;
         $tl = "Content-type: application/octet-stream\r\n";
@@ -150,61 +176,111 @@ class PrimeMoverResumableDownloadStream
         $length += strlen("\r\n--$this->boundary--\r\n");
         header("Content-Length: $length");
         header("Content-Type: multipart/x-byteranges; boundary=$this->boundary");
-        $this->getSystemFunctions()->flush();
-        foreach ( $ranges as $range ) {
-            $this->getRange($range, $start, $end);
-            echo "\r\n--$this->boundary\r\n";
-            echo $tl;
-            echo sprintf($formatRange, $start, $end, $this->size);
-            fseek($this->file, $start);            
-            $this->readBuffer($end - $start + 1);
+        $this->getSystemFunctions()->flush();        
+       
+        $output_stream = PrimeMoverBridgeIO::call('fopen', 'php://output', 'wb');        
+        
+        if ( $output_stream ) {
+            foreach ( $ranges as $range ) {
+                $this->getRange($range, $start, $end);
+                
+                PrimeMoverBridgeIO::call('fwrite', $output_stream, "\r\n--$this->boundary\r\n");                
+                PrimeMoverBridgeIO::call('fwrite', $output_stream, $tl);                
+                PrimeMoverBridgeIO::call('fwrite', $output_stream, sprintf($formatRange, (int)$start, (int)$end, (int)$this->size));                
+                
+                PrimeMoverBridgeIO::call('fseek', $this->file, $start);                
+                $this->readBuffer($output_stream, $end - $start + 1);
+            }
+            
+            PrimeMoverBridgeIO::call('fwrite', $output_stream, "\r\n--$this->boundary--\r\n");            
+            PrimeMoverBridgeIO::call('fclose', $output_stream);            
         }
-        echo "\r\n--$this->boundary--\r\n";
     }
     
-    private function getRange($range, &$start, &$end) 
+    /**
+     * Refactored
+     * since version 2.2
+     *
+     */
+    private function getRange($range, &$start, &$end)
     {
-        list($start, $end) = explode('-', $range);
-        $fileSize = $this->size;
-        if ($start == '') {
-            $tmp = $end;
+        $range_parts = explode('-', (string)$range);
+        $start_raw = isset($range_parts[0]) ? trim($range_parts[0]) : '';
+        $end_raw = isset($range_parts[1]) ? trim($range_parts[1]) : '';
+        
+        $fileSize = (int)$this->size;
+        
+        if ($start_raw === '') {
+            $tmp = (int)$end_raw;
             $end = $fileSize - 1;
             $start = $fileSize - $tmp;
-            if ($start < 0)
+            if ($start < 0) {
                 $start = 0;
+            }
         } else {
-            if ($end == '' || $end > $fileSize - 1)
+            $start = (int)$start_raw;
+            if ($end_raw === '' || (int)$end_raw > $fileSize - 1) {
                 $end = $fileSize - 1;
+            } else {
+                $end = (int)$end_raw;
+            }
         }
-        if ($start > $end) {
-            header("Status: 416 Requested range not satisfiable");
-            header("Content-Range: */" . $fileSize);
+        
+        if ($start > $end || $start < 0 || $start >= $fileSize) {
+            http_response_code(416);
+            header("Content-Range: bytes */" . $fileSize);
             exit();
         }
-        return array(
-                $start,
-                $end
-        );
+        
+        return array((int)$start, (int)$end);
     }
     
-    private function readFile() 
+    /**
+     * Refactored
+     * since version 2.2
+     *
+     */
+    private function readFile()
     {        
-        while (!feof($this->file)) {
-            $buffer = fread($this->file, 1024*1024);
-            echo $buffer;
-            flush();
-            usleep($this->delay);
+        $output_stream = PrimeMoverBridgeIO::call('fopen', 'php://output', 'wb');        
+        
+        if ( $output_stream ) {
+            while (!feof($this->file)) {
+                $buffer = PrimeMoverBridgeIO::call('fread', $this->file, 1024*1024);                
+                PrimeMoverBridgeIO::call('fwrite', $output_stream, $buffer);                
+                
+                flush();
+                usleep($this->delay);
+            }            
+            
+            PrimeMoverBridgeIO::call('fclose', $output_stream);            
         }
     }
     
-    private function readBuffer($bytes = 0, $size = 1024) 
+    /**
+     * Refactored
+     * since version 2.2
+     *
+     */
+    private function readBuffer($output_stream, $bytes = 0, $size = 1024)
     {
-        $bytesLeft = $bytes;
+        $bytesLeft = $bytes;        
+        $current_stream = is_resource($output_stream) ? $output_stream : PrimeMoverBridgeIO::call('fopen', 'php://output', 'wb');        
+        
         while ( $bytesLeft > 0 && ! feof($this->file) ) {
             $bytesLeft > $size ? $bytesRead = $size : $bytesRead = $bytesLeft;
-            $bytesLeft -= $bytesRead;
-            echo fread($this->file, $bytesRead);
+            $bytesLeft -= $bytesRead;            
+            
+            $data = PrimeMoverBridgeIO::call('fread', $this->file, $bytesRead);            
+            if ( $current_stream ) {
+                PrimeMoverBridgeIO::call('fwrite', $current_stream, $data);                
+            }
+            
             flush();
+        }        
+        
+        if ( ! is_resource($output_stream) && $current_stream ) {
+            PrimeMoverBridgeIO::call('fclose', $current_stream);            
         }
     }
 }

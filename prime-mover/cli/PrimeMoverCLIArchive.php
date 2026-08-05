@@ -13,6 +13,7 @@ namespace Codexonics\PrimeMoverFramework\cli;
 
 use Codexonics\PrimeMoverFramework\classes\PrimeMoverSystemChecks;
 use Codexonics\PrimeMoverFramework\classes\PrimeMoverProgressHandlers;
+use Codexonics\PrimeMoverBridgeIO;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -118,13 +119,13 @@ class PrimeMoverCLIArchive
             return null;
         }
         if (! $entity) {
-            return [fopen($ret['master_tmp_shell_files'], $mode), fopen($ret['master_tmp_shell_dirs'], $mode)];
+            return [PrimeMoverBridgeIO::call('fopen', $ret['master_tmp_shell_files'], $mode), PrimeMoverBridgeIO::call('fopen', $ret['master_tmp_shell_dirs'], $mode)];
         }
         if ('file' === $entity) {
-            return fopen($ret['master_tmp_shell_files'], $mode);
+            return PrimeMoverBridgeIO::call('fopen', $ret['master_tmp_shell_files'], $mode);
         }
         if ('dir' === $entity) {
-            return fopen($ret['master_tmp_shell_dirs'], $mode);
+            return PrimeMoverBridgeIO::call('fopen', $ret['master_tmp_shell_dirs'], $mode);
         }
         return null;
     }
@@ -159,7 +160,7 @@ class PrimeMoverCLIArchive
             $resource = $this->openMasterTmpFileResource($ret, 'dir', $mode);
         }
         if (is_resource($resource)) {
-            fwrite($resource, $data . PHP_EOL);
+            PrimeMoverBridgeIO::call('fwrite', $resource, $data . PHP_EOL);
             if ($close) {
                 $this->closeMasterTmpLog($resource);
             }
@@ -181,13 +182,13 @@ class PrimeMoverCLIArchive
             list($file_handle, $dir_handle) = $resources;
         }
         if (is_resource($file_handle)) {
-            fclose($file_handle);
+            PrimeMoverBridgeIO::call('fclose', $file_handle);
         }
         if (is_resource($dir_handle)) {
-            fclose($dir_handle);
+            PrimeMoverBridgeIO::call('fclose', $dir_handle);
         }
         if (is_resource($resources)) {
-            fclose($resources);
+            PrimeMoverBridgeIO::call('fclose', $resources);
         }
     }
 }

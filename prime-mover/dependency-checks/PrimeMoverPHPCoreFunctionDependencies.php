@@ -189,13 +189,20 @@ class PrimeMoverPHPCoreFunctionDependencies
         }
         ?>
         <div class="error">        
-         <p><?php printf( esc_html__( 'The %s plugin cannot be activated if these following PHP core functions are missing', 'prime-mover' ), 
-             '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>' )?>:</p>
+         <p><?php         
+         printf( 
+             wp_kses(
+             /* translators: %s: Formatted plugin title codename */
+                 __( 'The %s plugin cannot be activated if these following PHP core functions are missing', 'prime-mover' ), 
+                 [ 'strong' => [] ]
+             ),
+             '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>' 
+         ); ?>:</p>
             <ul>
                 <?php 
                 foreach ( $this->missing_functions as $function ) {
                 ?>
-                    <li><strong><?php echo $function;?>()</strong></li>
+                    <li><strong><?php echo esc_html($function);?>()</strong></li>
                 <?php    
                 }
                 ?>
@@ -217,13 +224,20 @@ class PrimeMoverPHPCoreFunctionDependencies
         }
         ?>
         <div class="error">        
-         <p><?php printf( esc_html__( 'The %s plugin cannot be activated if these following PHP core extensions are missing', 'prime-mover' ), 
-             '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>' )?>:</p>
+         <p><?php         
+         printf( 
+             wp_kses(
+             /* translators: %s: Formatted plugin title codename */
+                 __( 'The %s plugin cannot be activated if these following PHP core extensions are missing', 'prime-mover' ), 
+                 [ 'strong' => [] ]
+             ),
+             '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>' 
+         ); ?>:</p>
             <ul>
                 <?php 
                 foreach ( $this->missing_extensions as $extension ) {
                 ?>
-                    <li><strong><?php echo $extension;?></strong></li>
+                    <li><strong><?php echo esc_html($extension);?></strong></li>
                 <?php    
                 }
                 ?>
@@ -231,5 +245,5 @@ class PrimeMoverPHPCoreFunctionDependencies
          <p><?php esc_html_e('Please contact your web hosting provider to enable these required PHP extensions for you.', 'prime-mover' ); ?></p>
         </div>
     <?php
-    }
+    }    
 }

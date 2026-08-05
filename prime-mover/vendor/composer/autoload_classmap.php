@@ -56,7 +56,6 @@ return array(
     'Codexonics\\PrimeMoverFramework\\build\\splitbrain\\PHPArchive\\FileInfo' => $baseDir . '/build/splitbrain/php-archive/src/FileInfo.php',
     'Codexonics\\PrimeMoverFramework\\build\\splitbrain\\PHPArchive\\FileInfoException' => $baseDir . '/build/splitbrain/php-archive/src/FileInfoException.php',
     'Codexonics\\PrimeMoverFramework\\build\\splitbrain\\PHPArchive\\Tar' => $baseDir . '/build/splitbrain/php-archive/src/Tar.php',
-    'Codexonics\\PrimeMoverFramework\\build\\splitbrain\\PHPArchive\\Zip' => $baseDir . '/build/splitbrain/php-archive/src/Zip.php',
     'Codexonics\\PrimeMoverFramework\\classes\\PrimeMover' => $baseDir . '/classes/PrimeMover.php',
     'Codexonics\\PrimeMoverFramework\\classes\\PrimeMoverErrorHandlers' => $baseDir . '/classes/PrimeMoverErrorHandlers.php',
     'Codexonics\\PrimeMoverFramework\\classes\\PrimeMoverExporter' => $baseDir . '/classes/PrimeMoverExporter.php',
@@ -164,5 +163,5 @@ return array(
     'PrimeMoverPHPVersionDependencies' => $baseDir . '/dependency-checks/PrimeMoverPHPVersionDependencies.php',
     'PrimeMoverPluginSlugDependencies' => $baseDir . '/dependency-checks/PrimeMoverPluginSlugDependencies.php',
     'PrimeMoverRequirementsCheck' => $baseDir . '/dependency-checks/PrimeMoverRequirementsCheck.php',
-    'PrimeMoverWPCoreDependencies' => $baseDir . '/dependency-checks/PrimeMoverWPCoreDepedencies.php',
+    'PrimeMoverWPCoreDependencies' => $baseDir . '/dependency-checks/PrimeMoverWPCoreDependencies.php',
 );

@@ -60,7 +60,7 @@ class PrimeMoverPluginSlugDependencies
         }
     }
     
-    /**
+        /**
      * Report non-compliant plugin slug to user.
      */
     public function incompatibleSlugNotice()
@@ -68,9 +68,15 @@ class PrimeMoverPluginSlugDependencies
         ?>
         <div class="error">
             <p>
-            <?php 
-            printf( esc_html__( 'The %s plugin cannot be activated if it is using different plugin folder name other than the defaults. Please rename plugin folder name to :', 
-                'prime-mover'), '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>'); 
+            <?php            
+            printf( 
+                wp_kses(
+                /* translators: %s: Formatted plugin title codename string */
+                    __( 'The %s plugin cannot be activated if it is using different plugin folder name other than the defaults. Please rename plugin folder name to :', 'prime-mover' ), 
+                    [ 'strong' => [] ]
+                ),
+                '<strong>' . esc_html(PRIME_MOVER_PLUGIN_CODENAME) . '</strong>'
+            ); 
             ?>
             </p>
             <ul>

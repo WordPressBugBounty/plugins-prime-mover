@@ -46,7 +46,7 @@ class FileInfo
     {
         \clearstatcache(\false, $path);
         if (!\file_exists($path)) {
-            throw new FileInfoException("{$path} does not exist");
+            throw new FileInfoException(esc_html("{$path} does not exist"));
         }
         $stat = \stat($path);
         $file = new FileInfo();

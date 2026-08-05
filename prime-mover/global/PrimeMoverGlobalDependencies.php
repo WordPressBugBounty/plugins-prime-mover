@@ -1,6 +1,6 @@
 <?php
 /****************************************************
- * PRIME MOVE GLOBAL DEPENDENCIES
+ * PRIME MOVER GLOBAL DEPENDENCIES
  * Gets the requisite check instance
  * **************************************************
  */
@@ -33,7 +33,7 @@ class PrimeMoverGlobalDependencies
         $phprequirement = '5.6';
         
         $phpverdependency = new PrimeMoverPHPVersionDependencies($phprequirement);
-        $wpcoredependency = new PrimeMoverWPCoreDependencies('4.9.8');
+        $wpcoredependency = new PrimeMoverWPCoreDependencies('5.2');
         $phpfuncdependency = new PrimeMoverPHPCoreFunctionDependencies();
         $foldernamedependency = new PrimeMoverPluginSlugDependencies(array(PRIME_MOVER_DEFAULT_FREE_BASENAME, PRIME_MOVER_DEFAULT_PRO_BASENAME));
         $coresaltdependency = new PrimeMoverCoreSaltDependencies();
@@ -51,7 +51,7 @@ class PrimeMoverGlobalDependencies
             array_unshift($required_paths, WP_CONTENT_DIR);
         }
         
-        $wp_upload_dir = primeMoverGetUploadsDirectoryInfo();
+        $wp_upload_dir = prime_mover_get_uploads_directory_info();
         
         $basedir = '';
         $export_dir = '';

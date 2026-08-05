@@ -146,16 +146,24 @@ class PrimeMoverImportUtilities
      * @return array
      */
     public function setImportProcessError( array $args )
-    {       
-        $args['prime_mover_importprocess_error_message'] = esc_js(
-            "<p>" . sprintf(__('Import process fails for site ID : {{BLOGID}}. Retry is attempted but still fails after %s seconds.', 'prime-mover'), '<strong>{{RETRYSECONDS}}</strong>') . "</p>" .
-            "<p>" . '<strong>' . __('Server Error : {{PROGRESSSERVERERROR}}', 'prime-mover') . '</strong>' . "</p>" .
-            "<p>" . __('Error occurs while processing', 'prime-mover') . ' ' . "<strong>{{IMPORTMETHODWITHERROR}}</strong>" . ' ' . __('method.', 'prime-mover') . "</p>" .
-            "<p><strong>" . sprintf(__('Can you try increasing the web server timeout beyond %s', 'prime-mover'), '<strong>{{FIXEDSECONDS}}</strong>') . ' ' . __('seconds', 'prime-mover') ."?</strong></p>" .
-            "<p>" . __('This might help resolve this issue when restoring/importing large sites.', 'prime-mover') . "</p>"
-            );        
+    {
+        $error_html = "<p>" . __( 'Import process fails for site ID : {{BLOGID}}. Retry is attempted but still fails after <strong>{{RETRYSECONDS}}</strong> seconds.', 'prime-mover' ) . "</p>" .
+            "<p><strong>" . __( 'Server Error : {{PROGRESSSERVERERROR}}', 'prime-mover' ) . "</strong></p>" .
+            "<p>" . __( 'Error occurs while processing <strong>{{IMPORTMETHODWITHERROR}}</strong> method.', 'prime-mover' ) . "</p>" .
+            "<p><strong>" . __( 'Can you try increasing the web server timeout beyond {{FIXEDSECONDS}} seconds?', 'prime-mover' ) . "</strong></p>" .
+            "<p>" . __( 'This might help resolve this issue when restoring/importing large sites.', 'prime-mover' ) . "</p>";
         
-        $args['prime_mover_unknown_import_process_error'] = esc_js(__('unknown', 'prime-mover'));
+        $args['prime_mover_importprocess_error_message'] = esc_js(
+            wp_kses(
+                $error_html,
+                [
+                    'p'      => [],
+                    'strong' => [],
+                ]
+                )
+            );
+        
+        $args['prime_mover_unknown_import_process_error'] = esc_js( __( 'unknown', 'prime-mover' ) );
         
         return $args;
     }
@@ -186,7 +194,7 @@ class PrimeMoverImportUtilities
             return $upload_phrase;
         }
         
-        $origin_domain = parse_url($current_upload_url, PHP_URL_HOST);
+        $origin_domain = wp_parse_url((string) $current_upload_url, PHP_URL_HOST);        
         $alternative_upload_url = str_replace($origin_domain, $origin_site_url, $current_upload_url);
 
         $upload_phrase['wpupload_url_alternative']['search'] =  $alternative_upload_url;
@@ -220,7 +228,7 @@ class PrimeMoverImportUtilities
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverImportUtilities::itShowsCoreImportButton()
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverImportUtilities::itLoadsMobileClassOnCoreImportWhenMobile()
      */
-    public function showCoreImportButton($blog_id = 0) 
+    public function showCoreImportButton($blog_id = 0)
     {
         if ( ! $blog_id ) {
             return;
@@ -228,10 +236,11 @@ class PrimeMoverImportUtilities
         $mobile_class = '';
         $target = apply_filters('prime_mover_filter_restore_button_text', esc_html__('RESTORE', 'prime-mover'), $blog_id);
         if (is_multisite()) {
-            $button_text = sprintf(esc_html__('%s blog ID: %d', 'prime-mover'), $target, $blog_id);         
+            /* translators: %1$s: Capitalized action label (e.g., RESTORE), %2$d: Numerical Blog ID value */
+            $button_text = sprintf(esc_html__('%1$s blog ID: %2$d', 'prime-mover'), $target, $blog_id);
         } else {
             $button_text = $target;
-        }        
+        }
         if (wp_is_mobile()) {
             $mobile_class = 'prime_mover_is_mobile';
             $button_text = $target;
@@ -242,12 +251,12 @@ class PrimeMoverImportUtilities
         if ($disabled) {
             $title = $this->getSystemCheckUtilities()->getSystemFunctions()->maybeShowPermissionIssuesOnToolTip($blog_id, 'import');
         }
-    ?>
-       <label title="<?php echo esc_attr($title); ?>" <?php echo $disabled; ?> for="js-prime_mover_importing_blog_<?php echo esc_attr($blog_id) ; ?>" id="js-prime-mover-browseupload-label-<?php echo esc_attr($blog_id) ; ?>" 
-       class="<?php echo apply_filters('prime_mover_filter_button_class', $this->getImporter()->getSystemInitialization()->defaultButtonClasses(), $blog_id); ?> prime-mover-fileupload-label">
-           <?php echo $button_text; ?>
+        ?>
+       <label title="<?php echo esc_attr($title); ?>" <?php echo esc_attr($disabled); ?> for="js-prime_mover_importing_blog_<?php echo esc_attr($blog_id) ; ?>" id="js-prime-mover-browseupload-label-<?php echo esc_attr($blog_id) ; ?>" 
+       class="<?php echo esc_attr(apply_filters('prime_mover_filter_button_class', $this->getImporter()->getSystemInitialization()->defaultButtonClasses(), $blog_id)); ?> prime-mover-fileupload-label">
+           <?php echo esc_html($button_text); ?>
        </label>
-	    	<input <?php echo $disabled; ?> name ="prime_mover_importbrowsefile" 
+	    	<input <?php echo esc_attr($disabled); ?> name ="prime_mover_importbrowsefile" 
 	    			type ="file"
 	    			class = "prime_mover_importbrowsefile js-prime_mover_importbrowsefile <?php echo esc_attr($mobile_class);?>"
 	    			accept =".wprime, .zip"
@@ -398,7 +407,7 @@ class PrimeMoverImportUtilities
         }
         ?>
         <div style="display:none;" id="js-prime-mover-wrong-importedsite-<?php echo esc_attr($blog_id); ?>" title="<?php esc_attr_e('Error!', 'prime-mover')?>"> 
-			<p><?php echo $this->getImporter()->getSystemInitialization()->returnCommonWrongTargetSiteError(); ?></p>  	  	
+			<p><?php echo esc_html($this->getImporter()->getSystemInitialization()->returnCommonWrongTargetSiteError()); ?></p>  	  	
         </div>
     <?php
     }
@@ -455,7 +464,7 @@ class PrimeMoverImportUtilities
     public function importWarning($blog_id = 0)
     {
         if (!$blog_id) {
-            return;   
+            return;
         }
         $upload_max_filesize = $this->getSystemCheckUtilities()->getSystemFunctions()->getUploadMaxFilesizeCorePhpValue();
         $post_max_size = $this->getSystemCheckUtilities()->getSystemFunctions()->getPostMaxSizeCorePhpValue();
@@ -463,12 +472,36 @@ class PrimeMoverImportUtilities
         ?>
         <div style="display:none;" id="js-prime-mover-import-warning-confirm-<?php echo esc_attr($blog_id); ?>" title="<?php esc_attr_e('Heads Up!', 'prime-mover')?>"> 
           <p class="js-prime-mover-upload-option-selected prime-mover-upload-option-selected">
-          <?php echo esc_html__('It will take around ', 'prime-mover') . ' ' . "<code id='js-prime-mover-computed-uploadtime' title='" . esc_attr($server_upload_limits) . "'></code>" . ' ' . 
-              esc_html__('to upload this package', 'prime-mover'); ?>.              
+          <?php           
+          printf( 
+              wp_kses(
+                  /* translators: %s: Calculated file server upload limits meta reference description text value */
+                  __( 'It will take around <code id="js-prime-mover-computed-uploadtime" title="%s"></code> to upload this package.', 'prime-mover' ),
+                  [
+                      'code' => [
+                          'id'    => true,
+                          'title' => true,
+                      ],
+                  ]
+              ), 
+              esc_attr($server_upload_limits) 
+          );
+          ?>              
           <?php
              $backups_menu_url = $this->getSystemCheckUtilities()->getSystemFunctions()->getBackupMenuUrl($blog_id);
-             echo sprintf(esc_html__('You can also copy this to %s using FTP and restore in %s.', 'prime-mover'), 
-                 '<a href="' . $backups_menu_url . '">' . esc_html__('Prime Mover package path', 'prime-mover') . '</a>' , '<em>' . esc_html__('Prime Mover -> Packages', 'prime-mover') . '</em>'); 
+             
+             echo sprintf(
+                 wp_kses(
+                     /* translators: %1$s: Link anchor pointing to the Package Manager settings page layout view, %2$s: Emphasized section title path (e.g. Prime Mover -> Packages) */
+                     __( 'You can also copy this to <a href="%1$s">Prime Mover package path</a> using FTP and restore in <em>%2$s</em>.', 'prime-mover' ),
+                     [
+                         'a'  => [ 'href' => true ],
+                         'em' => [],
+                     ]
+                 ),
+                 esc_url($backups_menu_url),
+                 esc_html__( 'Prime Mover -> Packages', 'prime-mover' )
+             ); 
              ?>    
           </p>
           <?php if ( false === apply_filters('prime_mover_is_loggedin_customer', false)) { 
@@ -478,7 +511,7 @@ class PrimeMoverImportUtilities
           ?>
           <p class="js-prime-mover-upload-option-selected prime-mover-upload-option-selected">
               <a target="_blank" href="<?php echo esc_url($upgrade_url); ?>">
-              <?php echo $upgrade_text;?></a> <?php echo esc_html__('to use all migration and backup options.', 'prime-mover');?></p>  
+              <?php echo esc_html($upgrade_text);?></a> <?php echo esc_html__('to use all migration and backup options.', 'prime-mover');?></p>  
           <?php 
           }
           ?>        
@@ -622,32 +655,35 @@ class PrimeMoverImportUtilities
         $template_path_wpcontent = wp_normalize_path($template_path_wpcontent);
         $template_path_package = wp_normalize_path($template_path_package);
         
-        if (!$this->getSystemCheckUtilities()->getSystemFunctions()->fileExists($template_path_wpcontent) || 
+        if (!$this->getSystemCheckUtilities()->getSystemFunctions()->fileExists($template_path_wpcontent) ||
             !$this->getSystemCheckUtilities()->getSystemFunctions()->fileExists($template_path_package)) {
                 
-            return $import_data;
-        }
-        
-        if (wp_is_writable($template_path_wpcontent)) {            
-            return $import_data;
-        }        
-        
-        $hash_algo = $this->getSystemCheckUtilities()->getSystemInitialization()->getFastHashingAlgo();
-        $source_theme_hash = $this->getSystemCheckUtilities()->getSystemFunctions()->hashEntity($template_path_package, $hash_algo);
-        $target_theme_hash = $this->getSystemCheckUtilities()->getSystemFunctions()->hashEntity($template_path_wpcontent, $hash_algo);
-        
-        do_action('prime_mover_log_processed_events', "Comparing non-permissive $copying_what theme folders using hash algo: $hash_algo", $blog_id, 'import', __FUNCTION__, $this);
-        do_action('prime_mover_log_processed_events', "Source $copying_what theme hash: $source_theme_hash and target $copying_what theme hash: $target_theme_hash", $blog_id, 'import', __FUNCTION__, $this);        
-        
-        if ($source_theme_hash && $source_theme_hash === $target_theme_hash) {            
-            $import_data = $this->closeThemeRestore($import_data, $copying_what);            
-        } else {
-            $import_data['error'] = sprintf(
-                esc_html__('Unable to restore theme due to file permission issues. Please delete this path manually and try again: %s', 'prime-mover'), $template_path_wpcontent);     
+                return $import_data;
+            }
+            
+            if (wp_is_writable($template_path_wpcontent)) {
+                return $import_data;
+            }
+            
+            $hash_algo = $this->getSystemCheckUtilities()->getSystemInitialization()->getFastHashingAlgo();
+            $source_theme_hash = $this->getSystemCheckUtilities()->getSystemFunctions()->hashEntity($template_path_package, $hash_algo);
+            $target_theme_hash = $this->getSystemCheckUtilities()->getSystemFunctions()->hashEntity($template_path_wpcontent, $hash_algo);
+            
+            do_action('prime_mover_log_processed_events', "Comparing non-permissive $copying_what theme folders using hash algo: $hash_algo", $blog_id, 'import', __FUNCTION__, $this);
+            do_action('prime_mover_log_processed_events', "Source $copying_what theme hash: $source_theme_hash and target $copying_what theme hash: $target_theme_hash", $blog_id, 'import', __FUNCTION__, $this);
+            
+            if ($source_theme_hash && $source_theme_hash === $target_theme_hash) {
+                $import_data = $this->closeThemeRestore($import_data, $copying_what);
+            } else {                
+                $import_data['error'] = sprintf(
+                /* translators: %s: Absolute theme folder directory file path string */
+                esc_html__('Unable to restore theme due to file permission issues. Please delete this path manually and try again: %s', 'prime-mover'),
+                $template_path_wpcontent
+                );
                 
-        }
-        
-        return $import_data;        
+            }
+            
+            return $import_data;
     }
     
     /**
@@ -700,11 +736,11 @@ class PrimeMoverImportUtilities
      * @return string|WP_Error|number|boolean
      */
     private function handleThemeImport($template_path_wpcontent = '', $template_path_package = '', $blog_id = 0, $start = 0, $processed = 0, $import_data  = [], $copying_what = 'parent')
-    {        
-        $this->getImporter()->getSystemFunctions()->enableMaintenanceDuringImport();        
+    {
+        $this->getImporter()->getSystemFunctions()->enableMaintenanceDuringImport();
         if (!$processed) {
             $this->getImporter()->getSystemFunctions()->primeMoverDoDelete($template_path_wpcontent);
-        }      
+        }
         if (!$processed) {
             $theme_make_directory_result = wp_mkdir_p($template_path_wpcontent);
             if (false === $theme_make_directory_result) {
@@ -713,24 +749,26 @@ class PrimeMoverImportUtilities
                 $this->getImporter()->getSystemFunctions()->disableMaintenanceDuringImport();
                 return $import_data;
             }
-        }      
+        }
         
-        do_action('prime_mover_log_processed_events', "COPYING THEME: $template_path_package TO: $template_path_wpcontent", $blog_id, 'import', 'handleThemeImport', $this);        
+        do_action('prime_mover_log_processed_events', "COPYING THEME: $template_path_package TO: $template_path_wpcontent", $blog_id, 'import', 'handleThemeImport', $this);
         $processed = (int)$processed;
         $progress_text = esc_html__('starting..', 'prime-mover');
         if ($processed) {
+            /* translators: %d: Number of files processed so far */
             $progress_text = sprintf(esc_html__('%d files processed', 'prime-mover'), $processed);
-        } 
+        }
         
-        $this->getImporter()->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Importing %s theme..%s', 'prime-mover'), $copying_what, $progress_text));  
-        $copy_directory_result	= $this->getSystemCheckUtilities()->copyDir($template_path_package, $template_path_wpcontent, [], [], true, true, $start, $blog_id, $processed, true, 'themes_copy', [], $import_data);        
+        /* translators: %1$s: Description of the copying state context (e.g. parent or child), %2$s: Running progress status text phrase */
+        $this->getImporter()->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Importing %1$s theme..%2$s', 'prime-mover'), $copying_what, $progress_text));
+        $copy_directory_result	= $this->getSystemCheckUtilities()->copyDir($template_path_package, $template_path_wpcontent, [], [], true, true, $start, $blog_id, $processed, true, 'themes_copy', [], $import_data);
         $this->getImporter()->getSystemFunctions()->disableMaintenanceDuringImport();
         
-        if (is_wp_error($copy_directory_result)) {   
-            $import_data['error'] = $copy_directory_result->get_error_message();            
+        if (is_wp_error($copy_directory_result)) {
+            $import_data['error'] = $copy_directory_result->get_error_message();
             
-        } elseif (is_array($copy_directory_result) && isset($copy_directory_result['copychunked_offset'])) {    
-            $import_data = $copy_directory_result;                   
+        } elseif (is_array($copy_directory_result) && isset($copy_directory_result['copychunked_offset'])) {
+            $import_data = $copy_directory_result;
             
         } elseif (is_bool($copy_directory_result) && $copy_directory_result) {
             
@@ -742,14 +780,14 @@ class PrimeMoverImportUtilities
             }
             if (isset($import_data['copydir_processed'])) {
                 unset($import_data['copydir_processed']);
-            }            
+            }
             
             $key = $copying_what . '_theme_copy_done';
-            $import_data[$key] = true;            
+            $import_data[$key] = true;
         }
         
         return $import_data;
-    }
+    }    
     
     /**
      * Get system check utilities
@@ -851,8 +889,10 @@ class PrimeMoverImportUtilities
         if (isset($counted) && $counted > 1) {
             $text_files = esc_html__('plugins', 'prime-mover');
         }
-        $this->getImporter()->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Importing %d remaining %s, %s done.', 'prime-mover'), $counted, $text_files, $percent), 'import' );            
-    }
+        
+        /* translators: %1$d: Numerical count of remaining items, %2$s: Pluralized item noun phrase (e.g. plugin or plugins), %3$s: Progress completion percentage value (e.g. 50%) */
+        $this->getImporter()->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Importing %1$d remaining %2$s, %3$s done.', 'prime-mover'), $counted, $text_files, $percent), 'import' );
+    }    
     
     /**
      * Import plugins
@@ -927,7 +967,7 @@ class PrimeMoverImportUtilities
     protected function startLog($blog_id = 0, $plugins = [])
     {
         do_action('prime_mover_log_processed_events', "List of plugins to be imported", $blog_id, 'import', 'loopPluginsToImport', $this);
-        do_action('prime_mover_log_processed_events', print_r($plugins, true), $blog_id, 'import', 'loopPluginsToImport', $this);
+        do_action('prime_mover_log_processed_events', prime_mover_print_dbg($plugins), $blog_id, 'import', 'loopPluginsToImport', $this);        
     }
     
     /**
@@ -1181,26 +1221,27 @@ class PrimeMoverImportUtilities
                 return false;
             }
             
-        if (wp_is_writable($plugin_path_target)) {
-            return false;
-        }
-        
-        $hash_algo = $this->getSystemCheckUtilities()->getSystemInitialization()->getFastHashingAlgo();
-        $source_plugin_hash = $this->getSystemCheckUtilities()->getSystemFunctions()->hashEntity($plugins_imported_package_path, $hash_algo);
-        $target_plugin_hash = $this->getSystemCheckUtilities()->getSystemFunctions()->hashEntity($plugin_path_target, $hash_algo);
-        
-        do_action('prime_mover_log_processed_events', "Comparing non-permissive plugin folders using hash algo: $hash_algo", $blog_id, 'import', __FUNCTION__, $this);
-        do_action('prime_mover_log_processed_events', "Source plugin hash: $source_plugin_hash and target plugin hash: $target_plugin_hash", $blog_id, 'import', __FUNCTION__, $this);
-        
-        if ($source_plugin_hash && $source_plugin_hash === $target_plugin_hash) {
-            return false;
-        } else {
-            return new WP_Error( 'permission_issue_plugin_folder', sprintf(__( 'Could not copy plugin due to permission issue - please manually delete this directory and try again: %s' ), $plugin_path_target), $plugin_path_target);
+            if (wp_is_writable($plugin_path_target)) {
+                return false;
+            }
             
-        }
-        
-        return false;
-    }
+            $hash_algo = $this->getSystemCheckUtilities()->getSystemInitialization()->getFastHashingAlgo();
+            $source_plugin_hash = $this->getSystemCheckUtilities()->getSystemFunctions()->hashEntity($plugins_imported_package_path, $hash_algo);
+            $target_plugin_hash = $this->getSystemCheckUtilities()->getSystemFunctions()->hashEntity($plugin_path_target, $hash_algo);
+            
+            do_action('prime_mover_log_processed_events', "Comparing non-permissive plugin folders using hash algo: $hash_algo", $blog_id, 'import', __FUNCTION__, $this);
+            do_action('prime_mover_log_processed_events', "Source plugin hash: $source_plugin_hash and target plugin hash: $target_plugin_hash", $blog_id, 'import', __FUNCTION__, $this);
+            
+            if ($source_plugin_hash && $source_plugin_hash === $target_plugin_hash) {
+                return false;
+            } else {
+                /* translators: %s: Absolute target plugin directory folder file path string */
+                return new WP_Error( 'permission_issue_plugin_folder', sprintf(__( 'Could not copy plugin due to permission issue - please manually delete this directory and try again: %s', 'prime-mover' ), $plugin_path_target), $plugin_path_target);
+                
+            }
+            
+            return false;
+    }    
     
     /**
      * Unlock File 

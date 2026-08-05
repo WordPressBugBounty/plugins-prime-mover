@@ -187,7 +187,7 @@ class PrimeMoverCompatibility
         }
         
         foreach ($strays as $stray) {
-            if (str_contains($templine, $stray)) {
+            if (prime_mover_str_contains($templine, $stray)) {
                 return true;
             }
         }

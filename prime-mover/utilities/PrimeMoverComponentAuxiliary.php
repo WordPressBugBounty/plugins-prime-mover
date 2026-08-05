@@ -974,21 +974,31 @@ class PrimeMoverComponentAuxiliary
             $package_string = esc_html__('packages', 'prime-mover');
             $this_package_string = esc_html__('These packages', 'prime-mover');
         }
-    ?>
+        ?>
        <div class="notice notice-warning is-dismissible"> 
        <?php if (wp_doing_ajax()) { ?>
-            <p><?php echo sprintf(esc_html__('Corrupt %s detected! Check %s', 'prime-mover'), 
-                $package_string,
-                '<a href="' . esc_url($refresh_package_url) . '">' . esc_html__('package manager') . '</a>'
-                ); ?>.
+            <p><?php            
+            echo sprintf(
+                wp_kses(
+                    /* translators: %1$s: Package type noun (e.g. package or packages), %2$s: Admin package manager configuration dashboard page URL string link */
+                    __( 'Corrupt %1$s detected! Check <a href="%2$s">package manager</a>.', 'prime-mover' ),
+                    [ 'a' => [ 'href' => true ] ]
+                ),
+                esc_html($package_string),
+                esc_url($refresh_package_url)
+            ); ?>
             </p>
        
        <?php } else { ?> 
-	        <h2><?php echo sprintf(esc_html__('Corrupt %s detected', 'prime-mover'), $package_string); ?>!</h2>
-	        <p><?php echo sprintf(esc_html__('%s detects the following corrupted %s in your backup directory', 'prime-mover'), 
-	            $this->getSystemInitialization()->getPrimeMoverPluginTitle(), 
-	            $package_string); 
-	        ?>:
+	        <h2><?php 
+	        /* translators: %s: Package type noun (e.g. package or packages) */
+	        echo sprintf(esc_html__('Corrupt %s detected!', 'prime-mover'), esc_html($package_string)); ?></h2>
+	        <p><?php 
+	        /* translators: %1$s: Core name title of the plugin, %2$s: Package type noun (e.g. package or packages) */
+	        echo sprintf(esc_html__('%1$s detects the following corrupted %2$s in your backup directory:', 'prime-mover'), 
+	            esc_html($this->getSystemInitialization()->getPrimeMoverPluginTitle()), 
+	            esc_html($package_string)); 
+	        ?>
 	        </p>	
             
             <ul>
@@ -997,13 +1007,24 @@ class PrimeMoverComponentAuxiliary
             <?php } ?>
             </ul>           
 	
-	        <p><?php echo sprintf(esc_html__('If you think %s should not be corrupted - %s. Once fixed, click %s button to update. 
-If you no longer need %s - please delete this via FTP or any file manager.', 'prime-mover'), 
-		        strtolower($this_package_string),
-		        '<a class="prime-mover-external-link" target="_blank" href="' . CODEXONICS_CORRUPT_WPRIME_DOC . '">' . esc_html__('please check out this tutorial', 'prime-mover') . '</a>',
-		        '<strong>' . esc_html__('Refresh packages') . '</strong>',
-	            strtolower($this_package_string)
-		        );
+	        <p><?php 	        
+	        echo sprintf(
+	            wp_kses(
+	                /* translators: %1$s: Pluralized context noun (e.g. this package or these packages), %2$s: Codexonics corrupt package documentation URL reference string link, %3$s: Pluralized context noun (e.g. this package or these packages) */
+	                __( 'If you think %1$s should not be corrupted - <a class="prime-mover-external-link" target="_blank" href="%2$s">please check out this tutorial</a>. Once fixed, click <strong>Refresh packages</strong> button to update. If you no longer need %3$s - please delete this via FTP or any file manager.', 'prime-mover' ),
+	                [
+	                    'a' => [
+	                        'class'  => true,
+	                        'target' => true,
+	                        'href'   => true,
+	                    ],
+	                    'strong' => [],
+	                ]
+	            ),
+		        esc_html(strtolower($this_package_string)),
+		        esc_url(CODEXONICS_CORRUPT_WPRIME_DOC),
+	            esc_html(strtolower($this_package_string))
+		    );
 		    ?></p>
 	     <?php } ?>
 		</div>
@@ -1379,25 +1400,24 @@ If you no longer need %s - please delete this via FTP or any file manager.', 'pr
      * Enqueue clipboard js
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverComponentAuxiliary::itEnqueuesClipboardJs()
      */
-    public function enqueueClipBoardJs($backup_menu = false)
+    public function enqueueclipboardjs($backup_menu = false) 
     {
-        $min = '.min';
-        if ( defined('SCRIPT_DEBUG') && SCRIPT_DEBUG ) {
-            $min = '';
-        }
-        
-        $clipboard_js = "clipboard$min.js";
         $current_filter = current_filter();
         $dependencies = ['jquery', 'jquery-ui-core', 'jquery-ui-dialog'];
         if ('prime_mover_panel_after_enqueue_assets' !== $current_filter && false === $backup_menu) {
             $dependencies[] = 'prime_mover_js_network_admin';
         }
-        wp_enqueue_script(
-            'prime_mover_gearbox_clipboard_js',
-            esc_url_raw(plugins_url('res/js/' . $clipboard_js, dirname(__FILE__))),
-            $dependencies,
-            PRIME_MOVER_VERSION
-            );     
+       
+        $dependencies[] = 'clipboard';
+       
+        wp_register_script(
+        'prime_mover_gearbox_clipboard_js',
+        false,
+        $dependencies,
+        PRIME_MOVER_VERSION
+        );
+        
+        wp_enqueue_script( 'prime_mover_gearbox_clipboard_js' );
     }
     
     /**

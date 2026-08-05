@@ -162,8 +162,8 @@ class PrimeMoverEventViewerListTable extends WP_List_Table
     public function column_default($item, $column_name)
     {
         switch($column_name){
-            default:
-                return print_r($item,true);
+            default:                
+                return prime_mover_print_dbg($item);
         }
     }    
       
@@ -257,13 +257,27 @@ class PrimeMoverEventViewerListTable extends WP_List_Table
     private function interval($since) 
     {
         $chunks = [            
-            [YEAR_IN_SECONDS, _n_noop( '%s year', '%s years', 'prime-mover')],            
-            [MONTH_IN_SECONDS, _n_noop( '%s month', '%s months', 'prime-mover')],            
-            [WEEK_IN_SECONDS, _n_noop( '%s week', '%s weeks', 'prime-mover')],            
-            [DAY_IN_SECONDS, _n_noop( '%s day', '%s days', 'prime-mover')],            
-            [HOUR_IN_SECONDS, _n_noop( '%s hour', '%s hours', 'prime-mover')],            
-            [MINUTE_IN_SECONDS, _n_noop( '%s minute', '%s minutes', 'prime-mover')],            
-            [1, _n_noop( '%s second', '%s seconds', 'prime-mover')],
+            [YEAR_IN_SECONDS,
+                /* translators: %s: Number of years. */
+                _n_noop( '%s year', '%s years', 'prime-mover')],            
+            [MONTH_IN_SECONDS,
+                /* translators: %s: Number of months. */
+                _n_noop( '%s month', '%s months', 'prime-mover')],            
+            [WEEK_IN_SECONDS,
+                /* translators: %s: Number of weeks. */
+                _n_noop( '%s week', '%s weeks', 'prime-mover')],            
+            [DAY_IN_SECONDS,
+                /* translators: %s: Number of days. */
+                _n_noop( '%s day', '%s days', 'prime-mover')],            
+            [HOUR_IN_SECONDS,
+                /* translators: %s: Number of hours. */
+                _n_noop( '%s hour', '%s hours', 'prime-mover')],            
+            [MINUTE_IN_SECONDS,
+                /* translators: %s: Number of minutes. */
+                _n_noop( '%s minute', '%s minutes', 'prime-mover')],            
+            [1,
+                /* translators: %s: Number of seconds. */
+                _n_noop( '%s second', '%s seconds', 'prime-mover')],
         ];
         
         if ( $since <= 0 ) {
@@ -279,12 +293,14 @@ class PrimeMoverEventViewerListTable extends WP_List_Table
             }
         }
         
+        /* translators: %d: Plural time interval numerical count value */
         $output = sprintf(translate_nooped_plural( $name, $count, 'prime-mover'), $count);
         if ( $i + 1 < count($chunks)) {
             $seconds2 = $chunks[ $i + 1 ][0];
             $name2 = $chunks[ $i + 1 ][1];
             $count2= (int) floor(($since -($seconds * $count)) / $seconds2);
-            if ($count2) {              
+            if ($count2) {      
+                /* translators: %d: Plural secondary time interval sub-unit numerical count value */
                 $output .= ' ' . sprintf(translate_nooped_plural($name2, $count2, 'prime-mover'), $count2);
             }
         }
@@ -313,8 +329,8 @@ class PrimeMoverEventViewerListTable extends WP_List_Table
      * @param array $event
      * @return string
      */
-    public function column_recurrence($event = []) 
-    {        
+    public function column_recurrence($event = [])
+    {
         if ($event['schedule']) {
             $schedule_name = $this->getScheduleName($event);
             if (is_wp_error($schedule_name)) {
@@ -326,8 +342,13 @@ class PrimeMoverEventViewerListTable extends WP_List_Table
                 return sprintf(
                     '%1$s<span class="status-crontrol-warning"><br><span class="dashicons dashicons-warning" aria-hidden="true"></span> %2$s</span>',
                     esc_html($schedule_name),
-                    sprintf(                        
-                        esc_html__('This interval is less than the %1$s constant which is set to %2$s seconds. Events that use it may not run on time.', 'prime-mover'),
+                    
+                    sprintf(
+                        wp_kses(
+                            /* translators: %1$s: Configuration lock constant name wrapper, %2$s: Numerical interval duration value in seconds */
+                            __( 'This interval is less than the %1$s constant which is set to %2$s seconds. Events that use it may not run on time.', 'prime-mover' ),
+                            [ 'code' => [] ]
+                            ),
                         '<code>WP_CRON_LOCK_TIMEOUT</code>',
                         intval(WP_CRON_LOCK_TIMEOUT)
                         )
@@ -352,8 +373,9 @@ class PrimeMoverEventViewerListTable extends WP_List_Table
             'blog_id' => esc_html__('Blog ID', 'prime-mover'),           
             'event_hook_name' => esc_html__('Events name', 'prime-mover'),             
             'description' => esc_html__('Description', 'prime-mover'),            
-            'next_run' => sprintf(
-                esc_html__( 'Next Run (%s)', 'prime-mover' ), $this->getUtcOffset()),
+            'next_run' => 
+             /* translators: %s: Offset time */
+             sprintf(esc_html__( 'Next Run (%s)', 'prime-mover' ), $this->getUtcOffset()),
             'recurrence' => esc_html__('Recurrence', 'prime-mover'),
             'backup_option' => esc_html__('Backup info', 'prime-mover')
         ];
@@ -391,10 +413,8 @@ class PrimeMoverEventViewerListTable extends WP_List_Table
             return isset($schedules[ $event['schedule'] ]['display'] ) ? $schedules[ $event['schedule']]['display'] : $schedules[$event['schedule']]['name'];
         }
         
-        return new WP_Error( 'unknown_schedule', sprintf(
-            esc_html__( 'Unknown (%s)', 'prime-mover' ),
-            $event['schedule']
-            ));
+        /* translators: %s: Event schedule */
+        return new WP_Error( 'unknown_schedule', sprintf(esc_html__( 'Unknown (%s)', 'prime-mover' ), $event['schedule']));
     }
     
     /**
@@ -614,12 +634,14 @@ class PrimeMoverEventViewerListTable extends WP_List_Table
         }
         
         if ('primeMoverAutomaticBackupEvent' === $cron_mode && $blog_id) {
-            $events[$signature_key]['description'] = sprintf(esc_html__('Automatic backup event scheduled for blog ID: %d'), $blog_id);            
+            /* translators: %d: Blog id */
+            $events[$signature_key]['description'] = sprintf(esc_html__('Automatic backup event scheduled for blog ID: %d', 'prime-mover'), $blog_id);            
             $backup_option = $this->getSpecificSettingOfSite($blog_id, "automatic_backup_export_options", $settings);
         }
         
         if ('primeMoverProgressIntervalEvent' === $cron_mode && $blog_id) {
-            $events[$signature_key]['description'] = sprintf(esc_html__('Event for checking pending backups to continue for blog ID: %d'), $blog_id);
+            /* translators: %d: Blog id */
+            $events[$signature_key]['description'] = sprintf(esc_html__('Event for checking pending backups to continue for blog ID: %d', 'prime-mover'), $blog_id);
         }
         
         if ('primeMoverDeleteSymlinkEvent' === $hook) {
@@ -672,7 +694,7 @@ class PrimeMoverEventViewerListTable extends WP_List_Table
         $percent = ($position / $count) * 100;
         $percent = round($percent, 0);
         
-        $progress = $percent . '% ' . esc_html__('completed', 'prime_mover');;
+        $progress = $percent . '% ' . esc_html__('completed', 'prime-mover');;
         return $progress;        
     }
     

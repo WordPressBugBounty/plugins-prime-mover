@@ -201,9 +201,9 @@ class PrimeMoverCustomMultisite
         $orig_generic_upload = $replaceables['generic_upload_scheme']['replace'];
         $orig_generic_content = $replaceables['generic_content_scheme']['replace'];        
         
-        $search_upload = parse_url($orig_upload, PHP_URL_HOST);
+        $search_upload = wp_parse_url($orig_upload, PHP_URL_HOST);        
         $search_content = $this->getSiteUrlFromWpContent($orig_content);     
-        $search_generic_upload = parse_url($orig_generic_upload, PHP_URL_HOST);
+        $search_generic_upload = wp_parse_url($orig_generic_upload, PHP_URL_HOST);        
         $search_generic_content = $this->getSiteUrlFromWpContent($orig_generic_content);        
         
         if ($wp_upload_adjust && !$this->isProblemScenario($orig_upload, $replace, $search_upload)) {
@@ -341,7 +341,7 @@ class PrimeMoverCustomMultisite
         if (!$orig_upload_info_url || !$site_url) {
             return '';
         }
-        $domain_current_site_host = parse_url($orig_upload_info_url, PHP_URL_HOST);
+        $domain_current_site_host = wp_parse_url($orig_upload_info_url, PHP_URL_HOST);        
         if (!$domain_current_site_host) {
             return '';
         }

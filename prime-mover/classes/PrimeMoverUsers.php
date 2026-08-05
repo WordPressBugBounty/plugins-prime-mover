@@ -362,7 +362,7 @@ class PrimeMoverUsers
                 }
             }
             
-            if (primeMoverIsShaString($key) && is_serialized($user_meta[$key][0])) {
+            if (prime_mover_is_sha_string($key) && is_serialized($user_meta[$key][0])) {
                 unset($user_meta[$key]);
             }  
             
@@ -902,9 +902,11 @@ class PrimeMoverUsers
         
         $users_export_progress = '';
         if ($users_exported) {
+            /* translators: %d: Users exported */
             $users_export_progress = sprintf(esc_html__('%d completed', 'prime-mover'), $users_exported);            
         }
         
+        /* translators: %s: Users export progress */
         $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Exporting users.. %s', 'prime-mover'), $users_export_progress), 'export' );
         $left_off = 0;
         if (isset($ret['users_export_leftoff'])) {

@@ -453,14 +453,16 @@ class PrimeMoverBackupUtilities
      */
     public function primeMoverManageBackupsSection($blog_id = 0)
     {        
-        $note = '';
         $backups_menu_url = $this->getSystemFunctions()->getBackupMenuUrl($blog_id);
         
         if (is_multisite()) {
-            $note = '(' . sprintf(esc_html__('blog ID : %d', 'prime-mover'), $blog_id) . ')';
+            /* translators: %d: Numerical blog ID value */
+            $heading = sprintf(esc_html__('Manage packages (blog ID : %d)', 'prime-mover'), $blog_id);
+        } else {
+            $heading = esc_html__('Manage packages', 'prime-mover');
         }
         ?>
-        <h3><?php echo sprintf( esc_html__('Manage packages %s', 'prime-mover'), $note );?></h3>	    
+        <h3><?php echo esc_html($heading); ?></h3>	    
 	    <p class="prime-mover-managebackups-<?php echo esc_attr($blog_id); ?>"><a href="<?php echo esc_url($backups_menu_url);?>" class="button button-secondary"><?php esc_html_e('Go to Package Manager', 'prime-mover'); ?></a></p> 	
     <?php    
     }

@@ -13,6 +13,7 @@ namespace Codexonics\PrimeMoverFramework\utilities;
 
 use Codexonics\PrimeMoverFramework\classes\PrimeMoverSystemFunctions;
 use Codexonics\PrimeMoverFramework\general\PrimeMoverMustUsePluginManager;
+use Codexonics\PrimeMoverBridgeIO;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -148,9 +149,9 @@ class PrimeMoverLockUtilities
                 continue;
             }
            
-            $valid = primeMoverIsShaString($user_hash, 256);
+            $valid = prime_mover_is_sha_string($user_hash, 256);
             if (!$valid) {
-                $valid = primeMoverIsShaString($user_hash, 384);
+                $valid = prime_mover_is_sha_string($user_hash, 384);
             }
            
             if ($valid) {
@@ -647,7 +648,7 @@ class PrimeMoverLockUtilities
             $lock_file_path = $lock_file;
         }
         
-        return @fopen($lock_file_path, "wb");
+        return @PrimeMoverBridgeIO::call('fopen', $lock_file_path, "wb");
     }
     
     /**
@@ -677,6 +678,6 @@ class PrimeMoverLockUtilities
      */
     public function closeLock($fp)
     {
-        @fclose($fp);
+        @PrimeMoverBridgeIO::call('fclose', $fp);
     }    
 }

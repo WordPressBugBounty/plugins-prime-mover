@@ -88,7 +88,7 @@ class PrimeMoverDisplayMaintenanceSettings
             <label>
             <input name="prime_mover_enable_maintenance_mode" <?php checked( $this->getPrimeMoverSettings()->getSetting(self::MAINTENANCE_MODE), 'true' ); ?> 
             type="checkbox" id="js-prime_mover_enable_maintenance_mode" value="yes"> 
-            <?php esc_html_e('Always turn off maintenance mode on entire network when migrating a site')?>
+            <?php esc_html_e('Always turn off maintenance mode on entire network when migrating a site', 'prime-mover')?>
             </label>
                 <div class="prime-mover-setting-description">
                     <p class="description prime-mover-settings-paragraph">

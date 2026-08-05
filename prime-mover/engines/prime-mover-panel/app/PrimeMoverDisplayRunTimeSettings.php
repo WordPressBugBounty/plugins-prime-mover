@@ -209,20 +209,20 @@ class PrimeMoverDisplayRunTimeSettings
         ?>
         <p class="description">
           <label for="js-<?php echo esc_attr($identifier); ?>">
-               <strong><?php echo $setting_heading; ?></strong> : <input id="js-<?php echo esc_attr($identifier); ?>" autocomplete="off" 
+               <strong><?php echo esc_html($setting_heading); ?></strong> : <input id="js-<?php echo esc_attr($identifier); ?>" autocomplete="off" 
                name="<?php echo esc_attr($identifier); ?>" 
                class="<?php echo esc_attr($identifier); ?>" type="text" value="<?php echo esc_attr($setting_value);?>" > 
-               (<?php esc_html_e('Default value', 'prime-mover');?> : <?php echo round($constant_default_value, 0);?>)             
+               (<?php esc_html_e('Default value', 'prime-mover');?> : <?php echo esc_html(round($constant_default_value, 0));?>)             
          </label>
         </p> 
         <p class="description">
-          <?php echo $first_description; ?>.
+          <?php echo esc_html($first_description); ?>.
         </p>
         <p class="description">
-          <?php echo $second_description; ?>.
+          <?php echo esc_html($second_description); ?>.
         </p>
        <p class="description">
-          <strong><?php echo $note; ?></strong>.       
+          <strong><?php echo esc_html($note); ?></strong>.       
        </p>                                  
        <?php
        $this->getPrimeMoverSettings()->getSettingsMarkup()->renderSubmitButton("{$identifier}_nonce", "js-save-{$identifier}", "js-save-{$identifier}-spinner", 

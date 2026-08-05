@@ -133,7 +133,7 @@ class PrimeMoverDisplaySecuritySettings
                 $conceal_class = 'conceal-authorization-keys';
             }
             ?>
-            <textarea autocomplete="off" class="large-text <?php echo $conceal_class; ?>" placeholder="<?php echo esc_attr($this->getPlaceHolder())?>" name="prime-mover-authorized-domains" id="js-prime-mover-authorized-domains" rows="5" cols="45"><?php echo esc_textarea($setting);?></textarea>
+            <textarea autocomplete="off" class="large-text <?php echo esc_attr($conceal_class); ?>" placeholder="<?php echo esc_attr($this->getPlaceHolder())?>" name="prime-mover-authorized-domains" id="js-prime-mover-authorized-domains" rows="5" cols="45"><?php echo esc_textarea($setting);?></textarea>
                 <div class="prime-mover-setting-description">
                      <?php if ($conceal_class) {?>
                      <p class="description">
@@ -162,8 +162,8 @@ class PrimeMoverDisplaySecuritySettings
                         }
                     ?>                      
                     <button id="js-prime-mover-autogenerate-key" class="button prime-mover-autogenerate-key" type="button"
-                    title="<?php echo esc_attr(sprintf( esc_html__('%s authorization key of this site. This is 64-characters in length.', 'prime-mover'), $text));?>">
-                        <?php echo esc_attr(sprintf( esc_html__('%s authorization key of this site.', 'prime-mover'), $text));?>
+                    title="<?php echo ('Generate' === $text) ? esc_attr__('Generate authorization key of this site. This is 64-characters in length.', 'prime-mover') : esc_attr__('Update authorization key of this site. This is 64-characters in length.', 'prime-mover'); ?>">
+                    <?php if ('Generate' === $text) { esc_html_e('Generate authorization key of this site.', 'prime-mover'); } else { esc_html_e('Update authorization key of this site.', 'prime-mover'); } ?>
                     </button>
                     </p>
                     <?php $this->getPrimeMoverSettings()->getSettingsMarkup()->renderSubmitButton('prime_mover_save_download_authentication_nonce', 'js-save-prime-mover-download-authentication', 
@@ -173,7 +173,7 @@ class PrimeMoverDisplaySecuritySettings
                         esc_html__('These keys will be used to authenticate download request. Only sites you have authorized will be able to download and migrate package.', 'prime-mover'); 
                     ?> 
                     <p class="description prime-mover-settings-paragraph">                   
-                        <button <?php echo $display; ?> class="button js-prime-mover-copy-key" class="button" type="button" data-saved-value="<?php echo esc_attr($this->getAuthorizationKeyCurrentSite());?>"
+                        <button <?php echo wp_kses_post($display); ?> class="button js-prime-mover-copy-key" class="button" type="button" data-saved-value="<?php echo esc_attr($this->getAuthorizationKeyCurrentSite());?>"
                     data-clipboard-text="<?php echo esc_attr($this->getAuthorizationKeyCurrentSite());?>" title="<?php esc_attr_e('Copy authorization key of this site to clipboard.', 'prime-mover');?>">
                             <?php esc_html_e('Copy site authorization key to clipboard', 'prime-mover'); ?>
                         </button>

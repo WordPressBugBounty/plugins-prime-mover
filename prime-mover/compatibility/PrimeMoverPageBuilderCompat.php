@@ -513,16 +513,16 @@ class PrimeMoverPageBuilderCompat
             $target_column = $this->getUserQueries()->parsePrimaryIndexUserColumns($column_strings, 'user');
             $where = "WHERE {$target_column} LIKE '%tdc_css=\"%' AND post_status = 'publish'";
         }        
-        
         $left_off = 0;
         if (isset($ret[$leftoff_identifier])) {
             $left_off = $ret[$leftoff_identifier];
         }
         
         if ($left_off) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             $where .= $wpdb->prepare(" AND {$primary_index} < %d", $left_off);
         }
-        
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $orderby = $wpdb->prepare("ORDER BY {$primary_index} DESC LIMIT %d", PRIME_MOVER_NON_USER_ADJUSTMENT_LOOKUP_LIMIT);        
         $tbl = "{$wpdb->prefix}{$table}";
         $sql = "SELECT {$column_strings} FROM `{$tbl}` {$where} {$orderby}";

@@ -369,6 +369,7 @@ class PrimeMoverExporter implements PrimeMoverExport
             $done = $original_count - $ongoing;
             $percent = floor(($done/$original_count) * 100) . '%';
             
+            /* translators: %s: Percent */
             $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('List theme files: %s done', 'prime-mover'), $percent), 'export');
             $ret = $this->getIterators()->generateFilesListGivenDir($path_to_copy, $ret);
             if (!empty($ret['copymedia_shell_tmp_list'] )) {
@@ -566,6 +567,7 @@ class PrimeMoverExporter implements PrimeMoverExport
             $done = $original_count - $ongoing;
             $percent = floor(($done/$original_count) * 100) . '%';            
             
+            /* translators: %s: Percent */
             $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('List plugin files: %s done', 'prime-mover'), $percent), 'export');
             $ret = $this->getIterators()->generateFilesListGivenDir($path_to_copy, $ret); 
             if (!empty($ret['copymedia_shell_tmp_list'] )) {
@@ -681,13 +683,17 @@ class PrimeMoverExporter implements PrimeMoverExport
             $percent = floor(($counted/ $ret['total_media_files']) * 100) . '%';
         }
         $readable = $this->getSystemFunctions()->humanFileSize($bytes_written, 1);
+        /* translators: %s: Mode */
         $text_files = sprintf(esc_html__('%s file', 'prime-mover'), $mode);
         if (isset($counted) && $counted > 1) {
+            /* translators: %s: Mode */
             $text_files = sprintf(esc_html__('%s files', 'prime-mover'), $mode);
         }
         if ($copying_media_started) {
-            $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('%s bytes %s archived, %s done.', 'prime-mover'), $readable, $text_files, $percent), 'export' );
+            /* translators: %1$s: Readable bytes, %2$s: Number of files processed, %3$s: Percent */
+            $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('%1$s bytes %2$s archived, %3$s done.', 'prime-mover'), $readable, $text_files, $percent), 'export' );
         } else {
+            /* translators: %s: Mode */
             $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Archiving %s, starting.', 'prime-mover'), $mode), 'export' );
         }
     }
@@ -1029,7 +1035,8 @@ class PrimeMoverExporter implements PrimeMoverExport
     protected function reportDbDumpProgress($ret = [])
     {
         if ( ! empty($ret['dump_percent_progress']) ) {
-            $this->getProgressHandlers()->updateTrackerProgress( sprintf( esc_html__('Dumping database %s done.', 'prime-mover'), $ret['dump_percent_progress']), 'export' );
+            /* translators: %s: Dump percent progress */
+            $this->getProgressHandlers()->updateTrackerProgress(sprintf( esc_html__('Dumping database %s done.', 'prime-mover'), $ret['dump_percent_progress']), 'export' );
         } else {
             $this->getProgressHandlers()->updateTrackerProgress(esc_html__('Dumping database', 'prime-mover'), 'export' );
         }
@@ -1216,8 +1223,7 @@ class PrimeMoverExporter implements PrimeMoverExport
         } catch (Exception $e) {
             $dump_ret['error'] = $e->getMessage();
             return $dump_ret;
-        }
-        
+        }        
         $dump_ret['result'] = true;
         return $dump_ret;
     }
@@ -1237,7 +1243,8 @@ class PrimeMoverExporter implements PrimeMoverExport
         if (empty($tables)) {
             return $rows;
         }
-        foreach ($tables as $table) {            
+        foreach ($tables as $table) { 
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $tables_count[] = $wpdb->get_var("SELECT COUNT(*) FROM `{$table}`");            
         }       
         return array_sum($tables_count);       
@@ -1448,6 +1455,7 @@ class PrimeMoverExporter implements PrimeMoverExport
             unset($ret['tar_add_file_offset']);
         }
         $readable = $this->getSystemFunctions()->humanFileSize($file_position, 0);
+        /* translators: %s: Readable bytes */
         $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Archiving database..%s bytes done.', 'prime-mover'), $readable), 'export' );
         
         $ret = apply_filters('prime_mover_add_file_to_tar_archive', $ret, $ret['target_zip_path'], 'ab', $target_path, $localname, $start_time, $file_position, $blogid_to_export, true, false);

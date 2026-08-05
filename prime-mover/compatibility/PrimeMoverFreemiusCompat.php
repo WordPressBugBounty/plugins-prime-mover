@@ -250,14 +250,15 @@ class PrimeMoverFreemiusCompat
         $affected_options = [];
         if (!$blogid_to_import) {
             return $affected_options;
-        }
-        
+        }        
         $this->getSystemFunctions()->switchToBlog($blogid_to_import);
         $wpdb = $this->getSystemInitialization()->getWpdB();
         
         $options_query = "SELECT option_id FROM {$wpdb->prefix}options WHERE option_name LIKE %s";
         $prefix_search = $wpdb->esc_like('fs_') . '%';
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         $option_query_prepared = $wpdb->prepare($options_query, $prefix_search);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $option_query_results = $wpdb->get_results($option_query_prepared, ARRAY_N);
         
         if (!is_array($option_query_results) || empty($option_query_results)) {
@@ -510,16 +511,20 @@ class PrimeMoverFreemiusCompat
         ?>
 	    <div class="notice notice-info">  
 	        <h2><?php esc_html_e('Important notice', 'prime-mover'); ?></h2>
-	        <p><?php echo sprintf(esc_html__('Thank you for using %s. 
-        To get started using the free version, you need to %s. Free version works on any number of multisite subsites. 
-        If you want to export and restore the multisite main site, you need to %s. Thanks!', 'prime-mover'), 
-	            '<strong>' . PRIME_MOVER_PLUGIN_CODENAME . '</strong>', 
-	            '<a href="' . esc_url($addsites_url) . '">' . esc_html__('add a subsite for testing', 'prime-mover') . '</a>',
-	            '<a href="' . esc_url($upgrade_url) . '">' . strtolower($upgrade_text) . '</a>'
-	            );
-                ?>
-	        </p>	
-       
+	       	<p><?php	        
+	        echo sprintf(
+	            wp_kses(
+	            /* translators: %1$s: The plugin package title codename string, %2$s: Mapped landing page URL string path for testing subsites, %3$s: Localized action text phrase prompting plan upgrades (e.g. upgrade your plan) */
+	                __( 'Thank you for using <strong>%1$s</strong>. To get started using the free version, you need to %2$s. Free version works on any number of multisite subsites. If you want to export and restore the multisite main site, you need to %3$s. Thanks!', 'prime-mover' ),
+	                [
+	                    'strong' => [],
+	                    'a'      => [ 'href' => true ],
+	                ]
+	            ),
+	            esc_html( PRIME_MOVER_PLUGIN_CODENAME ),
+	            '<a href="' . esc_url( $addsites_url ) . '">' . esc_html__( 'add a subsite for testing', 'prime-mover' ) . '</a>',
+	            '<a href="' . esc_url( $upgrade_url ) . '">' . esc_html( strtolower( $upgrade_text ) ) . '</a>'
+	        ); ?></p>      
 		    <p><a class="button" href="<?php echo esc_url($this->generateNoticeSuccessUrl()); ?>"><?php esc_html_e('Yes, I understand', 'prime-mover'); ?></a>
 		</div>
 		<?php        

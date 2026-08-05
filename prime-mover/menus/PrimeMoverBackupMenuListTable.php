@@ -188,7 +188,7 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverBackupMenuListTable::itShowsNoItems()
      */
     public function no_items() {
-        _e( 'No packages found.' );
+        esc_html_e( 'No packages found.', 'prime-mover' );        
     }
     
     /**
@@ -200,8 +200,8 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
     public function column_default($item, $column_name)
     {
         switch($column_name){
-            default:
-                return print_r($item,true);
+            default:                
+                return prime_mover_print_dbg($item);
         }
     }    
     
@@ -330,10 +330,10 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
                 <a href="<?php echo esc_url($item['download_url'])?>" aria-label="Download"><?php esc_html_e('Download', 'prime-mover'); ?></a> |
             </span>
             <span class="prime-mover-blog-id-row-action" id="js-prime-mover-blog-id-row-action">
-                <?php esc_html_e('Blog ID', 'prime-mover'); ?> : <?php echo $item['target_blog_id']; ?> | 
+                <?php esc_html_e('Blog ID', 'prime-mover'); ?> : <?php echo esc_html($item['target_blog_id']); ?> | 
             </span>            
             <span class="prime-mover-encryption-row-action" id="js-prime-mover-encryption-row-action">
-                <?php esc_html_e('Encrypted', 'prime-mover'); ?> : <?php echo $item['encryption_status']; ?> |
+                <?php esc_html_e('Encrypted', 'prime-mover'); ?> : <?php echo esc_html($item['encryption_status']); ?> |
             </span>
         </div>
         <button type="button" class="toggle-row"><span class="screen-reader-text"><?php esc_html_e( 'Show more details', 'prime-mover' ) ?></span></button>
@@ -496,12 +496,12 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
     { 
     ?>	
     	<div class="notice notice-success is-dismissible">
-    		<p><?php _e('Successfully deleted the following backups', 'prime-mover'); ?>: </p>
+    		<p><?php esc_html_e('Successfully deleted the following backups', 'prime-mover'); ?>: </p>
     		<ul class="ul-disc">
     		<?php 
     		foreach ($backups as $backup) {
     		?>    
-    		    <li><?php echo $backup;?></li>
+    		    <li><?php echo esc_html($backup);?></li>
     		<?php 
     		}
     		?>
@@ -748,16 +748,19 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
         if (!is_multisite() && 'single-site' === $package_type && false === apply_filters('prime_mover_is_loggedin_customer', false)) {            
             list($url, $class, $note, $link_text, $link_active) = $this->restoreFreeBackupParameters($blog_id, $backup_filepath, $encryption_status);
             
-        } elseif (!is_multisite() && 'multisite' === $package_type) {           
-            $note = sprintf(esc_html__('You cannot restore a %s package to a %s configuration.', 'prime-mover'), $package_type, $this->getCurrentSiteType());
+        } elseif (!is_multisite() && 'multisite' === $package_type) {
+            /* translators: %1$s: Package type, %2$s: Site type */
+            $note = sprintf(esc_html__('You cannot restore a %1$s package to a %2$s configuration.', 'prime-mover'), $package_type, $this->getCurrentSiteType());
             
         } elseif (is_multisite() && 'multisite' === $package_type && $target_blog_id === $blog_id && false === apply_filters('prime_mover_is_loggedin_customer', false)) {            
             list($url, $class, $note, $link_text, $link_active) = $this->restoreFreeBackupParameters($blog_id, $backup_filepath, $encryption_status);
             
-        } elseif (is_multisite() && 'multisite' === $package_type && $target_blog_id !== $blog_id ) {            
-            $note = sprintf(esc_html__('You cannot restore a multisite package with blog ID of %d to a subsite with blog ID of %d', 'prime-mover'), $target_blog_id, $blog_id);                        
+        } elseif (is_multisite() && 'multisite' === $package_type && $target_blog_id !== $blog_id ) {
+            /* translators: %1$d: Source subsite numerical blog ID, %2$d: Target subsite numerical blog ID */
+            $note = sprintf(esc_html__('You cannot restore a multisite package with blog ID of %1$d to a subsite with blog ID of %2$d', 'prime-mover'), $target_blog_id, $blog_id);                        
             
-        } elseif (is_multisite() && 'multisite' === $package_type && $target_blog_id === $blog_id && ! get_blogaddress_by_id($blog_id)) {           
+        } elseif (is_multisite() && 'multisite' === $package_type && $target_blog_id === $blog_id && ! get_blogaddress_by_id($blog_id)) {
+            /* translators: %d: Blog id */
             $note = sprintf(esc_html__('Subsite with blog ID: %d does not exist, please create the site first.', 'prime-mover'), $blog_id);                       
         
         } elseif (is_multisite() && 'multisite' === $package_type && $target_blog_id === $blog_id && false === apply_filters('prime_mover_multisite_blog_is_licensed', false, $blog_id)) {  
@@ -769,8 +772,9 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
             $url = $this->getRestoreUrl($blog_id, $sanitized_name);
             $class = "button prime-mover-menu-button js-prime-mover-restore-icon";            
             
-        } else {            
-            $note = sprintf(esc_html__('You cannot restore a %s package to a %s configuration.', 'prime-mover'), $package_type, $this->getCurrentSiteType());                    
+        } else {
+            /* translators: %1$s: Package type, %2$s: Current site type */
+            $note = sprintf(esc_html__('You cannot restore a %1$s package to a %2$s configuration.', 'prime-mover'), $package_type, $this->getCurrentSiteType());                    
         }
         
         if ($enable_restore_link) {
@@ -925,7 +929,7 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
         
         if ( ! empty( $columns['cb'] ) ) {
             static $cb_counter = 1;
-            $columns['cb']     = '<label class="screen-reader-text" for="cb-select-all-' . $cb_counter . '">' . __( 'Select All' ) . '</label>'
+            $columns['cb']     = '<label class="screen-reader-text" for="cb-select-all-' . $cb_counter . '">' . __( 'Select All', 'prime-mover' ) . '</label>'
                 . '<input id="cb-select-all-' . $cb_counter . '" type="checkbox" />';
                 $cb_counter++;
         }
@@ -999,6 +1003,8 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
             if ('th' === $tag && $attribute) {                
                 $title = "title='" . esc_attr($attribute) . "'";    
             }
+            
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Replicating standard WordPress Core WP_List_Table framework mapping.
             echo "<$tag $title $scope $id $class>$column_display_name</$tag>";
         }
     }

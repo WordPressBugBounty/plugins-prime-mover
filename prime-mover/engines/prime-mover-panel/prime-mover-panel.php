@@ -42,7 +42,7 @@ if ( defined( 'PRIME_MOVER_PANEL_PLUGINPATH' ) ) {
     return;
 }
 define( 'PRIME_MOVER_PANEL_PLUGINPATH', plugin_dir_path( __FILE__ ) );
-define( 'PRIME_MOVER_PANEL_VERSION', '2.1.6' );
+define( 'PRIME_MOVER_PANEL_VERSION', '2.2.0' );
 define( 'PRIME_MOVER_PANEL_MAINPLUGIN_FILE', __FILE__ );
 define( 'PRIME_MOVER_PANEL_PLUGINBASENAME', plugin_basename( PRIME_MOVER_PANEL_MAINPLUGIN_FILE ) );
 if ( !defined( 'PRIME_MOVER_DROPBOX_UPLOAD_CHUNK' ) ) {
@@ -57,11 +57,11 @@ if ( !defined( 'PRIME_MOVER_GDRIVE_DOWNLOAD_CHUNK' ) ) {
 include PRIME_MOVER_PANEL_PLUGINPATH . '/PrimeMoverPanelLoader.php';
 add_action(
     'prime_mover_load_module_apps',
-    'loadPrimeMoverControlPanel',
+    'prime_mover_load_control_panel',
     10,
     2
 );
-function loadPrimeMoverControlPanel(  PrimeMover $prime_mover, array $utilities  ) {
+function prime_mover_load_control_panel(  PrimeMover $prime_mover, array $utilities  ) {
     if ( empty( $utilities['freemius_integration'] ) ) {
         return;
     }

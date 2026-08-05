@@ -198,30 +198,45 @@ class PrimeMoverAutoUserAdjustment
         
         if (!isset($pieces[0])) {
             $this->bailOutMessage($response);
-        }
-        
+        }        
         $table = $pieces[0];
         $table = trim($table);
         $table_exists = false;
         
         $sql = $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         if ($wpdb->get_var($sql)) {
             $table_exists = true;
         }
         
-        if (!$table_exists) {
-            $message = sprintf(esc_html__('%s: The settings have not been saved. The database table name %s does not exist. Please ensure that the table name is correct.', 'prime-mover'),
-                '<strong>' . esc_html__('Error', 'prime-mover') . '</strong>',
-                "<code>{$table}</code>");
+        if (!$table_exists) {            
+            $message = sprintf(
+                wp_kses(
+                    /* translators: %s: Database table name string value */
+                    __( '<strong>Error</strong>: The settings have not been saved. The database table name <code>%s</code> does not exist. Please ensure that the table name is correct.', 'prime-mover' ),
+                    [
+                        'strong' => [],
+                        'code'   => [],
+                    ]
+                    ),
+                esc_html($table)
+                );
             $this->bailOutMessage($response, true, $message, false);
         }
         
-        if (!$this->isTableBelongsToThisSite($blog_id, $table)) {
-            $message = sprintf(esc_html__('%s: The settings have not been saved. The database table name %s does not belong to %s of this multisite.', 'prime-mover'),
-                '<strong>' . esc_html__('Error', 'prime-mover') . '</strong>',
-                "<code>{$table}</code>",
-                '<strong>' . esc_html__('blog ID: ', 'prime-mover') . $blog_id . '</strong>'
-            );
+        if (!$this->isTableBelongsToThisSite($blog_id, $table)) {            
+            $message = sprintf(
+                wp_kses(
+                    /* translators: %1$s: Database table name string value, %2$d: Numerical multisite blog ID value */
+                    __( '<strong>Error</strong>: The settings have not been saved. The database table name <code>%1$s</code> does not belong to blog ID: %2$d of this multisite.', 'prime-mover' ),
+                    [
+                        'strong' => [],
+                        'code'   => [],
+                    ]
+                    ),
+                esc_html($table),
+                $blog_id
+                );
             $this->bailOutMessage($response, true, $message, false);
         }
         
@@ -235,7 +250,7 @@ class PrimeMoverAutoUserAdjustment
         }
         
         return [$table, $col];
-    }
+    }    
     
     /**
      * Check if given table belongs to a given site in multisite
@@ -265,27 +280,35 @@ class PrimeMoverAutoUserAdjustment
         $this->getPrimeMover()->getSystemFunctions()->switchToBlog($blog_id);
         $wpdb = $this->getSystemInitialization()->getWpdB();
         $validated = [];
-        foreach ($value as $entry) {            
+        foreach ($value as $entry) {
             list($table, $col) = $this->parseTableNameAndColumns($wpdb, $entry, $response, $blog_id);
             $col_pieces = explode(",", $col);
             $col_pieces = array_map('trim', $col_pieces);
             $user_columns = esc_sql($col_pieces);
-            $user_columns_in_string = "'" . implode("','", $user_columns) . "'";
-            
+            $user_columns_in_string = "'" . implode("','", $user_columns) . "'";            
             $sql = "SHOW COLUMNS FROM `{$table}` WHERE Field IN ($user_columns_in_string)";
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $res = $wpdb->get_results($sql, ARRAY_A);
             $column_label = esc_html__('column', 'prime-mover');
             if (count($col_pieces) > 1) {
                 $column_label = esc_html__('columns', 'prime-mover');
             }
             
-            if (!is_array($res) || empty($res)) {
-                $message = sprintf(esc_html__('%s: The settings have not been saved. The %s %s do not exist in the %s database table. Please ensure that the targeted column names are correct and it exists.', 'prime-mover'),
-                    "<strong>" . esc_html__('Error', 'prime-mover') . '</strong>',
-                    "<code>{$user_columns_in_string}</code>",
-                    $column_label,
-                    "<code>{$table}</code>");
-                    $this->bailOutMessage($response, true, $message, false);
+            if (!is_array($res) || empty($res)) {                
+                $message = sprintf(
+                    wp_kses(
+                        /* translators: %1$s: Serialized database table column names string, %2$s: Singular or plural word label context (e.g. column or columns), %3$s: Target database table name string */
+                        __( '<strong>Error</strong>: The settings have not been saved. The <code>%1$s</code> %2$s do not exist in the <code>%3$s</code> database table. Please ensure that the targeted column names are correct and it exists.', 'prime-mover' ),
+                        [
+                            'strong' => [],
+                            'code'   => [],
+                        ]
+                        ),
+                    esc_html($user_columns_in_string),
+                    esc_html($column_label),
+                    esc_html($table)
+                    );
+                $this->bailOutMessage($response, true, $message, false);
             }
             
             $fields = wp_list_pluck($res, 'Type', 'Field');
@@ -294,21 +317,25 @@ class PrimeMoverAutoUserAdjustment
             }
             
             list($invalid, $validated) = $this->validateColumnsData($table, $fields, $col_pieces, $validated);
-            if (!empty($invalid)) {
-                $html_error = sprintf(esc_html__('%s: Settings not saved because of the following errors:', 'prime-mover'), '<strong>' . esc_html__('Error', 'prime-mover') . '</strong>');
+            if (!empty($invalid)) {                
+                $html_error = wp_kses(
+                    /* translators: %s: Error */
+                    __( '<strong>Error</strong>: Settings not saved because of the following errors:', 'prime-mover' ),
+                    [ 'strong' => [] ]
+                    );
                 $html_error .= '<ol>';
                 
                 foreach ($invalid as $error) {
                     $html_error .= '<li>' . $error . '</li>';
                 }
-                $html_error .= '</ol>';                
+                $html_error .= '</ol>';
                 $this->bailOutMessage($response, true, $html_error, false);
             }
         }
         
         $this->getPrimeMover()->getSystemFunctions()->restoreCurrentBlog();
         return $validated;
-    }
+    }    
     
     /**
      * Validate column data
@@ -329,18 +356,42 @@ class PrimeMoverAutoUserAdjustment
                 $field_type = $fields[$given];
             }
             
-            if (!in_array($given, $existing_col)) {
-                $invalid[] = sprintf(esc_html__('The %s column does not exist in %s database table. Targeted columns should exist in database table.', 'prime-mover'), "<code>{$given}</code>", "<code>{$table}</code>");
+            if (!in_array($given, $existing_col)) {                
+                $invalid[] = sprintf(
+                    wp_kses(
+                        /* translators: %1$s: Mapped string target input column identifier, %2$s: Targeted user database table table name string context */
+                        __( 'The <code>%1$s</code> column does not exist in <code>%2$s</code> database table. Targeted columns should exist in database table.', 'prime-mover' ),
+                        [ 'code' => [] ]
+                        ),
+                    esc_html($given),
+                    esc_html($table)
+                    );
                 continue;
             }
             
-            if (!$field_type || !$this->getPrimeMover()->getSystemFunctions()->isNumericKey($field_type, $this->getSystemInitialization()->getIntTypes(), false)) {
-                $invalid[] = sprintf(esc_html__('The %s column in %s database table is not using integer type. Please verify if this is the correct column name.', 'prime-mover'), "<code>{$given}</code>", "<code>{$table}</code>");
+            if (!$field_type || !$this->getPrimeMover()->getSystemFunctions()->isNumericKey($field_type, $this->getSystemInitialization()->getIntTypes(), false)) {                
+                $invalid[] = sprintf(
+                    wp_kses(
+                        /* translators: %1$s: Mapped string target input column identifier, %2$s: Targeted user database table table name string context */
+                        __( 'The <code>%1$s</code> column in <code>%2$s</code> database table is not using integer type. Please verify if this is the correct column name.', 'prime-mover' ),
+                        [ 'code' => [] ]
+                        ),
+                    esc_html($given),
+                    esc_html($table)
+                    );
                 continue;
             }
             
-            if ('user_id' === $given) {
-                $invalid[] = sprintf(esc_html__('The %s column in %s database table is already handled automatically - no need to add this in settings.', 'prime-mover'), "<code>{$given}</code>", "<code>{$table}</code>");
+            if ('user_id' === $given) {                
+                $invalid[] = sprintf(
+                    wp_kses(
+                        /* translators: %1$s: Mapped string target input column identifier, %2$s: Targeted user database table table name string context */
+                        __( 'The <code>%1$s</code> column in <code>%2$s</code> database table is already handled automatically - no need to add this in settings.', 'prime-mover' ),
+                        [ 'code' => [] ]
+                        ),
+                    esc_html($given),
+                    esc_html($table)
+                    );
                 continue;
             }
             
@@ -348,7 +399,7 @@ class PrimeMoverAutoUserAdjustment
         }
         
         return [$invalid, $validated];
-    }
+    }    
     
     /**
      * Bail out message
@@ -360,9 +411,7 @@ class PrimeMoverAutoUserAdjustment
     protected function bailOutMessage($response = [], $restore_blog = false, $message = '', $status = false)
     {
         if (!$message) {
-            $message = sprintf(esc_html__('%s: Settings not saved - the settings format is incorrect. It must use the %s format, and the table and column must exist in the database.', 'prime-mover'),
-                '<strong>' . esc_html__('Error', 'prime-mover') . '</strong>',
-                '<code>TABLENAME : COLUMN_NAME</code>');
+            $message = __('<strong>Error</strong>: Settings not saved - the settings format is incorrect. It must use the <code>TABLENAME : COLUMN_NAME</code> format, and the table and column must exist in the database.', 'prime-mover');
         }
         
         $this->getAutoBackupSetting()->getPrimeMoverSettings()->returnToAjaxResponse($response, ['status' => $status, 'message' => $message]);        
@@ -558,7 +607,7 @@ class PrimeMoverAutoUserAdjustment
      */
     protected function getHashOfDefaultUserAdjustments()
     {
-        $default = primeMoverDefaultUserAdjustments();
+        $default = prime_mover_default_user_adjustments();
         $hashed = array_map([$this, 'implodeValues'], array_values($default));
         
         return array_unique($hashed);        

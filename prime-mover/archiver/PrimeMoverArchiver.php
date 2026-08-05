@@ -15,6 +15,7 @@ use Codexonics\PrimeMoverFramework\cli\PrimeMoverCLIArchive;
 use Codexonics\PrimeMoverFramework\build\splitbrain\PHPArchive\Tar;
 use Codexonics\PrimeMoverFramework\classes\PrimeMoverUsers;
 use Codexonics\PrimeMoverFramework\utilities\PrimeMoverOpenSSLUtilities;
+use Codexonics\PrimeMoverBridgeIO;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -464,7 +465,7 @@ class PrimeMoverArchiver
         }
         
         $closed_identifier = wp_normalize_path(trailingslashit($temp_folder_path) . PRIME_MOVER_WPRIME_CLOSED_IDENTIFIER);
-        $wp_filesystem->put_contents($closed_identifier, esc_html__('This is a WPRIME archive created by WordPress Prime Mover Plugin (developer: Codexonics Ltd). This is not designed to be read or extracted by any third party software. Attempting to manually read and write this archive will result in data corruption errors.'));
+        $wp_filesystem->put_contents($closed_identifier, esc_html__('This is a WPRIME archive created by WordPress Prime Mover Plugin (developer: Codexonics Ltd). This is not designed to be read or extracted by any third party software. Attempting to manually read and write this archive will result in data corruption errors.', 'prime-mover'));
         $ret['wprime_readme_path'] = $closed_identifier;
         
         $local_name = trailingslashit(basename($temp_folder_path)) . PRIME_MOVER_WPRIME_CONFIG;
@@ -656,11 +657,11 @@ class PrimeMoverArchiver
             $ret['error'] = esc_html__("ERROR: Missing root path - unable to add directory to archive.", 'prime-mover');
             return $ret;
         }
-        $handle = fopen($filelist, 'rb');        
+        $handle = PrimeMoverBridgeIO::call('fopen', $filelist, 'rb');        
         list($list_position, $file_position, $bytes_written, $files_archived, $initialization_vector) = $this->getResumePositions($resume_positions);
         
         if ($list_position) {
-            fseek($handle, $list_position);            
+            PrimeMoverBridgeIO::call('fseek', $handle, $list_position);            
             do_action('prime_mover_log_processed_events', "Starting archiving in resume mode at file list position $list_position", $blog_id, 'export', __FUNCTION__, $this);
         }
         if ($list_position) {

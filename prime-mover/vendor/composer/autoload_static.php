@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInitfd3fb9e59f54f0ffca2971b8e1818a7c
+class ComposerStaticInite36762576a8e146defcac77c8c834828
 {
     public static $classMap = array (
         'Codexonics\\PrimeMoverFramework\\advance\\PrimeMoverTroubleshooting' => __DIR__ . '/../..' . '/engines/prime-mover-panel/advance/PrimeMoverTroubleshooting.php',
@@ -57,7 +57,6 @@ class ComposerStaticInitfd3fb9e59f54f0ffca2971b8e1818a7c
         'Codexonics\\PrimeMoverFramework\\build\\splitbrain\\PHPArchive\\FileInfo' => __DIR__ . '/../..' . '/build/splitbrain/php-archive/src/FileInfo.php',
         'Codexonics\\PrimeMoverFramework\\build\\splitbrain\\PHPArchive\\FileInfoException' => __DIR__ . '/../..' . '/build/splitbrain/php-archive/src/FileInfoException.php',
         'Codexonics\\PrimeMoverFramework\\build\\splitbrain\\PHPArchive\\Tar' => __DIR__ . '/../..' . '/build/splitbrain/php-archive/src/Tar.php',
-        'Codexonics\\PrimeMoverFramework\\build\\splitbrain\\PHPArchive\\Zip' => __DIR__ . '/../..' . '/build/splitbrain/php-archive/src/Zip.php',
         'Codexonics\\PrimeMoverFramework\\classes\\PrimeMover' => __DIR__ . '/../..' . '/classes/PrimeMover.php',
         'Codexonics\\PrimeMoverFramework\\classes\\PrimeMoverErrorHandlers' => __DIR__ . '/../..' . '/classes/PrimeMoverErrorHandlers.php',
         'Codexonics\\PrimeMoverFramework\\classes\\PrimeMoverExporter' => __DIR__ . '/../..' . '/classes/PrimeMoverExporter.php',
@@ -165,13 +164,13 @@ class ComposerStaticInitfd3fb9e59f54f0ffca2971b8e1818a7c
         'PrimeMoverPHPVersionDependencies' => __DIR__ . '/../..' . '/dependency-checks/PrimeMoverPHPVersionDependencies.php',
         'PrimeMoverPluginSlugDependencies' => __DIR__ . '/../..' . '/dependency-checks/PrimeMoverPluginSlugDependencies.php',
         'PrimeMoverRequirementsCheck' => __DIR__ . '/../..' . '/dependency-checks/PrimeMoverRequirementsCheck.php',
-        'PrimeMoverWPCoreDependencies' => __DIR__ . '/../..' . '/dependency-checks/PrimeMoverWPCoreDepedencies.php',
+        'PrimeMoverWPCoreDependencies' => __DIR__ . '/../..' . '/dependency-checks/PrimeMoverWPCoreDependencies.php',
     );
 
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->classMap = ComposerStaticInitfd3fb9e59f54f0ffca2971b8e1818a7c::$classMap;
+            $loader->classMap = ComposerStaticInite36762576a8e146defcac77c8c834828::$classMap;
 
         }, null, ClassLoader::class);
     }

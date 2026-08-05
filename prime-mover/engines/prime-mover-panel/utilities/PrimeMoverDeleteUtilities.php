@@ -99,15 +99,15 @@ class PrimeMoverDeleteUtilities
                 <label id="prime-mover-deletebackups-settings-label" for="delete_all_backup_zips_network"><?php esc_html_e('Delete ALL backups', 'prime-mover')?></label>
             </th>
             <td>
-                <p><button data-nonce="<?php echo $this->getPrimeMover()->getSystemFunctions()->primeMoverCreateNonce('prime_mover_delete_all_backup_zips_network_nonce'); ?>" id="js-delete_all_backup_zips_network" class="button button-large prime-mover-deleteall-button" type="button">
+                <p><button data-nonce="<?php echo esc_attr($this->getPrimeMover()->getSystemFunctions()->primeMoverCreateNonce('prime_mover_delete_all_backup_zips_network_nonce')); ?>" id="js-delete_all_backup_zips_network" class="button button-large prime-mover-deleteall-button" type="button">
                         <?php esc_html_e('Delete ALL Backups', 'prime-mover' ); ?></button></p>
                 <div class="prime-mover-setting-description">
                     <p class="description prime-mover-settings-paragraph">
-                    <?php printf( esc_html__('Using the above button, you can %s created by the plugin in %s. 
-                   Careful, there is no way to restore these files once deleted!',  'prime-mover'), 
-                        '<strong>' . esc_html__('delete all backup packages including logs', 'prime-mover'). '</strong>',
-                        '<strong>' . esc_html__('in a single-site or all sites in this network if multisite', 'prime-mover' ) . '</strong>'
-                        ); ?>
+                    <?php 
+                    echo wp_kses(
+                        __( 'Using the above button, you can <strong>delete all backup packages including logs</strong> created by the plugin <strong>in a single-site or all sites in this network if multisite</strong>. Careful, there is no way to restore these files once deleted!', 'prime-mover' ),
+                        [ 'strong' => [] ]
+                    ); ?>
                     </p>
                     <p class="p_wrapper_prime_mover_setting">
                         <span class="js-delete_all_backup_zips_network-spinner prime_mover_settings_spinner"></span>
@@ -118,21 +118,24 @@ class PrimeMoverDeleteUtilities
         </tbody>
         </table>
     <?php
-         echo $this->renderDeleteDialogMarkup();
-    }
+         $this->renderDeleteDialogMarkup();
+    }    
     
     /**
      *Render delete dialog markup
      */
     private function renderDeleteDialogMarkup()
     {
-    ?>
+        ?>
         <div style="display:none;" id="js-prime-mover-panel-deleteall-dialog" title="<?php esc_attr_e('Warning!', 'prime-mover')?>"> 
-			<p><?php printf( esc_html__('Are you really sure you want to %s', 'prime-mover'), 
-			    '<strong>' . esc_html__('DELETE ALL BACKUPS', 'prime-mover') . '</strong>'); ?> ? </p>
+			<p><?php 
+			echo wp_kses(
+			    __( 'Are you really sure you want to <strong>DELETE ALL BACKUPS</strong> ?', 'prime-mover' ),
+			    [ 'strong' => [] ]
+			); ?></p>
 			<p><?php esc_html_e('This will delete ALL backup zips and log files in your backup directory.', 'prime-mover')?></p>
 			<p><?php esc_html_e('This will also delete all the troubleshooting logs.', 'prime-mover')?></p>
-			<p><strong><?php esc_html_e('Once deleted, the process cannot be undone.')?></strong></p>		      	  	
+			<p><strong><?php esc_html_e('Once deleted, the process cannot be undone.', 'prime-mover')?></strong></p>		      	  	
         </div>
     <?php
     }

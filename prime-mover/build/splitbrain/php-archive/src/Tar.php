@@ -17,6 +17,7 @@ namespace Codexonics\PrimeMoverFramework\build\splitbrain\PHPArchive;
  * https://github.com/codex-m/php-archive
  * @author Emerson Maningo (emerson@codexonics.com)
  */
+use Codexonics\PrimeMoverBridgeIO;
 class Tar extends Archive
 {
     protected $file = '';
@@ -74,13 +75,13 @@ class Tar extends Archive
             $this->fh = @\bzopen($this->file, 'r');
         } else {
             if ($source_is_url) {
-                $this->fh = @\fopen($this->file, 'rb', \false, \stream_context_create($opts));
+                $this->fh = @PrimeMoverBridgeIO::call('fopen', $this->file, 'rb', \false, \stream_context_create($opts));
             } else {
-                $this->fh = @\fopen($this->file, 'rb');
+                $this->fh = @PrimeMoverBridgeIO::call('fopen', $this->file, 'rb');
             }
         }
         if (!$this->fh) {
-            throw new ArchiveIOException('Could not open file for reading: ' . $this->file);
+            throw new ArchiveIOException(esc_html('Could not open file for reading: ' . $this->file));
         }
         $this->closed = \false;
         if ($offset) {
@@ -133,7 +134,7 @@ class Tar extends Archive
         while (0 !== $pos) {
             $read_size = $pos >= $buffer_size ? $buffer_size : $pos;
             \fseek($this->fh, $pos - $read_size, \SEEK_SET);
-            $read = \fread($this->fh, $read_size);
+            $read = PrimeMoverBridgeIO::call('fread', $this->fh, $read_size);
             $header = $this->parseHeader($read, \true);
             if (!\is_array($header)) {
                 $pos -= $read_size;
@@ -160,7 +161,7 @@ class Tar extends Archive
                 break;
             }
         }
-        \fclose($this->fh);
+        PrimeMoverBridgeIO::call('fclose', $this->fh);
         return $clean;
     }
     /**
@@ -319,7 +320,7 @@ class Tar extends Archive
         $outdir = \rtrim($outdir, '/');
         if (!$file_offset) {
             if (!wp_mkdir_p($outdir)) {
-                throw new ArchiveIOException("Could not create directory '{$outdir}'");
+                throw new ArchiveIOException(esc_html("Could not create directory '{$outdir}'"));
             }
         }
         $retry_timeout = apply_filters('prime_mover_retry_timeout_seconds', PRIME_MOVER_RETRY_TIMEOUT_SECONDS, __FUNCTION__);
@@ -346,7 +347,7 @@ class Tar extends Archive
                 $mode = 'ab';
             }
             if (!$fileinfo->getIsdir()) {
-                $fp = @\fopen($output, $mode);
+                $fp = @PrimeMoverBridgeIO::call('fopen', $output, $mode);
                 if (!$fp) {
                     $error_msg = \error_get_last();
                     if (\is_array($error_msg) && !empty($error_msg['message'])) {
@@ -354,7 +355,7 @@ class Tar extends Archive
                         do_action('prime_mover_log_processed_events', "File cannot be extracted: {$output} - ERROR: {$extr_error_msg}", $blog_id, 'export', __FUNCTION__, $this);
                         continue;
                     } else {
-                        throw new ArchiveIOException('Could not open file for writing: ' . $output);
+                        throw new ArchiveIOException(esc_html('Could not open file for writing: ' . $output));
                     }
                 }
                 $size = \floor($header['size'] / 512);
@@ -368,23 +369,23 @@ class Tar extends Archive
                     $iv = \base64_decode($iv);
                 }
                 if (!$file_offset && $decrypt && !$processing_retry) {
-                    $iv = \fread($this->fh, 16);
+                    $iv = PrimeMoverBridgeIO::call('fread', $this->fh, 16);
                 }
                 for ($i = $index; $i < $size; $i++) {
                     $this->maybeTestExtractionFileDelay();
                     if ($decrypt) {
                         $block_size = self::FILE_ENCRYPTION_BLOCKS;
-                        $ciphertext = \fread($this->fh, 16 * ($block_size + 1));
+                        $ciphertext = PrimeMoverBridgeIO::call('fread', $this->fh, 16 * ($block_size + 1));
                         $plaintext = \openssl_decrypt($ciphertext, self::CIPHER_METHOD, $key, \OPENSSL_RAW_DATA, $iv);
                         $iv = \substr($ciphertext, 0, 16);
-                        \fwrite($fp, $plaintext, 512);
+                        PrimeMoverBridgeIO::call('fwrite', $fp, $plaintext, 512);
                     } else {
-                        \fwrite($fp, $this->readbytes(512), 512);
+                        PrimeMoverBridgeIO::call('fwrite', $fp, $this->readbytes(512), 512);
                     }
                     $offset = \ftell($this->fh);
                     if (\microtime(\true) - $start > $retry_timeout) {
                         $index = $i + 1;
-                        \fclose($fp);
+                        PrimeMoverBridgeIO::call('fclose', $fp);
                         do_action('prime_mover_log_processed_events', "Time out reach, need to retry at offset {$offset}, base read offset {$base_read_offset} and index {$index} for file {$output} ", $blog_id, 'export', __FUNCTION__, $this);
                         return ['tar_read_offset' => $offset, 'base_read_offset' => $base_read_offset, 'index' => $index, 'iv' => \base64_encode($iv)];
                     }
@@ -392,16 +393,16 @@ class Tar extends Archive
                 if ($header['size'] % 512 != 0) {
                     if ($decrypt) {
                         $block_size = self::FILE_ENCRYPTION_BLOCKS;
-                        $ciphertext = \fread($this->fh, 16 * ($block_size + 1));
+                        $ciphertext = PrimeMoverBridgeIO::call('fread', $this->fh, 16 * ($block_size + 1));
                         $plaintext = \openssl_decrypt($ciphertext, self::CIPHER_METHOD, $key, \OPENSSL_RAW_DATA, $iv);
-                        \fwrite($fp, $plaintext, $header['size'] % 512);
+                        PrimeMoverBridgeIO::call('fwrite', $fp, $plaintext, $header['size'] % 512);
                     } else {
-                        \fwrite($fp, $this->readbytes(512), $header['size'] % 512);
+                        PrimeMoverBridgeIO::call('fwrite', $fp, $this->readbytes(512), $header['size'] % 512);
                     }
                 }
-                \fclose($fp);
-                @\touch($output, $fileinfo->getMtime());
-                @\chmod($output, $fileinfo->getMode());
+                PrimeMoverBridgeIO::call('fclose', $fp);
+                @PrimeMoverBridgeIO::call('touch', $output, $fileinfo->getMtime());
+                @PrimeMoverBridgeIO::call('chmod', $output, $fileinfo->getMode());
             } else {
                 $this->skipbytes(\ceil($header['size'] / 512) * 512);
             }
@@ -461,10 +462,10 @@ class Tar extends Archive
             } elseif ($this->comptype === Archive::COMPRESS_BZIP) {
                 $this->fh = @\bzopen($this->file, 'w');
             } else {
-                $this->fh = @\fopen($this->file, $mode);
+                $this->fh = @PrimeMoverBridgeIO::call('fopen', $this->file, $mode);
             }
             if (!$this->fh) {
-                throw new ArchiveIOException('Could not open file for writing: ' . $this->file);
+                throw new ArchiveIOException(esc_html('Could not open file for writing: ' . $this->file));
             }
         }
         $this->writeaccess = \true;
@@ -510,8 +511,9 @@ class Tar extends Archive
         $fp = null;
         if (\is_file($file)) {
             do_action('prime_mover_log_processed_events', "Opening {$file} for archiving", $blog_id, 'export', __FUNCTION__, $this, \true);
-            $fp = @\fopen($file, 'rb');
+            $fp = @PrimeMoverBridgeIO::call('fopen', $file, 'rb');
             if (!$fp) {
+                /* translators: %s: file path to the package */
                 return \sprintf(esc_html__('Could not open file for reading: %s', 'prime-mover'), $file);
             }
         }
@@ -533,7 +535,7 @@ class Tar extends Archive
             }
             while (!\feof($fp)) {
                 $this->maybeTestAddFileDelay();
-                $data = \fread($fp, 512);
+                $data = PrimeMoverBridgeIO::call('fread', $fp, 512);
                 $pos = \ftell($fp);
                 if ($data === \false) {
                     break;
@@ -551,12 +553,12 @@ class Tar extends Archive
                 }
                 if ($enable_retry && \microtime(\true) - $start > $retry_timeout) {
                     do_action('prime_mover_log_processed_events', "{$retry_timeout} seconds Time out reach while archiving {$file} on position {$pos}", $blog_id, 'export', __FUNCTION__, $this);
-                    \fclose($fp);
+                    PrimeMoverBridgeIO::call('fclose', $fp);
                     $pos = (int) $pos;
                     return ['tar_add_offset' => $pos, 'iv' => \base64_encode($iv), 'bytes_written' => $bytes_written];
                 }
             }
-            \fclose($fp);
+            PrimeMoverBridgeIO::call('fclose', $fp);
         }
         do_action('prime_mover_log_processed_events', "Successfully closed reading archiving {$file}.", $blog_id, 'export', __FUNCTION__, $this, \true);
         return $bytes_written;
@@ -627,7 +629,7 @@ class Tar extends Archive
             } elseif ($this->comptype === Archive::COMPRESS_BZIP) {
                 \bzclose($this->fh);
             } else {
-                \fclose($this->fh);
+                PrimeMoverBridgeIO::call('fclose', $this->fh);
             }
             $this->file = '';
             $this->fh = 0;
@@ -671,7 +673,7 @@ class Tar extends Archive
             $this->setCompression($this->complevel, $this->filetype($file));
         }
         if (!@\file_put_contents($file, $this->getArchive())) {
-            throw new ArchiveIOException('Could not write to file: ' . $file);
+            throw new ArchiveIOException(esc_html('Could not write to file: ' . $file));
         }
     }
     /**
@@ -687,7 +689,7 @@ class Tar extends Archive
         } elseif ($this->comptype === Archive::COMPRESS_BZIP) {
             return @\bzread($this->fh, $length);
         } else {
-            return @\fread($this->fh, $length);
+            return @PrimeMoverBridgeIO::call('fread', $this->fh, $length);
         }
     }
     /**
@@ -707,13 +709,13 @@ class Tar extends Archive
         } elseif ($this->comptype === Archive::COMPRESS_BZIP) {
             $written = @\bzwrite($this->fh, $data);
         } else {
-            $written = @\fwrite($this->fh, $data);
+            $written = @PrimeMoverBridgeIO::call('fwrite', $this->fh, $data);
         }
         if ($written === \false) {
             $fwrite_error_msg = \error_get_last();
             if (\is_array($fwrite_error_msg) && !empty($fwrite_error_msg['message'])) {
                 $fwrite_error_detail = $fwrite_error_msg['message'];
-                throw new ArchiveIOException($fwrite_error_detail);
+                throw new ArchiveIOException(esc_html($fwrite_error_detail));
             } else {
                 throw new ArchiveIOException('Failed to write to archive stream');
             }
@@ -864,12 +866,12 @@ class Tar extends Archive
     {
         // for existing files, try to read the magic bytes
         if (\file_exists($file) && \is_readable($file) && \filesize($file) > 5) {
-            $fh = @\fopen($file, 'rb');
+            $fh = @PrimeMoverBridgeIO::call('fopen', $file, 'rb');
             if (!$fh) {
                 return \false;
             }
-            $magic = \fread($fh, 5);
-            \fclose($fh);
+            $magic = PrimeMoverBridgeIO::call('fread', $fh, 5);
+            PrimeMoverBridgeIO::call('fclose', $fh);
             if (\strpos($magic, "BZ") === 0) {
                 return Archive::COMPRESS_BZIP;
             }

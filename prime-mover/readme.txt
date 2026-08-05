@@ -1,15 +1,15 @@
-=== Prime Mover - Migrate WordPress Website & Backups ===
+=== Prime Mover - Backup and Migration	 ===
 Contributors: codexonics, freemius
 Donate link: https://codexonics.com
 Tags: migrate wordpress, multisite migration, clone, backup
-Requires at least: 4.9.8
-Tested up to: 7.0
+Requires at least: 5.2
+Tested up to: 7.1
 Requires PHP: 5.6
-Stable tag: 2.1.6
+Stable tag: 2.2.0
 License: GPLv3 or later
 License URI: https://codexonics.com
 
-The simplest all-around WordPress migration tool/backup plugin. These support multisite backup/migration or clone WP site/multisite subsite.
+The simplest all-around plugin to migrate WordPress and do backups. These support multisite backup/migration or cloning a WP site/multisite subsite.
 
 == Description ==
 
@@ -105,6 +105,22 @@ Update now to get all the latest bug fixes, improvements, and features!
 
 == Changelog ==
 
+= 2.2.0 =
+
+* Performance: Improve overall export and restore log performance by reducing file sizes.
+* Deprecated: Remove PRIME_MOVER_PLUGIN_MANAGER_LOG constant and primeMoverMaybeEnablePluginManagerLog() for better security/performance.
+* Compatibility: Fixed high-severity issues reported by Plugin Check.
+* Fixed: translation mechanism errors in some files.
+* Fixed: Outdated clipboard JS library.
+* Fixed: Issues with fonts and resources rendering in CORS.
+* Fixed: Refactored restore query handling for better performance and security.
+* Fixed: Updated Freemius SDK library to the latest version.
+* Compatibility: Moved the Freemius library to the vendors directory for better compliance with guidelines.
+* Usability: Reduce the plugin's total zip file size to make it easier to use in limited shared environments.
+* Security: Fixed remaining unescaped outputs in direct plugin HTML.
+* Compatibility: Bump the minimum supported WordPress version to 5.2.
+* Compatibility: Tested for compatibility with WordPress 7.1 release.
+
 = 2.1.6 =
 
 * Compatibility: Better compatibility with multisite parallel import and restore. 
@@ -115,13 +131,5 @@ Update now to get all the latest bug fixes, improvements, and features!
 
 * Fixed: Interrupted copying of backups to the custom directory on resource-limited servers.  
 * Fixed: Runtime error during differential restore when data contains double quotes. 
-
-= 2.1.4 =
-
-* Fixed: Refactored Freemius integration code for stability.
-* Fixed: Updated to the latest Freemius SDK.
-* Fixed: Site restored with debugging package; switches images to the http:// protocol in the SSL environment.
-* Fixed: Potential performance issues upon plugin activation affecting customized multisites.
-* Fixed: Outdated Freemius pricing app library.
 
 See the previous changelogs in changelog.txt.

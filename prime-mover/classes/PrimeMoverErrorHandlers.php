@@ -12,6 +12,7 @@ namespace Codexonics\PrimeMoverFramework\classes;
  */
 
 use Codexonics\PrimeMoverFramework\utilities\PrimeMoverShutdownUtilities;
+use Codexonics\PrimeMoverBridgeIO;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -195,7 +196,7 @@ class PrimeMoverErrorHandlers
     protected function getLogCreationTime($log = '')
     {
         $res = false;
-        $f = fopen($log, 'rb');
+        $f = PrimeMoverBridgeIO::call('fopen', $log, 'rb');
         if (false === $f) {
             return false;
         }
@@ -205,7 +206,7 @@ class PrimeMoverErrorHandlers
             return false;
         }
         
-        fclose($f);
+        PrimeMoverBridgeIO::call('fclose', $f);
         $line = trim($line);
         if (!$line) {
             return false;
@@ -684,7 +685,7 @@ class PrimeMoverErrorHandlers
      */
     protected function printError($error_output = [])
     {
-        return print_r($error_output,true);
+        return prime_mover_print_dbg($error_output);
     }
     
     /**

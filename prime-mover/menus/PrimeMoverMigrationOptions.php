@@ -98,17 +98,21 @@ class PrimeMoverMigrationOptions
     {        
         ?>
         <p class="prime-mover-migration-tools-p">
-        <label <?php echo $this->returnFreeClass($disabled); ?>>
-        <input <?php echo $disabled; ?> autocomplete="off" id="js-prime-mover-forceutf8dump-<?php echo esc_attr($blog_id); ?>" class="js-prime_mover_forceutf8dump_class" type="checkbox"
+        <label <?php echo wp_kses_data($this->returnFreeClass($disabled)); ?>>
+        <input <?php echo esc_attr($disabled); ?> autocomplete="off" id="js-prime-mover-forceutf8dump-<?php echo esc_attr($blog_id); ?>" class="js-prime_mover_forceutf8dump_class" type="checkbox"
      name="prime-mover-forceutf8dump-<?php echo esc_attr($blog_id); ?>" value="1">
      <?php 
      if (defined('PRIME_MOVER_CUSTOM_TARGET_CHARSET') && PRIME_MOVER_CUSTOM_TARGET_CHARSET) {
      ?>
-         <?php echo sprintf(esc_html__('Migrate to %s database character set'), PRIME_MOVER_CUSTOM_TARGET_CHARSET); ?>.     
+         <?php 
+         /* translators: %s: Prime mover custom target charset */
+         echo sprintf(esc_html__('Migrate to %s database character set.', 'prime-mover'), esc_html(PRIME_MOVER_CUSTOM_TARGET_CHARSET)); ?>     
      <?php 
      } else { 
      ?>
-     <?php echo sprintf(esc_html__('Migrate to UTF-8 (%s) database character set'), PRIME_MOVER_MODERN_UNICODE_CHARSET); ?>.        
+     <?php 
+     /* translators: %s: Prime mover modern unicode charset */
+     echo sprintf(esc_html__('Migrate to UTF-8 (%s) database character set.', 'prime-mover'), esc_html(PRIME_MOVER_MODERN_UNICODE_CHARSET)); ?>        
      <?php 
      } 
      ?>
@@ -232,12 +236,14 @@ class PrimeMoverMigrationOptions
             $checked = checked(1, 1, false);
         }
     ?>
-        <p class="prime-mover-migration-tools-p"><label <?php echo $this->returnFreeClass($disabled); ?>><input <?php echo $disabled; ?> autocomplete="off" id="js-prime-mover-encryptiondb-<?php echo esc_attr($blog_id); ?>" <?php echo $checked; ?> class="js-prime-mover-encryptiondb_class"
+        <p class="prime-mover-migration-tools-p"><label <?php echo wp_kses_data($this->returnFreeClass($disabled)); ?>><input <?php echo esc_attr($disabled); ?> autocomplete="off" id="js-prime-mover-encryptiondb-<?php echo esc_attr($blog_id); ?>" <?php echo wp_kses_data($checked); ?> class="js-prime-mover-encryptiondb_class"
 		    type="checkbox" name="prime-mover-encryptiondb-<?php echo esc_attr($blog_id); ?>" value="1"> 
 		<?php 
 		    $supported_encryption = esc_html__('package', 'prime-mover');
 		?>
-		    <?php printf( esc_html__('Encrypt %s with industry standard AES-256 encryption', 'prime-mover'), $supported_encryption);?>.
+		    <?php 
+		    /* translators: %s: Supported encryption */
+            printf( esc_html__('Encrypt %s with industry standard AES-256 encryption.', 'prime-mover'), esc_html($supported_encryption));?>
 		    <?php do_action('prime_mover_before_label_advanced_options', $disabled); ?>
 		    </label></p>	
 		<?php 
@@ -251,7 +257,7 @@ class PrimeMoverMigrationOptions
     protected function showUsersExportMarkup($blog_id = 0, $disabled = '')
     {
     ?>
-        <p class="prime-mover-migration-tools-p"><label <?php echo $this->returnFreeClass($disabled); ?>><input <?php echo $disabled; ?> autocomplete="off" id="js-prime-mover-userexport-<?php echo esc_attr($blog_id); ?>" <?php checked(1, 1); ?> class="js-prime-mover-userexport_class"
+        <p class="prime-mover-migration-tools-p"><label <?php echo wp_kses_data($this->returnFreeClass($disabled)); ?>><input <?php echo esc_attr($disabled); ?> autocomplete="off" id="js-prime-mover-userexport-<?php echo esc_attr($blog_id); ?>" <?php checked(1, 1); ?> class="js-prime-mover-userexport_class"
 		    type="checkbox" name="prime-mover-userexport-<?php echo esc_attr($blog_id); ?>" value="1"> 
 		    <?php esc_html_e('Export users (include current site users in migration / backup)', 'prime-mover');?>.
 		    <?php do_action('prime_mover_before_label_advanced_options', $disabled); ?>
@@ -297,10 +303,10 @@ class PrimeMoverMigrationOptions
     {
     ?>
         <p class="prime-mover-migration-tools-p">
-        <label <?php echo $this->returnFreeClass($disabled); ?>>
-        <input <?php echo $disabled; ?> autocomplete="off" id="js-prime-mover-savetogdrive-<?php echo esc_attr($blog_id); ?>" class="js-prime_mover_gdrive_class" type="checkbox"
+        <label <?php echo wp_kses_data($this->returnFreeClass($disabled)); ?>>
+        <input <?php echo esc_attr($disabled); ?> autocomplete="off" id="js-prime-mover-savetogdrive-<?php echo esc_attr($blog_id); ?>" class="js-prime_mover_gdrive_class" type="checkbox"
      name="prime-mover-savetogdrive-<?php echo esc_attr($blog_id); ?>" value="1">
-    <?php esc_html_e('Save a copy to Google Drive') ?>.
+    <?php esc_html_e('Save a copy to Google Drive', 'prime-mover') ?>.
     	<?php do_action('prime_mover_before_label_advanced_options', $disabled); ?>	
     	</label>
 		</p>
@@ -338,10 +344,10 @@ class PrimeMoverMigrationOptions
     {
     ?>
         <p class="prime-mover-migration-tools-p">
-        <label <?php echo $this->returnFreeClass($disabled); ?>>
-        <input <?php echo $disabled; ?> autocomplete="off" id="js-prime-mover-savetodropbox-<?php echo esc_attr($blog_id); ?>" class="js-prime_mover_dropbox_class" type="checkbox"
+        <label <?php echo wp_kses_data($this->returnFreeClass($disabled)); ?>>
+        <input <?php echo esc_attr($disabled); ?> autocomplete="off" id="js-prime-mover-savetodropbox-<?php echo esc_attr($blog_id); ?>" class="js-prime_mover_dropbox_class" type="checkbox"
      name="prime-mover-savetodropbox-<?php echo esc_attr($blog_id); ?>" value="1">
-    <?php esc_html_e('Save a copy to Dropbox') ?>.
+    <?php esc_html_e('Save a copy to Dropbox', 'prime-mover') ?>.
     <?php do_action('prime_mover_before_label_advanced_options', $disabled); ?>
     		</label>
 		</p>
@@ -371,21 +377,21 @@ class PrimeMoverMigrationOptions
         if ($disabled) {
             $upgrade_url = apply_filters('prime_mover_filter_upgrade_pro_url', $upgrade_url, $blog_id);
         ?>        
-            <h3 <?php echo $this->returnFreeClass($disabled); ?>><?php esc_html_e('PRO export options', 'prime-mover' )?></h3>
+            <h3 <?php echo wp_kses_data($this->returnFreeClass($disabled)); ?>><?php esc_html_e('PRO export options', 'prime-mover' )?></h3>
                 <p class="prime-mover-migration-tools-p">
                     <span class="dashicons dashicons-unlock prime-mover-dashicon-unlock-migration-tools"></span>
                     <a class="prime-mover-readable-link" href="<?php echo esc_url($upgrade_url); ?>">
-                    <?php echo apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__( 'Upgrade to PRO', 'prime-mover' ), $blog_id, false); ?></a>
+                    <?php echo esc_html(apply_filters('prime_mover_filter_upgrade_pro_text', esc_html__( 'Upgrade to PRO', 'prime-mover' ), $blog_id, false)); ?></a>
                 </p>
         <?php 
         } else {
         ?>
-            <h3 <?php echo $this->returnFreeClass($disabled); ?>><?php esc_html_e('Advanced export options', 'prime-mover' )?></h3>  
+            <h3 <?php echo wp_kses_data($this->returnFreeClass($disabled)); ?>><?php esc_html_e('Advanced export options', 'prime-mover' )?></h3>  
         <?php
          } 
          ?>      
 		<p class="prime-mover-migration-tools-p">
-		    <label <?php echo $this->returnFreeClass($disabled); ?>><input <?php echo $disabled; ?> autocomplete="off" id="js-prime-mover-targetexportloc-<?php echo esc_attr($blog_id); ?>" <?php echo $checked; ?> class="js-prime_mover_target_export_location_class" type="checkbox" name="prime-mover-targetexportloc-<?php echo esc_attr($blog_id); ?>" value="1"> 
+		    <label <?php echo wp_kses_data($this->returnFreeClass($disabled)); ?>><input <?php echo esc_attr($disabled); ?> autocomplete="off" id="js-prime-mover-targetexportloc-<?php echo esc_attr($blog_id); ?>" <?php echo wp_kses_data($checked); ?> class="js-prime_mover_target_export_location_class" type="checkbox" name="prime-mover-targetexportloc-<?php echo esc_attr($blog_id); ?>" value="1"> 
 		    <?php echo esc_html__('Generate package URL for direct site migration.', 'prime-mover'); ?>
 		    <?php do_action('prime_mover_before_label_advanced_options', $disabled); ?>
 		    </label>

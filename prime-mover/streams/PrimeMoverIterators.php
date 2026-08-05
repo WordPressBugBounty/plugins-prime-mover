@@ -14,6 +14,7 @@ namespace Codexonics\PrimeMoverFramework\streams;
 use SplHeap;
 use SplFixedArray;
 use Codexonics\PrimeMoverFramework\classes\PrimeMoverSystemFunctions;
+use Codexonics\PrimeMoverBridgeIO;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -139,6 +140,7 @@ class PrimeMoverIterators extends SplHeap
     public function generateFilesListGivenDir($dir = '', $ret = [], $excluded_dirs = [], $locale = [])
     {
         if ( ! $this->getSystemAuthorization()->isUserAuthorized()) {
+            /* translators: %s: Directory path */
             $ret['error'] = sprintf(esc_html__('Unauthorized to generate files list in directory: %s. Please check credentials.', 'prime-mover'), $dir);
             return $ret;
         }
@@ -168,15 +170,16 @@ class PrimeMoverIterators extends SplHeap
         } else {
             $files_count = $ret['total_media_files'];
         }
-        $handle = fopen($tmpfname, $mode);
+        $handle = PrimeMoverBridgeIO::call('fopen', $tmpfname, $mode);
         if (false === $handle) {
+            /* translators: %s: Directory path */
             $ret['error'] = sprintf(esc_html__('Unable to generate files list in directory: %s. Please check permissions.', 'prime-mover'), $dir);
         }
         foreach ($dir_spl as $entity) {
             if (!$entity) {
                 continue;
             }
-            $res = fwrite($handle, $entity . PHP_EOL);
+            $res = PrimeMoverBridgeIO::call('fwrite',$handle, $entity . PHP_EOL);
             if ($res) {
                 $files_count++;
             }
@@ -190,13 +193,14 @@ class PrimeMoverIterators extends SplHeap
                 continue;
             }
             
-            $res = fwrite($handle, $entity . PHP_EOL);
+            $res = PrimeMoverBridgeIO::call('fwrite', $handle, $entity . PHP_EOL);
             if ($res) {
                 $files_count++;
             }
         }
         
-        fclose($handle);
+        PrimeMoverBridgeIO::call('fclose', $handle);
+        
         if ($locale && $files_count > 0) {
             $ret['lang_folder_exported'] = true;
         }

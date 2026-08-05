@@ -14,6 +14,7 @@ namespace Codexonics\PrimeMoverFramework\utilities;
 use Codexonics\PrimeMoverFramework\users\PrimeMoverUserFunctions;
 use stdclass;
 use SplFixedArray;
+use Codexonics\PrimeMoverBridgeIO;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -301,7 +302,7 @@ class PrimeMoverUserUtilities
         }
         
         list($users_json, $decrypt) = $users_export_file;
-        $handle = fopen($users_json, 'rb'); 
+        $handle = PrimeMoverBridgeIO::call('fopen', $users_json, 'rb'); 
         if (!$handle) {
             return false;
         }
@@ -362,7 +363,7 @@ class PrimeMoverUserUtilities
         
         list($users_json, $decrypt) = $users_export_file;        
         list($tmp, $ret) = $this->setTmpLog($ret);        
-        $handle = fopen($users_json, 'rb');       
+        $handle = PrimeMoverBridgeIO::call('fopen', $users_json, 'rb');       
         
         if ( ! $handle) {
             $this->getSystemFunctions()->restoreCurrentBlog();
@@ -371,7 +372,7 @@ class PrimeMoverUserUtilities
         }
        
         if ( ! empty($ret['users_import_offset']) ) {       
-            fseek($handle, $ret['users_import_offset']);
+            PrimeMoverBridgeIO::call('fseek', $handle, $ret['users_import_offset']);
             unset($ret['users_import_offset']);
         }                 
         
@@ -493,7 +494,7 @@ class PrimeMoverUserUtilities
     protected function cleanUpAfterUserImport($ret = [], $handle = null)
     {
         if (is_resource($handle)) {
-            fclose($handle);
+            PrimeMoverBridgeIO::call('fclose', $handle);
         }
         $this->getSystemFunctions()->restoreCurrentBlog();
         
@@ -561,26 +562,30 @@ class PrimeMoverUserUtilities
     {
         $user_import_progress = '';
         if ($users_imported) {
+            /* translators: %d: Numerical count of users successfully imported so far */
             $user_import_progress = sprintf(esc_html__('%d completed.', 'prime-mover'), $users_imported);
-        }        
+        }
         
         $user_meta_processed_count = 0;
         if (isset($ret['users_meta_processed_count'])) {
-            $user_meta_processed_count = (int)$ret['users_meta_processed_count'];            
+            $user_meta_processed_count = (int)$ret['users_meta_processed_count'];
         }
         
         $user_meta_prefix_processed = 0;
         if (isset($ret['users_meta_prefix_processed_count'])) {
             $user_meta_prefix_processed = (int)$ret['users_meta_prefix_processed_count'];
-        }        
+        }
         
         if ($user_meta_prefix_processed && $user_meta_processed_count) {
-            $user_import_progress = sprintf(esc_html__('%d completed. %d metas processed. %d prefixes adjusted', 'prime-mover'), $users_imported, $user_meta_processed_count, $user_meta_prefix_processed);
+            /* translators: %1$d: Numerical count of users successfully imported, %2$d: Numerical count of user meta keys processed, %3$d: Numerical count of database user meta prefix strings adjusted */
+            $user_import_progress = sprintf(esc_html__('%1$d completed. %2$d metas processed. %3$d prefixes adjusted', 'prime-mover'), $users_imported, $user_meta_processed_count, $user_meta_prefix_processed);
         } elseif ($user_meta_processed_count) {
-            $user_import_progress = sprintf(esc_html__('%d completed. %d metas processed.', 'prime-mover'), $users_imported, $user_meta_processed_count);
-        }       
+            /* translators: %1$d: Numerical count of users successfully imported, %2$d: Numerical count of user meta keys processed */
+            $user_import_progress = sprintf(esc_html__('%1$d completed. %2$d metas processed.', 'prime-mover'), $users_imported, $user_meta_processed_count);
+        }
         
-        $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Importing users.. %s', 'prime-mover'), $user_import_progress)); 
+        /* translators: %s: Dynamic localized runtime progress counters indicating users and metadata status */
+        $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Importing users.. %s', 'prime-mover'), $user_import_progress));
     }
     
     /**
@@ -676,7 +681,7 @@ class PrimeMoverUserUtilities
         
         if (is_resource($handle)) {
             $ret['users_import_offset'] = ftell($handle);
-            fclose($handle);
+            PrimeMoverBridgeIO::call('fclose', $handle);
         } else {
             $user_meta_timeout = true;
             $ret['users_import_offset'] = $orig_pos;
@@ -930,28 +935,30 @@ class PrimeMoverUserUtilities
      * @return array
      */
     public function getUserEquivalence($tmp = '', $blog_id = 0, $ret = [], $start_time = 0)
-    {        
+    {
         if ( ! $this->getSystemFunctions()->nonCachedFileExists($tmp) || ! $blog_id) {
             return [];
         }
         
         $user_equivalence = $this->getUserEquivalenceInstance($ret);
-        $handle = fopen($tmp, 'rb');
+        $handle = PrimeMoverBridgeIO::call('fopen', $tmp, 'rb');
         if ( ! $handle ) {
-            $ret['error'] = esc_html('Unable to open user equivalence file.', 'prime-mover');
+            $ret['error'] = esc_html__('Unable to open user equivalence file.', 'prime-mover');
             return $ret;
         }
         if ( ! empty($ret['users_equivalence_offset']) ) {
-            fseek($handle, $ret['users_equivalence_offset']);
-        }        
+            PrimeMoverBridgeIO::call('fseek', $handle, $ret['users_equivalence_offset']);
+        }
         list($mismatch, $count, $processed) = $this->computeEquivalenceParameters($ret);
         
         $user_equivalence_progress = '';
         if ($processed) {
+            /* translators: %d: Numerical count of users processed during equivalence matching so far */
             $user_equivalence_progress = sprintf(esc_html__('%d completed.', 'prime-mover'), $processed);
         }
         
-        $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Computing user equivalence.. %s', 'prime-mover'), $user_equivalence_progress)); 
+        /* translators: %s: Dynamic localized runtime progress counter text indicating total completed matches */
+        $this->getProgressHandlers()->updateTrackerProgress(sprintf(esc_html__('Computing user equivalence.. %s', 'prime-mover'), $user_equivalence_progress));
         while(!feof($handle)){
             $line = fgets($handle);
             if (false === $line) {
@@ -959,19 +966,19 @@ class PrimeMoverUserUtilities
             }
             $user_array = json_decode($line, true);
             $source_user_id = (int)key($user_array);
-            $new_user_id = (int)reset($user_array);    
+            $new_user_id = (int)reset($user_array);
             if ($new_user_id !== $source_user_id) {
                 $mismatch++;
-            }            
+            }
             $this->getUserFunctions()->getUserQueries()->maybeEnableUserImportExportTestMode(5, false);
-            $user_equivalence = $this->getUserFunctions()->addNewElement($user_equivalence, $source_user_id, $new_user_id);            
+            $user_equivalence = $this->getUserFunctions()->addNewElement($user_equivalence, $source_user_id, $new_user_id);
             $count++;
             
             $retry_timeout = apply_filters('prime_mover_retry_timeout_seconds', PRIME_MOVER_RETRY_TIMEOUT_SECONDS, __FUNCTION__);
             if ( (microtime(true) - $start_time) > $retry_timeout) {
                 return $this->doUserEquivalenceRetry($ret, $handle, $user_equivalence, $mismatch, $count, $blog_id, $retry_timeout);
-            }        
-        }        
+            }
+        }
         
         return $this->cleanUpAndReturnEquivalence($ret, $user_equivalence, $mismatch);
     }
@@ -1018,7 +1025,7 @@ class PrimeMoverUserUtilities
         $ret['user_equivalence'] = $user_equivalence;
         $ret['user_mismatch_count'] = $mismatch;
         $ret['equivalence_count'] = $count;        
-        fclose($handle);                
+        PrimeMoverBridgeIO::call('fclose', $handle);                
         
         do_action('prime_mover_log_processed_events', "$retry_timeout seconds time out on user equivalence" , $blog_id, 'import', __FUNCTION__, $this);
         return $ret;

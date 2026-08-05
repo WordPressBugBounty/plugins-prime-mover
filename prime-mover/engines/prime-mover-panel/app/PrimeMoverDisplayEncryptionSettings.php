@@ -123,7 +123,7 @@ class PrimeMoverDisplayEncryptionSettings
         $readonly = '';
         $disabled = '';
         $title = esc_attr__('You can change the value of your encryption key here. Always backup this value before changing.', 'prime-mover');
-       
+        
         if (false === $this->canEditEncryptionKeySetting()) {
             $readonly = 'readonly';
             $disabled = 'disabled';
@@ -141,7 +141,7 @@ class PrimeMoverDisplayEncryptionSettings
             </th>
             <td>            
             <label>             
-            <input <?php echo $readonly; ?> title="<?php echo $title;?>" name="prime_mover_encryption_key_panel" type="text" class="large-text conceal-authorization-keys" size="45" id="js-prime_mover_encryption_key_panel" 
+            <input <?php echo esc_attr($readonly); ?> title="<?php echo esc_attr($title);?>" name="prime_mover_encryption_key_panel" type="text" class="large-text conceal-authorization-keys" size="45" id="js-prime_mover_encryption_key_panel" 
             value="<?php echo esc_attr($encryption_key);?>"> 
             <?php 
                $display = '';                        
@@ -155,7 +155,16 @@ class PrimeMoverDisplayEncryptionSettings
                     <label for="js-prime_mover_encryption_key_panel_checkbox">
                         <input type="checkbox" id="js-prime_mover_encryption_key_panel_checkbox" autocomplete="off" name="prime_mover_showdropbox_keys" class="prime_mover_encryption_key_panel_checkbox" value="yes"> 
                         <?php if ($enc_key_location) { ?>
-                            <span id="js-show-hide-encryption-key"><?php echo sprintf(esc_html__('Show encryption key saved in %s', 'prime-mover'), "<code>$enc_key_location</code>"); ?></span>
+                            <span id="js-show-hide-encryption-key">                            
+                            <?php                            
+                            echo sprintf(
+                                wp_kses(
+                                    /* translators: %s: File system directory path string location where the encryption key is saved */
+                                    __( 'Show encryption key saved in <code>%s</code>', 'prime-mover' ),
+                                    [ 'code' => [] ]
+                                ),
+                                esc_html( $enc_key_location )
+                            ); ?></span>
                         <?php } else { ?>
                              <span id="js-show-hide-encryption-key"><?php esc_html_e('Show encryption key', 'prime-mover');?></span>
                         <?php } ?>
@@ -170,8 +179,11 @@ class PrimeMoverDisplayEncryptionSettings
                         'prime-mover'); ?>
                     </p> 
                     <p class="description">
-                    <?php printf(esc_html__('Please keep track and backup all your encryption keys in a piece of paper and store it somewhere safe. %s. ', 
-                        'prime-mover'), '<strong>' . esc_html__('Once a key is lost, there is no way to restore encrypted packages') . '</strong>'); ?>
+                    <?php 
+                    echo wp_kses(
+                        __( 'Please keep track and backup all your encryption keys in a piece of paper and store it somewhere safe. <strong>Once a key is lost, there is no way to restore encrypted packages.</strong>', 'prime-mover' ),
+                        [ 'strong' => [] ]
+                    ); ?>
                     </p>                    
                     <?php  
                     if (!$readonly) {
@@ -188,7 +200,7 @@ class PrimeMoverDisplayEncryptionSettings
                         $title
                     );?> 
                      <p class="description prime-mover-settings-paragraph">                   
-                        <button <?php echo $display; ?> class="button js-prime-mover-copy-encryption-key" type="button" data-saved-value="<?php echo esc_attr($encryption_key);?>"
+                        <button <?php echo wp_kses( $display, array( 'button' => array( 'style' => true ) ) ); ?> class="button js-prime-mover-copy-encryption-key" type="button" data-saved-value="<?php echo esc_attr($encryption_key);?>"
                     data-clipboard-text="<?php echo esc_attr($encryption_key); ?>" title="<?php esc_attr_e('Copy encryption key of this site to clipboard.', 'prime-mover');?>">
                             <?php esc_html_e('Copy site encryption key to clipboard', 'prime-mover'); ?>
                         </button>
@@ -202,8 +214,8 @@ class PrimeMoverDisplayEncryptionSettings
         </tbody>
         </table>        
     <?php     
-        echo $this->renderEncWarningDialogMarkup();
-    }
+        $this->renderEncWarningDialogMarkup();
+    }    
   
     /**
      *Render delete dialog markup
@@ -212,10 +224,14 @@ class PrimeMoverDisplayEncryptionSettings
     {
         ?>
         <div style="display:none;" id="js-prime-mover-panel-enc-warn-dialog" title="<?php esc_attr_e('Warning!', 'prime-mover')?>"> 
-			<p><?php printf( esc_html__('Are you really sure you want to %s', 'prime-mover'), 
-			    '<strong>' . esc_html__('UPDATE ENCRYPTION KEY', 'prime-mover') . '</strong>'); ?> ? </p>
+			<p><?php 
+			echo wp_kses(
+			    __( 'Are you really sure you want to <strong>UPDATE ENCRYPTION KEY</strong> ?', 'prime-mover' ),
+			    [ 'strong' => [] ]
+			); ?></p>
 			<p><?php esc_html_e('If you already created encrypted backups using previous key, you will not be able to restore them with different key.', 'prime-mover')?></p>	      	  	
         </div>
     <?php
-    }    
+    }
+    
 }
