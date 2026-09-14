@@ -376,20 +376,35 @@ class PrimeMoverExportUtilities
      * @return array|array
      */
     public function getPluginsToExport($export_data = [])
-    {
-        if (! isset($export_data['export_system_footprint']['plugins'])) {
+    {        
+        $export_all_plugins = false;
+        if (!empty($export_data['export_system_footprint']['all_plugins']) && is_array($export_data['export_system_footprint']['all_plugins'])) {
+            $export_all_plugins = true;            
+        }
+        
+        if ($export_all_plugins) {
+            $plugins = array_flip($export_data['export_system_footprint']['all_plugins']);            
+        }             
+            
+        if (!isset($export_data['export_system_footprint']['plugins']) && false === $export_all_plugins) {
             return [];
         }
-        $plugins = $export_data['export_system_footprint']['plugins'];
-        if (empty($plugins) || empty($export_data['temp_folder_path'])) {
-            return[];
+        
+        if (false === $export_all_plugins) {
+            $plugins = $export_data['export_system_footprint']['plugins'];
         }
+       
+        if (false === $export_all_plugins && (empty($plugins) || empty($export_data['temp_folder_path']))) {
+            return[];
+        }            
       
         $plugins = apply_filters('prime_mover_exclude_plugins_in_export', $plugins, $export_data);
-        if ( ! is_array($plugins) ) {
+        if (!is_array($plugins)) {
             return [];
         }
-        return array_keys($plugins);        
+             
+        return array_keys($plugins); 
+                       
     }
  
     /**
@@ -963,24 +978,22 @@ class PrimeMoverExportUtilities
      * @return array
      * @compatible 5.6
      */
-    public function excludePrimeMoverPluginInExport(array $plugins)
-    {        
-        $allowed  = apply_filters('prime_mover_standard_extensions', ['prime-mover.php'] );
-        $plugins = array_filter(
+    public function excludePrimeMoverPluginInExport(array $plugins) {
+        $allowed = apply_filters('prime_mover_standard_extensions', ['prime-mover.php']);
+        
+        return array_filter(
             $plugins,
             function ($key) use ($allowed) {
-                $ret = true;
-                $filename = basename($key);
-                if (in_array($filename, $allowed)) {
-                    $ret = false;
+                foreach ($allowed as $slug) {
+                    if ($slug !== '' && prime_mover_str_contains($key, $slug)) {
+                        return false; 
+                    }
                 }
-                return $ret;
+                return true; 
             },
             ARRAY_FILTER_USE_KEY
             );
-        
-        return $plugins;
-    }
+    }    
     
     /**
      * Get plugin folder name

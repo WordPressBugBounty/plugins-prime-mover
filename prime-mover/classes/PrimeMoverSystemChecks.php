@@ -289,7 +289,7 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
         }
         return $enabled;
     }
-    
+        
     /**
      * @compatible 5.6
      * Generate system footprint for checking system compatibility when doing export/import
@@ -304,8 +304,11 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
         
         $activated_plugins_list = [];
         $footprint = [];
-        
         $activated_plugins_list = $this->getSystemFunctions()->getActivatedPlugins($blogid_to_export, $activated_plugins_list);        
+        
+        if (!empty($ret['export_all_plugins']) && 'true' === $ret['export_all_plugins']) {
+            $footprint['all_plugins'] = array_keys(get_plugins());            
+        }
         
         $this->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;
@@ -343,6 +346,25 @@ class PrimeMoverSystemChecks implements PrimeMoverSystemCheck
         $footprint['template'][ $theme_template ] =	$theme_template_version;
         $footprint['using_child_theme'] = $using_child_theme;
         $footprint['footprint_blog_id'] = $blogid_to_export;
+        
+        $all_themes = false;
+        if (!empty($ret['export_all_themes']) && 'true' === $ret['export_all_themes']) {
+            $footprint['all_themes'] = $this->getSystemCheckUtilities()->getSystemUtilities()->getThemes();
+            $all_themes = true;
+        }
+               
+        $all_themes_array = [];
+        if ($all_themes) {
+            $all_themes_array = array_flip($footprint['all_themes']);
+        }
+        
+        if ($all_themes && !isset($all_themes_array[$stylesheet])) {
+            $footprint['all_themes'][] = $stylesheet;
+        }
+
+        if ($all_themes && !isset($all_themes_array[$theme_template])) {
+            $footprint['all_themes'][] = $theme_template;
+        }        
         
         $site_url =	$this->getSystemFunctions()->getBlogOption($blogid_to_export, 'siteurl', false, '', true, true);        
         $site_url_parsed = $this->getSystemFunctions()->removeSchemeFromUrl($site_url);

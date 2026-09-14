@@ -863,12 +863,12 @@ class PrimeMoverBuddyPressCompat
         $avatar_dir = $this->getProfileDirectory($ret, true, $blog_id);
         $buddypress_dir = $this->getProfileDirectory($ret, false, $blog_id);
         if ($avatar_dir && $this->getSystemFunctions()->nonCachedFileExists($avatar_dir)) {
-            $this->getSystemFunctions()->primeMoverDoDelete($avatar_dir, true);
+            $this->getSystemFunctions()->primeMoverDoDelete($avatar_dir, true, 0, $blog_id);
             $done = true;
         }
         
         if ($buddypress_dir && $this->getSystemFunctions()->nonCachedFileExists($buddypress_dir)) {
-            $this->getSystemFunctions()->primeMoverDoDelete($buddypress_dir, true);
+            $this->getSystemFunctions()->primeMoverDoDelete($buddypress_dir, true, 0, $blog_id);
             $done = true;
         } 
         
@@ -886,38 +886,7 @@ class PrimeMoverBuddyPressCompat
      */
     protected function getProfileDirectory($ret = [], $avatar_mode = true, $blog_id = 0)
     {
-        if (!is_array($ret)) {
-            return false;
-        }
-        
-        $base_dir = '';
-        if (!empty($ret['canonical_uploads_information']['basedir'])) {            
-            $base_dir = $ret['canonical_uploads_information']['basedir'];            
-        } 
-        
-        $uploads_info = [];
-        if (!$base_dir && $blog_id) {          
-            $this->getSystemFunctions()->switchToBlog($blog_id);   
-            $uploads_info = $this->getSystemInitialization()->getWpUploadsDir(true, true);
-            $this->getSystemFunctions()->restoreCurrentBlog($blog_id);
-        }
-        
-        if (!empty($uploads_info['basedir'])) {
-            $base_dir = $uploads_info['basedir'];
-        }
-        
-        if (!$base_dir) {
-            return false;
-        }    
-        
-        $base_dir = untrailingslashit(wp_normalize_path($base_dir));
-        if ($avatar_mode) {
-            $avatar_dir = $base_dir . '/avatars/';
-            return $avatar_dir;
-        }
-        
-        $buddypress_dir = $base_dir . '/buddypress/members/';        
-        return $buddypress_dir;
+        return $this->getSystemFunctions()->getProfileDirectory($ret, $avatar_mode, $blog_id);
     }
     
     /**

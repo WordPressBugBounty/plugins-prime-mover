@@ -404,9 +404,11 @@ class PrimeMoverExporter implements PrimeMoverExport
         if (empty($footprint['stylesheet']) || empty($footprint['template'])) {
             return $themes;
         }
+        
         if (!is_array($footprint['stylesheet'])) {
             return $themes;
         }
+        
         if (!is_array($footprint['template'])) {
             return $themes;
         }
@@ -415,23 +417,38 @@ class PrimeMoverExporter implements PrimeMoverExport
         $stylesheet_name = key($stylesheet);
         
         $stylesheet_path = $this->getSystemFunctions()->getThemeFullPath($stylesheet_name);
-        if (! $stylesheet_path) {
+        if (!$stylesheet_path) {
             return $themes;
         }
+        
         $themes[] = wp_normalize_path($stylesheet_path);       
         $using_child_theme = 'no';
+        
         if (isset($footprint['using_child_theme'])) {
             $using_child_theme = $footprint['using_child_theme'];
         }
+        
         $template_path = '';
         if ('yes' === $using_child_theme) {
             $template = $footprint['template'];
             $template_name = key($template);
             $template_path = $this->getSystemFunctions()->getThemeFullPath($template_name);            
         }
+        
         if ($template_path) {
             $themes[] = wp_normalize_path($template_path); 
         }
+        
+        if (!empty($footprint['all_themes']) && is_array($footprint['all_themes']) && true === $ret_format) {
+            $all_themes = $footprint['all_themes'];
+            foreach ($all_themes as $theme) {           
+                $inactive_theme = $this->getSystemFunctions()->getThemeFullPath($theme);                
+                if ($inactive_theme && !in_array($inactive_theme, $themes)) {
+                    $themes[] = wp_normalize_path($inactive_theme);
+                }
+            }
+        }        
+        
         return $themes;        
     }
     
@@ -758,6 +775,10 @@ class PrimeMoverExporter implements PrimeMoverExport
         }
         $this->getSystemInitialization()->setExportBlogID( $blogid_to_export );
         $ret['original_blogid'] = $blogid_to_export;
+        
+        $ret['export_all_plugins'] = apply_filters('prime_mover_get_setting', 'false', 'inactive_plugins_enabled', false, 'false', true, $blogid_to_export); 
+        $ret['export_all_themes'] = apply_filters('prime_mover_get_setting', 'false', 'inactive_themes_enabled', false, 'false', true, $blogid_to_export); 
+        
         $this->getProgressHandlers()->updateTrackerProgress(esc_html__('Creating temp folder', 'prime-mover'), 'export' );
         
         $main_site_export_folder = $this->getSystemInitialization()->getMultisiteExportFolderPath() . $blogid_to_export . DIRECTORY_SEPARATOR;
@@ -1465,21 +1486,6 @@ class PrimeMoverExporter implements PrimeMoverExport
 
         $ret = $this->getSystemFunctions()->doMemoryLogs($ret, $current_func, 'export', $blogid_to_export);       
         return apply_filters('prime_mover_save_return_export_progress', $ret, $blogid_to_export, $next_func, $current_func);           
-    }
-    
-    /**
-     * Zip db dump helper
-     * @param array $ret
-     * @param string $target_path
-     * @param boolean $encrypt
-     */
-    public function zipDbDumpHelper($ret = [], $target_path = '', $encrypt = false)
-    {
-        $this->getSystemFunctions()->addToPrimeMoverZipPackage($ret['target_zip_path'], false, $target_path, $ret['temp_folder_path'], true, false, true);
-        if ($encrypt) {
-            $signature_path = $ret['temp_folder_path'] . $this->getSystemInitialization()->getSignatureFile();
-            $this->getSystemFunctions()->addToPrimeMoverZipPackage($ret['target_zip_path'], false, $signature_path, $ret['temp_folder_path'], true, false, true);
-        }
     }
 
     /**

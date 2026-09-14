@@ -214,12 +214,12 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
      */
     public function column_package_name($item)
     {        
-        return $item['package_name'];
+        return esc_html($item['package_name']);
     }  
     
     public function column_target_blog_id($item)
     {
-        return $item['target_blog_id'];
+        return esc_html($item['target_blog_id']);
     }
     
     /**
@@ -227,7 +227,7 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
      */
     public function column_site_title($item)
     {
-        return $item['site_title'];
+        return esc_html($item['site_title']);
     }
     
     /**
@@ -235,7 +235,7 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
      */
     public function column_package_type($item) 
     {
-        return strtoupper($item['package_type']);
+        return esc_html(strtoupper($item['package_type']));
     }    
     
     /**
@@ -243,7 +243,7 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
      */
     public function column_package_mode($item) 
     {
-        return $item['package_mode'];
+        return esc_html($item['package_mode']);
     }
     
     /**
@@ -251,7 +251,7 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
      */
     public function column_date_created($item) 
     {
-        return $item['date_created'];
+        return esc_html($item['date_created']);
     }
     
     /**
@@ -259,7 +259,7 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
      */
     public function column_package_size($item) 
     {
-        return $item['package_size'];
+        return esc_html($item['package_size']);
     }    
     
     /**
@@ -276,7 +276,7 @@ class PrimeMoverBackupMenuListTable extends WP_List_Table
     public function column_include_users($item)
     {
         if (isset($item['include_users'])) {
-            return $item['include_users'];
+            return esc_html($item['include_users']);
         } else {
             return '---';    
         }        

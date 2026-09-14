@@ -1775,5 +1775,73 @@ class PrimeMoverSystemUtilities
         }
         
         return $return_val;
-    }    
+    }  
+
+    /**
+     * Get installed themes on the site and return all slugs
+     * Only returns network enabled themes on multisite
+     * @return array
+     */
+    public function getThemes() 
+    {
+        if (!defined('PRIME_MOVER_THEME_CORE_PATH')) {
+            return [];
+        }
+      
+        $theme_root = wp_normalize_path( untrailingslashit(PRIME_MOVER_THEME_CORE_PATH));
+        
+        if (!is_dir($theme_root)) {
+            return [];
+        }
+        
+        $valid_slugs = [];        
+        if (is_multisite()) {
+            $allowed_network_themes = $this->getSystemFunctions()->getSiteOption('allowedthemes', false, true, true);
+            $database_slugs = $allowed_network_themes ? array_keys($allowed_network_themes) : [];
+            
+            foreach ($database_slugs as $slug) {
+                if (is_dir( $theme_root . '/' . $slug) && file_exists($theme_root . '/' . $slug . '/style.css')) {
+                    $valid_slugs[] = $slug;
+                }
+            }
+            
+            return $valid_slugs;
+        }
+        
+        $files = scandir($theme_root);
+        if (false === $files) {
+            return [];
+        }
+        
+        foreach ($files as $file) {
+            if ('.' !== $file && '..' !== $file && is_dir($theme_root . '/' . $file)) {
+                if (file_exists($theme_root . '/' . $file . '/style.css')) {
+                    $valid_slugs[] = $file;
+                }
+            }
+        }
+        
+        return $valid_slugs;
+    }
+    
+    /**
+     * Clean slugs
+     * @param string $slug
+     * @return boolean|string
+     */
+    public function cleanSlugs($slug = '') {
+        if (empty($slug)) {
+            return false;
+        }
+      
+        $slug = rawurldecode($slug);        
+        $slug = wp_normalize_path($slug);
+        
+        if (validate_file($slug) !== 0) {
+            return false;
+        }
+        
+        return $slug;
+    }
+    
 }

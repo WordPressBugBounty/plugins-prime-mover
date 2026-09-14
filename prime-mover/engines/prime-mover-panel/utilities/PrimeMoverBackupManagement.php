@@ -69,7 +69,7 @@ class PrimeMoverBackupManagement
      */
     public function getFormSettingKeys()
     {
-        return $this->form_setting_keys;
+        return apply_filters('prime_mover_inject_form_setting_keys', $this->form_setting_keys);
     }
     
     /**

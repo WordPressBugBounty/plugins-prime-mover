@@ -763,46 +763,52 @@ class PrimeMoverImporter implements PrimeMoverImport
         }        
         
         return $ret;
-    }
+    }   
     
     /**
      * Compute extraction variables
      * @param array $ret
      * @return array
      */
-    public function computeExtractVariables($ret = [])
+    public function computeExtractVariables($ret = []) 
     {
         $file_path = $ret['file'];
         $extracting_tar = $this->getSystemFunctions()->isExtractingPackageAsTar($file_path);
-        
         $destination = trailingslashit(dirname($file_path));
         $tar_config = [];
-        if (!empty($ret['wprime_tar_config_set'])) { 
-            $tar_config = $ret['wprime_tar_config_set'];            
-        }         
-          
+        
+        if (!empty($ret['wprime_tar_config_set'])) {
+            $tar_config = $ret['wprime_tar_config_set'];
+        }
+        
         if ($extracting_tar && empty($tar_config)) {
             $tar_config = apply_filters('prime_mover_get_tar_package_config_from_file', [], $file_path);
-        }        
+        }
         
-        if ($extracting_tar) {            
-            $correct_folder_name = $tar_config['tar_root_folder'];
+        if ($extracting_tar) {
+            $raw_folder_name = isset($tar_config['tar_root_folder']) ? $tar_config['tar_root_folder'] : '';
+            if (strpos($raw_folder_name, '..') !== false) {
+                $ret['error'] = esc_html__('Unzip failed. The package is not a Prime Mover site package.', 'prime-mover');
+                return $ret;
+            }
+            
+            $correct_folder_name = !empty($raw_folder_name) ? basename($raw_folder_name) : '';
         } else {
             $correct_folder_name = $this->getSystemFunctions()->getCorrectFolderNameFromZip($file_path);
-        }       
-        if (!$correct_folder_name) {
+        }
+        
+        if (!$correct_folder_name || $correct_folder_name === '.' || $correct_folder_name === '..') {
             $ret['error'] = esc_html__('Unzip failed. The package is not a Prime Mover site package.', 'prime-mover');
             return $ret;
         }
-
-        $unzipped_directory	= trailingslashit($destination . $correct_folder_name);                
+        
+        $unzipped_directory = trailingslashit($destination . $correct_folder_name);
         $mode = esc_html__('Main', 'prime-mover');
+        $extraction_variables = [$file_path, $destination, $unzipped_directory, $mode];
+        $ret['extraction_variables'] = $extraction_variables;
         
-        $extraction_variables = [$file_path, $destination, $unzipped_directory, $mode];        
-        $ret['extraction_variables'] = $extraction_variables;       
-        
-        return [$file_path, $destination, $unzipped_directory, $mode, $ret];       
-    }
+        return [$file_path, $destination, $unzipped_directory, $mode, $ret];
+    }    
     
     /**
      * Do extraction work

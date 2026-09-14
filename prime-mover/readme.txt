@@ -5,7 +5,7 @@ Tags: migrate wordpress, multisite migration, clone, backup
 Requires at least: 5.2
 Tested up to: 7.1
 Requires PHP: 5.6
-Stable tag: 2.2.0
+Stable tag: 2.2.1
 License: GPLv3 or later
 License URI: https://codexonics.com
 
@@ -105,6 +105,18 @@ Update now to get all the latest bug fixes, improvements, and features!
 
 == Changelog ==
 
+= 2.2.1 =
+
+* Feature: Added support for exporting inactive installed plugins.
+* Feature: Added support for exporting inactive installed themes.
+* Compatibility: Exclude plugins that include super-large backup storage files.
+* Compatibility: Exclude super-large backup folders from migrations created by third-party sources.
+* Compatibility: Exclude known super-large file extensions of popular backup plugins.
+* Security: Hardened code execution safety against a potential Zip Slip vulnerability. (Credit: Sarvar Eshboyev)
+* Security: Resolved an unauthorized directory deletion issue involving the WPRIME folder. (Credit: Sarvar Eshboyev)
+* Security: Resolved XSS issues on the package manager page. (Credit: Sarvar Eshboyev)
+* Fixed: Added containment rules on directory and file deletions.
+
 = 2.2.0 =
 
 * Performance: Improve overall export and restore log performance by reducing file sizes.
@@ -126,10 +138,5 @@ Update now to get all the latest bug fixes, improvements, and features!
 * Compatibility: Better compatibility with multisite parallel import and restore. 
 * Fixed: Uncaught TypeError mysqli_num_rows(): Argument #1 ($result) must be of type mysqli_result during search replace. 
 * Fixed: Missing or corrupted Freemius data after simultaneous restore. 
-
-= 2.1.5 =
-
-* Fixed: Interrupted copying of backups to the custom directory on resource-limited servers.  
-* Fixed: Runtime error during differential restore when data contains double quotes. 
 
 See the previous changelogs in changelog.txt.

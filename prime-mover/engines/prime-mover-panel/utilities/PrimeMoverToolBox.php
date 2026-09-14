@@ -149,8 +149,72 @@ class PrimeMoverToolBox
         add_action('prime_mover_scheduled_backup_settings_per_site', [$this, 'outputNonUserIdAdjustment'], 75, 1);
         
         add_action('prime_mover_scheduled_backup_settings_per_site', [$this, 'outputExcludeTables'], 80, 1);
+        add_action('prime_mover_scheduled_backup_settings_per_site', [$this, 'outputInactivePlugins'], 85, 1);
+        add_action('prime_mover_scheduled_backup_settings_per_site', [$this, 'outputInactiveThemes'], 90, 1);
     }
 
+    /**
+    * Output inactive themes setting
+    * @param number $blog_id
+    */
+    public function outputInactiveThemes($blog_id = 0)
+    {
+       $settings_api = $this->getAutoBackupSetting()->getSettingsConfig()->getMasterSettingsConfig();
+       $identifier = 'inactive_themes';
+
+        $button_specs = [
+                'button_wrapper' => 'div',
+                'button_classes' => 'button-primary',
+                'button_text' => '',
+                'disabled' => '',
+                'title' => ''
+            ];
+
+        $checkbox_specs = [
+                'default' => 'false',
+                'return_default_if_no_key' => true
+            ];
+
+        $config = $settings_api[$identifier];
+        $inactive_themes_lbl = __('Inactive themes', 'prime-mover');
+        $enable_inactive_themes_lbl = __('Include inactive themes in the export process', 'prime-mover');
+        $sprintf = esc_html__('By default, the export includes only the site active theme. Checking this setting will include all inactive themes on the site during export. Note that in a multisite, only network-enabled themes are included.', 'prime-mover');
+
+        $this->getPrimeMoverSettingsTemplate()->renderCheckBoxFormTemplate($inactive_themes_lbl, $identifier, $config, 'true', $enable_inactive_themes_lbl,
+                $sprintf, $blog_id, false, $button_specs, $checkbox_specs);
+    }
+        
+    /**
+     * Output inactive plugins setting
+     * @param number $blog_id
+     */
+    public function outputInactivePlugins($blog_id = 0)
+    {
+        $settings_api = $this->getAutoBackupSetting()->getSettingsConfig()->getMasterSettingsConfig();
+        $identifier = 'inactive_plugins';
+        
+        $button_specs = [
+            'button_wrapper' => 'div',
+            'button_classes' => 'button-primary',
+            'button_text' => '',
+            'disabled' => '',
+            'title' => ''
+        ];
+        
+        $checkbox_specs = [
+            'default' => 'false',
+            'return_default_if_no_key' => true
+        ];
+        
+        $config = $settings_api[$identifier];
+        $inactive_plugins_lbl = __('Inactive plugins', 'prime-mover');
+        $enable_inactive_plugins_lbl = __('Include inactive plugins in the export process', 'prime-mover');
+        $sprintf = esc_html__('By default, the export only includes active plugins for the site. Checking this setting will include all inactive plugins in the site during export.', 'prime-mover');
+        
+        $this->getPrimeMoverSettingsTemplate()->renderCheckBoxFormTemplate($inactive_plugins_lbl, $identifier, $config, 'true', $enable_inactive_plugins_lbl,
+            $sprintf, $blog_id, false, $button_specs, $checkbox_specs);
+    }
+    
     /**
      * Output exclude tables setting
      * @param number $blog_id

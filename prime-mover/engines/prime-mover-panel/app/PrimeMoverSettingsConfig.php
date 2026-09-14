@@ -198,6 +198,46 @@ class PrimeMoverSettingsConfig
                 "documentation" => ''
             ], 
             
+            'inactive_plugins' =>
+            [
+                "button_selector" => "#js-save-prime-mover-inactive-plugins",
+                "spinner_selector" => ".js-save-prime-mover-inactive-plugins-spinner",
+                "data_selector" => "#js-prime_mover_inactive_plugins_checkbox",
+                "ajax_action" => "prime_mover_save_inactive_plugins",
+                "ajax_key" => "inactive_plugins_enabled",
+                "datatype" => "checkbox",
+                "dialog" => false,
+                "encrypted" => false,
+                "nonce" => "prime_mover_inactive_plugins_nonce",
+                "description" => __('Inactive plugins', 'prime-mover'),
+                "on_status" => __('enabled', 'prime-mover'),
+                "off_status" => __('off', 'prime-mover'),
+                "purpose" => __('If this is checked - it will export inactive plugins.', 'prime-mover'),
+                "validation_id" => 'settings_checkbox_validation',
+                "show_as_required" => false,
+                "documentation" => ''
+            ],
+            
+            'inactive_themes' =>
+            [
+                "button_selector" => "#js-save-prime-mover-inactive-themes",
+                "spinner_selector" => ".js-save-prime-mover-inactive-themes-spinner",
+                "data_selector" => "#js-prime_mover_inactive_themes_checkbox",
+                "ajax_action" => "prime_mover_save_inactive_themes",
+                "ajax_key" => "inactive_themes_enabled",
+                "datatype" => "checkbox",
+                "dialog" => false,
+                "encrypted" => false,
+                "nonce" => "prime_mover_inactive_themes_nonce",
+                "description" => __('Inactive themes', 'prime-mover'),
+                "on_status" => __('enabled', 'prime-mover'),
+                "off_status" => __('off', 'prime-mover'),
+                "purpose" => __('If this is checked - it will export inactive themes.', 'prime-mover'),
+                "validation_id" => 'settings_checkbox_validation',
+                "show_as_required" => false,
+                "documentation" => ''
+            ],
+            
             'autobackup_timeout_options' =>
             [
                 "button_selector" => "#js-save-prime-mover-automatic-backup-timeout-options",
@@ -532,6 +572,38 @@ class PrimeMoverSettingsConfig
     {
         add_filter('prime_mover_settings_js_api_extension', [$this, 'renderJsApiExtensionData'], 10, 1);
         add_filter('prime_mover_register_setting', [$this, 'registerSetting'], 10, 1);
+        add_filter('prime_mover_inject_form_setting_keys', [$this, 'inActivePluginsSettingsHandler'], 10, 1);
+        add_filter('prime_mover_inject_form_setting_keys', [$this, 'inActiveThemesSettingsHandler'], 10, 1);
+    }
+    
+    /**
+     * Inject inactive themes form handler
+     * @param array $form_keys
+     * @return array
+     */
+    public function inActiveThemesSettingsHandler($form_keys = [])
+    {
+        if (isset($form_keys['prime_mover_save_inactive_themes'])) {
+            return $form_keys;
+        }
+        
+        $form_keys['prime_mover_save_inactive_themes'] = 'inactive_themes';
+        return $form_keys;
+    }
+    
+    /**
+     * Inject inactive plugins form handler
+     * @param array $form_keys
+     * @return array
+     */
+    public function inActivePluginsSettingsHandler($form_keys = [])
+    {
+        if (isset($form_keys['prime_mover_save_inactive_plugins'])) {
+            return $form_keys;
+        }
+        
+        $form_keys['prime_mover_save_inactive_plugins'] = 'inactive_plugins';
+        return $form_keys;
     }
     
     /**

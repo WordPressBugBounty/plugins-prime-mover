@@ -3919,6 +3919,48 @@ Options -Indexes
     }
     
     /**
+     * Get default excluded plugins
+     * @return string|mixed
+     */
+    public function getDefaultExcludedPlugins()
+    {
+        $targets = PRIME_MOVER_DEFAULT_EXCLUDED_PLUGINS;
+        if (is_string($targets)) {
+            $targets = json_decode($targets, true);
+        }
+        
+        return $targets;
+    }
+    
+    /**
+     * Get default excluded package types
+     * @return string|mixed
+     */
+    public function getDefaultExcludedPackageTypes()
+    {
+        $targets = PRIME_MOVER_DEFAULT_EXCLUDED_PACKAGE_TYPES;
+        if (is_string($targets)) {
+            $targets = json_decode($targets, true);
+        }
+        
+        return $targets;
+    }
+    
+    /**
+     * Get default excluded media directory
+     * @return string|mixed
+     */
+    public function getDefaultExcludedMediaDir()
+    {
+        $targets = PRIME_MOVER_DEFAULT_EXCLUDED_UPLOADS_DIR;
+        if (is_string($targets)) {
+            $targets = json_decode($targets, true);
+        }
+        
+        return $targets;
+    }
+    
+    /**
      * Returns TRUE if wp_filesystem is usable, false otherwise
      * @param $wp_filesystem
      * @return boolean

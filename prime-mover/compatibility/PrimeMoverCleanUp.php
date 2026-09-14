@@ -121,32 +121,137 @@ class PrimeMoverCleanUp
         add_action('prime_mover_after_actual_import', [$this, 'maybeCleanUpFallBackUserMeta'], 250);
         add_filter('prime_mover_standard_extensions', [$this, 'exludeAdvancedWpResetInPluginsExport'], 99, 1 ); 
         
-        add_filter('prime_mover_filter_export_footprint', [$this, 'excludeAdvancedWpResetInFootprint'], 10000);        
+        add_filter('prime_mover_filter_export_footprint', [$this, 'excludeAnyPluginsInFootprint'], 10000);  
+        add_filter('prime_mover_excluded_filetypes_export', [$this, 'excludeThirdPartyPackagesFromAnyArchive'], 20, 1);
+        add_filter('prime_mover_excluded_media_folders', [$this, 'excludeThirdPartyFoldersInMediaExport'], 100, 1); 
     }
 
     /**
-     * Remove Advanced WP Reset in export footprint
+     * Exclude third party folders in media export
+     * This applies to both single-site and multisite.
+     * @param array $excluded_dir
+     * @return array
+     */
+    public function excludeThirdPartyFoldersInMediaExport($excluded_dir = [])
+    {
+        if (!is_array($excluded_dir)) {
+            return $excluded_dir;
+        }
+        
+        $base_uploads = $this->getSystemInitialization()->getBackupBaseDirectory(false, false);
+        $excluded_directories = $this->getSystemInitialization()->getDefaultExcludedMediaDir();
+        $base_uploads = wp_normalize_path($base_uploads);
+        
+        foreach ($excluded_directories as $excluded_directory) {
+            $folder_name = sanitize_file_name(basename($excluded_directory));
+            if (empty($folder_name)) {
+                continue;
+            }
+            
+            $exclusion_path = wp_normalize_path(trailingslashit($base_uploads) . $folder_name);
+            if (file_exists($exclusion_path)) {
+                $exclusion_path = wp_normalize_path(realpath($exclusion_path));
+            } else {
+                $real_base = realpath($base_uploads);
+                if ($real_base !== false) {
+                    $exclusion_path = wp_normalize_path(trailingslashit($real_base) . $folder_name);
+                }
+            }
+            
+            if (strpos($exclusion_path, $base_uploads) !== 0) {
+                continue;
+            }
+            
+            if (!in_array($exclusion_path, $excluded_dir)) {
+                $excluded_dir[] = $exclusion_path;
+            }
+        }
+        
+        return $excluded_dir;
+    }    
+    
+    /**
+     * To save space and bandwidth, we excluded known third-party package file extensions.
+     * This applies to both single-site and multisite.
+     * @param array $ext
+     * @return array
+     */
+    public function excludeThirdPartyPackagesFromAnyArchive($ext = [])
+    {
+        $excluded_types = $this->getSystemInitialization()->getDefaultExcludedPackageTypes();
+        if (empty($excluded_types) || !is_array($excluded_types)) {
+            return $ext;
+        }
+        
+        $excluded_types = array_filter($excluded_types);
+        if (empty($excluded_types)) {
+            return $ext;
+        }
+        
+        foreach ($excluded_types as $excluded_type) {
+            if (!in_array($excluded_type, $ext)) {
+                $ext[] = $excluded_type;
+            }  
+        }
+        
+        return $ext;
+    }
+    
+    /**
+     * Cleanup any third party plugins in export footprint -internal use only.
+     * This overrides the plugin exclusion feature
+     * Only overridable by PRIME_MOVER_DEFAULT_EXCLUDED_PLUGINS constant
      * @param array $export_system_footprint
      * @return array
      */
-    public function excludeAdvancedWpResetInFootprint($export_system_footprint = [])
+    public function excludeAnyPluginsInFootprint($export_system_footprint = []) 
     {
         if (!$this->getSystemAuthorization()->isUserAuthorized()) {
             return $export_system_footprint;
         }
         
-        if (!empty($export_system_footprint['plugins']) && is_array($export_system_footprint['plugins'])) {
-            $keys = array_keys($export_system_footprint['plugins']);
-            foreach ($keys as $plugin) {
-                if (prime_mover_str_contains($plugin, 'advanced-wp-reset.php') && isset($export_system_footprint['plugins'][$plugin])) {
-                    unset($export_system_footprint['plugins'][$plugin]);
-                    break;
+        $has_plugins = !empty($export_system_footprint['plugins']) && is_array($export_system_footprint['plugins']);
+        $has_all_plugins = !empty($export_system_footprint['all_plugins']) && is_array($export_system_footprint['all_plugins']);
+        
+        if (!$has_plugins && !$has_all_plugins) {
+            return $export_system_footprint;
+        }
+        
+        $targets = $this->getSystemInitialization()->getDefaultExcludedPlugins();
+        if (empty($targets) || !is_array($targets)) {
+            return $export_system_footprint;
+        }
+        
+        $targets = array_filter($targets); 
+        if (empty($targets)) {
+            return $export_system_footprint;
+        }
+        
+        $pattern = '/' . implode('|', array_map('preg_quote', $targets)) . '/i';
+        if ($has_plugins) {
+            $export_system_footprint['plugins'] = array_filter(
+                $export_system_footprint['plugins'],
+                function($plugin_path) use ($pattern) {
+                    return !preg_match($pattern, $plugin_path);
+                },
+                ARRAY_FILTER_USE_KEY
+                );
+        }
+        
+        if ($has_all_plugins) {
+            $export_system_footprint['all_plugins'] = array_filter(
+                $export_system_footprint['all_plugins'],
+                function($plugin_path) use ($pattern) {
+                    return !preg_match($pattern, $plugin_path);
                 }
-            }            
-        }       
+                );
+            
+            $export_system_footprint['all_plugins'] = array_values($export_system_footprint['all_plugins']);
+        }
         
         return $export_system_footprint;
     }
+    
     
     /**
      * @tested Codexonics\PrimeMoverFramework\Tests\TestPrimeMoverCleanUp::itDoesNotDeactivateReallySimpleSSLSecureSite() 
@@ -213,13 +318,23 @@ class PrimeMoverCleanUp
     }
     
     /**
-     * Exclude the Advanced WP Reset plugin, as it causes issues when activated in multisite.
+     * Exclude any third party plugins by default on export
+     * This overrides the plugin exclusion feature
+     * Only overridable by PRIME_MOVER_DEFAULT_EXCLUDED_PLUGINS
      * @param array $plugin_file
      * @return array
      */
     public function exludeAdvancedWpResetInPluginsExport(array $plugin_file)
     {
-        $plugin_file[] = 'advanced-wp-reset.php';
+        $targets = $this->getSystemInitialization()->getDefaultExcludedPlugins();
+        if (empty($targets) || !is_array($targets)) {
+            return $plugin_file;
+        }
+        
+        foreach ($targets as $target) {
+            $plugin_file[] = $target;
+        }
+        
         return $plugin_file;
     }
     

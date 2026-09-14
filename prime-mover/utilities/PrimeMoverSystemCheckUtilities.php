@@ -1053,7 +1053,12 @@ class PrimeMoverSystemCheckUtilities
         $retry_timeout = apply_filters('prime_mover_retry_timeout_seconds', PRIME_MOVER_RETRY_TIMEOUT_SECONDS, 'resumableZipExtractor');
         
         for($i = $index; $i < $total_numfiles_zip; $i++) {
+            
             list($result, $resource, $size, $path, $directory, $name) = $this->computeExtractionParameters($shell, $i, $zip, $extraction_path, $blogid);
+            if ($result === false && $path === false) {
+                return $this->handleExtractionError($zip, $mode, $blogid, $extraction_failed);
+            }
+            
             if ($directory !== $name ) {
                 $result = wp_mkdir_p($path);
                 continue;
@@ -1065,11 +1070,13 @@ class PrimeMoverSystemCheckUtilities
             if ($use_extract_to) {
                 $result = $zip->extractTo($extraction_path, [$name]);
                 $finished = microtime(true) - $start;
+                
                 if ($result && $finished > $retry_timeout) {
                     return $this->maybeExtractionNeedsToRestart($return, 0, $i, $shell, $ret, $name, $blogid);
                 }
             } else {
                 $result = $this->doExtractionByFileLevelChunks($bytes_offset, $name, $blogid, $path, $resource, $chunkSize, $shell, $start, $retry_timeout, $i, $ret, $return);
+                
                 if (is_array($result)) {
                     return $result;
                 }
@@ -1106,7 +1113,7 @@ class PrimeMoverSystemCheckUtilities
         }
         return [$use_extract_to, $resource];
     }
-    
+     
     /**
      * Compute extraction parameters
      * @param boolean $shell
@@ -1117,7 +1124,7 @@ class PrimeMoverSystemCheckUtilities
      * @return boolean[]|NULL[]|string[]|mixed[]
      */
     protected function computeExtractionParameters($shell = false, $i = 0, $zip = null, $extraction_path = '', $blogid = 0)
-    {    
+    {
         $this->maybeThrottleExtraction($shell);
         $result = false;
         $resource = null;
@@ -1126,9 +1133,22 @@ class PrimeMoverSystemCheckUtilities
         $size = $statindex['size'];
         $name = $zip->getNameIndex($i);
         
-        do_action('prime_mover_log_processed_events', "Extracting from main package: " . $name . " to $extraction_path", $blogid, 'import', 'resumableZipExtractor', $this, true);
+        do_action('prime_mover_log_processed_events', "Extracting from main package: " . $name . " to $extraction_path", $blogid, 'import', 'computeExtractionParameters', $this, true);        
+  
+        $real_base = wp_normalize_path(trailingslashit($extraction_path));
+        $target_path = wp_normalize_path($real_base . $name);
+        $parent_dir = wp_normalize_path(dirname($target_path));
         
-        $path = $extraction_path . $name;
+        if (
+            strpos($name, '..') !== false ||
+            strpos($target_path, '..') !== false ||
+            strpos(trailingslashit($parent_dir), $real_base) !== 0
+            ) {
+                do_action('prime_mover_log_processed_events', "Invalid path detected in zip name: " . $name, $blogid, 'import', 'computeExtractionParameters', $this);
+                return [false, null, 0, false, false, $name];
+            }
+            
+        $path = $target_path;
         $directory = rtrim($name, '/');
         
         return [$result, $resource, $size, $path, $directory, $name];
@@ -1267,22 +1287,26 @@ class PrimeMoverSystemCheckUtilities
      * @param number $blogid
      * @param string $extraction_failed
      * @return string
-     */
-    protected function handleExtractionError(ZipArchive $zip, $mode = '', $blogid = 0, $extraction_failed = '')
+     */   
+    protected function handleExtractionError(\ZipArchive $zip, $mode = '', $blogid = 0, $extraction_failed = '')
     {
         $error = $zip->getStatusString();
         do_action('prime_mover_log_processed_events', "Some $mode extraction error found.", $blogid, 'import', 'resumableZipExtractor', $this);
+        
         if ($error) {
             $extraction_failed = $extraction_failed . ' ' . $error;
         }
         
-        $return['error'] = $extraction_failed;
-        if (is_resource($zip)) {
-            $zip->close();
+        $return = [
+            'error' => $extraction_failed
+        ];
+       
+        if ($zip instanceof \ZipArchive) {
+            @$zip->close();
         }
         
         return $return;
-    }
+    }    
     
     /**
      * Check if extraction needs to restart , $current_position needs to be zero for native extractor

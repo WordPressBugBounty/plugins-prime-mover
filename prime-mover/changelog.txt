@@ -2,6 +2,11 @@
 
 **This is a list detailing changes for all Prime Mover releases.**
 
+= 2.1.5 =
+
+* Fixed: Interrupted copying of backups to the custom directory on resource-limited servers.  
+* Fixed: Runtime error during differential restore when data contains double quotes. 
+
 = 2.1.4 =
 
 * Fixed: Refactored Freemius integration code for stability.

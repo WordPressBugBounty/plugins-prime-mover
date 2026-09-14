@@ -571,71 +571,107 @@ class PrimeMoverImportUtilities
              return $import_data;
         }
         
+        $themes = [];
+        $all_themes_restore = false;
+        if (!empty($import_data['imported_package_footprint']['all_themes']) && is_array($import_data['imported_package_footprint']['all_themes'])) {
+            $all_themes_restore = true;
+        }
+        
+        if ($all_themes_restore) {
+            $themes = $import_data['imported_package_footprint']['all_themes'];
+            
+            return $this->restoreThemesFromSource($import_data, $include_themes, $blog_id, $start, $themes, true);            
+        }
+            
         $using_child_theme = $import_data['imported_package_footprint']['using_child_theme'];
-        $template = key($import_data['imported_package_footprint']['template']);        
-        $template_path_package = $include_themes . $template . DIRECTORY_SEPARATOR;
-        
-        $this->getImporter()->getSystemInitialization()->initializeFs(false);
-        global $wp_filesystem;
-        if (! $wp_filesystem->exists($template_path_package)) {           
-            $import_data['copy_themes_done'] = true;
-            return $import_data;
-        }
-        
-        $template_path_wpcontent = $this->getExportUtilities()->getThemeFullPath($template, false);           
-        $import_data = $this->maybeBailOutThemeRestore($import_data, $template_path_wpcontent, $template_path_package, 'parent', $blog_id);
-        
-        if (isset($import_data['error'])) {
-            return $import_data;
-        }
-        
-        $processed = $this->getProcessedThemeFiles($import_data);
-        $parent_import_theme_done = false;
-        if (!empty($import_data['parent_theme_copy_done'])) {
-            $parent_import_theme_done = true;
+        $themes[] = key($import_data['imported_package_footprint']['template']);
+       
+        if ('yes' === $using_child_theme) {
+            $themes[] = key($import_data['imported_package_footprint']['stylesheet']);
         }
        
-        if (!$parent_import_theme_done) {
-            $import_data = $this->handleThemeImport($template_path_wpcontent, $template_path_package, $blog_id, $start, $processed, $import_data, 'parent');
-        }       
-        if (isset($import_data['error'])) {
-            return $import_data;
-            
-        } elseif (isset($import_data['copychunked_offset']) && !$parent_import_theme_done) {
-            return $import_data;
-            
-        } elseif ('no' === $using_child_theme) {    
-            $import_data['copy_themes_done'] = true;
-            return $import_data;            
-        } 
-        
-        $processed = $this->getProcessedThemeFiles($import_data);        
-        $child_theme_name = key($import_data['imported_package_footprint']['stylesheet']);
-        $child_template_path_package = $include_themes . $child_theme_name . DIRECTORY_SEPARATOR;
-        if (! $wp_filesystem->exists($child_template_path_package)) {
-            $import_data['error'] = esc_html__('Unable to import child theme because it does not exist', 'prime-mover');
-            return $import_data;
-        }
-        
-        $child_theme_path_wpcontent = $this->getExportUtilities()->getThemeFullPath($child_theme_name, false); 
-        $import_data = $this->maybeBailOutThemeRestore($import_data, $child_theme_path_wpcontent, $child_template_path_package, 'child', $blog_id);
-        
-        if (isset($import_data['error'])) {
-            return $import_data;
-        }
-        
-        if (!empty($import_data['child_theme_copy_done'])) {
-            $import_data['copy_themes_done'] = true;
-            return $import_data;
-        }
-        
-        $import_data = $this->handleThemeImport($child_theme_path_wpcontent, $child_template_path_package, $blog_id, $start, $processed, $import_data, 'child');        
-        if (!empty($import_data['child_theme_copy_done'])) {
-            $import_data['copy_themes_done'] = true;
-        }        
-        
-        return $import_data;
+        return $this->restoreThemesFromSource($import_data, $include_themes, $blog_id, $start, $themes, false);              
     }
+    
+    /**
+     * Restore themes from source package
+     * @param array $import_data
+     * @param string $include_themes
+     * @param number $blog_id
+     * @param number $start
+     * @param array $themes
+     * @param boolean $restore_all_themes
+     * @return array|WP_Error
+     */
+    protected function restoreThemesFromSource($import_data = [], $include_themes = '', $blog_id = 0, $start = 0, $themes = [], $restore_all_themes = false)
+    {              
+        if (!empty($import_data['restoring_theme_progress']) && is_array($import_data['restoring_theme_progress'])) {
+            $themes = $import_data['restoring_theme_progress'];
+        }
+        
+        foreach ($themes as $k => $theme) {            
+            if (false === $this->getSystemUtilities()->cleanSlugs($theme)) {
+                
+                do_action('prime_mover_log_processed_events', "ERROR: Invalid theme: $theme", $theme, 'import', 'restoreThemesFromSource', $this);                
+                unset($themes[$k]);
+                $import_data['restoring_theme_progress'] = $themes;
+                
+                continue;
+            }
+            
+            $key = $theme . '_theme_copy_done';
+            $theme_path_package = $include_themes . $theme . DIRECTORY_SEPARATOR; 
+            
+            $this->getImporter()->getSystemInitialization()->initializeFs(false);
+            global $wp_filesystem;
+            
+            if (!$wp_filesystem->exists($theme_path_package)) {
+                unset($themes[$k]);
+                $import_data['restoring_theme_progress'] = $themes;
+                
+                continue;
+            }
+            
+            $target_theme_path = $this->getExportUtilities()->getThemeFullPath($theme, false);
+            $import_data = $this->maybeBailOutThemeRestore($import_data, $target_theme_path, $theme_path_package, $theme, $blog_id);
+            
+            if (isset($import_data['error'])) {
+                return $import_data;
+            }
+            
+            $processed = $this->getProcessedThemeFiles($import_data);            
+            $current_import_theme_done = false;
+            if (!empty($import_data[$key])) {
+                $current_import_theme_done = true;
+            }
+            
+            if (!$current_import_theme_done) {
+                $import_data = $this->handleThemeImport($target_theme_path, $theme_path_package, $blog_id, $start, $processed, $import_data, $theme, $restore_all_themes);
+            }
+            
+            if (isset($import_data['error'])) {
+                return $import_data;
+                
+            } elseif (isset($import_data['copychunked_offset']) && !$current_import_theme_done) {
+                return $import_data;
+                
+            } elseif (!empty($import_data[$key])) {                
+                unset($themes[$k]);
+                unset($import_data[$key]);
+                
+                $import_data['restoring_theme_progress'] = $themes;
+                
+                continue;
+            }
+        }
+        
+        if (isset($import_data['restoring_theme_progress']) && empty($import_data['restoring_theme_progress'])) {  
+            unset($import_data['restoring_theme_progress']);
+        }
+            
+        $import_data['copy_themes_done'] = true;
+        return $import_data;       
+    }   
     
     /**
      * Maybe bail out theme restore
@@ -658,32 +694,31 @@ class PrimeMoverImportUtilities
         if (!$this->getSystemCheckUtilities()->getSystemFunctions()->fileExists($template_path_wpcontent) ||
             !$this->getSystemCheckUtilities()->getSystemFunctions()->fileExists($template_path_package)) {
                 
-                return $import_data;
-            }
+           return $import_data;
+        }
             
-            if (wp_is_writable($template_path_wpcontent)) {
-                return $import_data;
-            }
-            
-            $hash_algo = $this->getSystemCheckUtilities()->getSystemInitialization()->getFastHashingAlgo();
-            $source_theme_hash = $this->getSystemCheckUtilities()->getSystemFunctions()->hashEntity($template_path_package, $hash_algo);
-            $target_theme_hash = $this->getSystemCheckUtilities()->getSystemFunctions()->hashEntity($template_path_wpcontent, $hash_algo);
-            
-            do_action('prime_mover_log_processed_events', "Comparing non-permissive $copying_what theme folders using hash algo: $hash_algo", $blog_id, 'import', __FUNCTION__, $this);
-            do_action('prime_mover_log_processed_events', "Source $copying_what theme hash: $source_theme_hash and target $copying_what theme hash: $target_theme_hash", $blog_id, 'import', __FUNCTION__, $this);
-            
-            if ($source_theme_hash && $source_theme_hash === $target_theme_hash) {
-                $import_data = $this->closeThemeRestore($import_data, $copying_what);
-            } else {                
-                $import_data['error'] = sprintf(
-                /* translators: %s: Absolute theme folder directory file path string */
-                esc_html__('Unable to restore theme due to file permission issues. Please delete this path manually and try again: %s', 'prime-mover'),
-                $template_path_wpcontent
-                );
-                
-            }
-            
+        if (wp_is_writable($template_path_wpcontent)) {
             return $import_data;
+        }
+        
+        $hash_algo = $this->getSystemCheckUtilities()->getSystemInitialization()->getFastHashingAlgo();
+        $source_theme_hash = $this->getSystemCheckUtilities()->getSystemFunctions()->hashEntity($template_path_package, $hash_algo);
+        $target_theme_hash = $this->getSystemCheckUtilities()->getSystemFunctions()->hashEntity($template_path_wpcontent, $hash_algo);
+        
+        do_action('prime_mover_log_processed_events', "Comparing non-permissive $copying_what theme folders using hash algo: $hash_algo", $blog_id, 'import', __FUNCTION__, $this);
+        do_action('prime_mover_log_processed_events', "Source $copying_what theme hash: $source_theme_hash and target $copying_what theme hash: $target_theme_hash", $blog_id, 'import', __FUNCTION__, $this);
+        
+        if ($source_theme_hash && $source_theme_hash === $target_theme_hash) {
+            $import_data = $this->closeThemeRestore($import_data, $copying_what);
+        } else {                
+            $import_data['error'] = sprintf(
+            /* translators: %s: Absolute theme folder directory file path string */
+            esc_html__('Unable to restore theme due to file permission issues. Please delete this path manually and try again: %s', 'prime-mover'),
+            $template_path_wpcontent
+            );            
+        }
+        
+        return $import_data;
     }
     
     /**
@@ -725,6 +760,7 @@ class PrimeMoverImportUtilities
     }
     
     /**
+     * Handle theme import
      * @compatibility 5.6
      * @param string $template_path_wpcontent
      * @param string $template_path_package
@@ -733,14 +769,16 @@ class PrimeMoverImportUtilities
      * @param number $processed
      * @param array $import_data
      * @param string $copying_what
+     * @param boolean $force_maintenance
      * @return string|WP_Error|number|boolean
      */
-    private function handleThemeImport($template_path_wpcontent = '', $template_path_package = '', $blog_id = 0, $start = 0, $processed = 0, $import_data  = [], $copying_what = 'parent')
+    private function handleThemeImport($template_path_wpcontent = '', $template_path_package = '', $blog_id = 0, $start = 0, $processed = 0, $import_data  = [], $copying_what = 'parent', $force_maintenance = false)
     {
-        $this->getImporter()->getSystemFunctions()->enableMaintenanceDuringImport();
+        $this->getImporter()->getSystemFunctions()->enableMaintenanceDuringImport($force_maintenance);
         if (!$processed) {
             $this->getImporter()->getSystemFunctions()->primeMoverDoDelete($template_path_wpcontent);
         }
+        
         if (!$processed) {
             $theme_make_directory_result = wp_mkdir_p($template_path_wpcontent);
             if (false === $theme_make_directory_result) {
@@ -771,7 +809,6 @@ class PrimeMoverImportUtilities
             $import_data = $copy_directory_result;
             
         } elseif (is_bool($copy_directory_result) && $copy_directory_result) {
-            
             if (isset($import_data['copychunked_under_copy'])) {
                 unset($import_data['copychunked_under_copy']);
             }
@@ -810,10 +847,16 @@ class PrimeMoverImportUtilities
         if (! $include_plugins || ! isset($import_data['imported_package_footprint']['plugins'])) {
             return false;
         }
-        $plugins = $import_data['imported_package_footprint']['plugins'];
-        if (empty($plugins) || ! is_array($plugins)) {
+        
+        $plugins = $import_data['imported_package_footprint']['plugins'];        
+        if (!empty($import_data['imported_package_footprint']['all_plugins']) && is_array($import_data['imported_package_footprint']['all_plugins'])) {
+            $plugins = array_flip($import_data['imported_package_footprint']['all_plugins']);
+        }
+        
+        if (empty($plugins) || !is_array($plugins)) {
             return false;
         }
+        
         return ['plugins' => $plugins, 'include_plugins' => $include_plugins];
     }
     
@@ -985,6 +1028,21 @@ class PrimeMoverImportUtilities
     }
     
     /**
+     * Maybe force maintenance mode ON in multisite
+     * When package restores all plugins including inactive from source site
+     * @param array $import_data
+     * @return boolean
+     */
+    protected function maybeForceMaintenanceModeOn($import_data = [])
+    {
+        if (!empty($import_data['imported_package_footprint']['all_plugins']) && is_multisite() && is_array($import_data['imported_package_footprint']['all_plugins'])) {
+            return true;
+        }
+        
+        return false;        
+    }
+    
+    /**
      * Loop plugins to import
      * @param array $plugins
      * @param number $count
@@ -1004,17 +1062,28 @@ class PrimeMoverImportUtilities
         $this->getImporter()->getSystemInitialization()->initializeFs(false);
         global $wp_filesystem;    
         $this->startLog($blog_id, $plugins);
-        foreach ($plugins as $k => $plugin) {
-            
+        
+        $force_maintenance = false;
+        if ($this->maybeForceMaintenanceModeOn($import_data)) {
+            $force_maintenance = true;
+        }
+        
+        foreach ($plugins as $k => $plugin) {            
             if (1 === $count && false === $shell_mode) {
                 break;
             }            
+            
+            if (false === $this->getSystemUtilities()->cleanSlugs($plugin)) {
+                do_action('prime_mover_log_processed_events', "ERROR: Invalid plugin: $plugin", $blog_id, 'import', 'loopPluginsToImport', $this);
+                list($plugins, $count) = $this->countAndUnsetPlugins($plugins, $count, $k);
+                continue;
+            }
             list($plugins_imported_package_path, $plugin_path_target, $ds) = $this->getPluginsImportedPackagePath($plugin, $include_plugins);            
             if ( ! $wp_filesystem->exists($plugins_imported_package_path)) {
                 list($plugins, $count) = $this->countAndUnsetPlugins($plugins, $count, $k);
                 continue;
             }            
-            $this->getImporter()->getSystemFunctions()->enableMaintenanceDuringImport();            
+            $this->getImporter()->getSystemFunctions()->enableMaintenanceDuringImport($force_maintenance);            
             if ( ! $processed && ! $cli_retry ) {               
                 $import_data = apply_filters('prime_mover_before_copying_plugin', $import_data, $plugin, $blog_id, $plugins, $plugin_path_target);
                 

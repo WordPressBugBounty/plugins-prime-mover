@@ -728,29 +728,88 @@ class PrimeMoverSystemFunctions
         $this->restoreCurrentBlog();
         return $blogs_dir_url;
     }
-    
+
     /**
      * Delete all temporary files
      * @param string $path_supplied
      * @param boolean $authorization_required
      * @param number $start_time
-     * @return void|void|boolean
+     * @param number $blog_id
+     * @return void|boolean|boolean|\Codexonics\PrimeMoverFramework\classes\[]
      */
-    public function primeMoverDoDelete($path_supplied	= '', $authorization_required = true, $start_time = 0)
+    public function primeMoverDoDelete($path_supplied = '', $authorization_required = true, $start_time = 0, $blog_id = 0)
     {
         if ($authorization_required && ! $this->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
-        global $wp_filesystem;    
+        
+        global $wp_filesystem;
         if ( ! $this->isWpFileSystemUsable($wp_filesystem)) {
             return;
         }
-        if (empty($path_supplied)) {            
-            $path_supplied	= $this->getSystemInitialization()->getMultisiteExportFolderPath();
-        }        
+        
+        $base_export_path = $this->getSystemInitialization()->getMultisiteExportFolderPath();
+        if (empty($path_supplied)) {
+            $path_supplied = $base_export_path;
+        }
+        
+        $whitelisted_targets = [
+            $base_export_path,
+            $this->getSystemInitialization()->getDefaultImportFolder(),
+            $this->getSystemInitialization()->getLockFilesFolder(),
+            $this->getSystemInitialization()->getCliMustUsePluginPath(),
+            $this->getSystemInitialization()->getTmpDownloadsFolder(),
+            PRIME_MOVER_THEME_CORE_PATH,
+            PRIME_MOVER_PLUGIN_CORE_PATH,
+            WP_CONTENT_DIR . '/object-cache.php',
+            WP_CONTENT_DIR . '/db.php',
+        ];
+        
+        if ($blog_id > 0) {
+            $whitelisted_targets[] = $this->getProfileDirectory([], true, $blog_id);
+            $whitelisted_targets[] = $this->getProfileDirectory([], false, $blog_id);
+        }
+        
+        $real_target = realpath($path_supplied);
+        if ($real_target === false) {
+            return false;
+        }
+        
+        $real_target_norm = wp_normalize_path($real_target);
+        $is_safe = false;
+        foreach ($whitelisted_targets as $allowed_path) {
+            if (empty($allowed_path)) {
+                continue;
+            }
+            
+            $real_base = realpath($allowed_path);
+            if ($real_base !== false) {
+                $real_base_norm = wp_normalize_path($real_base);
+                if ($real_target_norm === $real_base_norm) {
+                    $is_safe = true;
+                    break;
+                }
+                
+                if (is_dir($real_base)) {
+                    $real_target_dir = trailingslashit($real_target_norm);
+                    $real_base_dir   = trailingslashit($real_base_norm);
+                    
+                    if (strpos($real_target_dir, $real_base_dir) === 0) {
+                        $is_safe = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (!$is_safe) {
+            return false;
+        }
+        
         $ret = $this->delete($path_supplied, true, false, $start_time, $authorization_required);
         return $ret;
-    }
+    } 
+    
     
     /**
      * Helper function for delete
@@ -812,7 +871,17 @@ class PrimeMoverSystemFunctions
         $overall_valid = false;
         $structure_valid = false;
         $error_string = '';
-        $correct_keys = apply_filters('prime_mover_footprint_keys', ['plugins', 'stylesheet', 'template', 'using_child_theme', 'footprint_blog_id', 'site_url', 'wp_root', 'db_prefix'], $footprint);
+        $default_keys = ['plugins', 'stylesheet', 'template', 'using_child_theme', 'footprint_blog_id', 'site_url', 'wp_root', 'db_prefix'];
+        
+        if (isset($footprint['all_plugins'])) {
+            $default_keys[] = 'all_plugins';
+        }
+        
+        if (isset($footprint['all_themes'])) {
+            $default_keys[] = 'all_themes';
+        }
+        
+        $correct_keys = apply_filters('prime_mover_footprint_keys', $default_keys, $footprint);
         $footprint_temp = $footprint;
         $errors = [];
         $invalid_keys = [];
@@ -1410,22 +1479,28 @@ class PrimeMoverSystemFunctions
     /**
      * Enable maintenance mode during import
      * @compatible 5.6
+     * @param boolean $force
      */
-    public function enableMaintenanceDuringImport()
+    public function enableMaintenanceDuringImport($force = false)
     {
         if ( ! is_multisite() ) {
             return;
         }
+        
         if ( ! $this->getSystemAuthorization()->isUserAuthorized()) {
             return;
         }
-        if (apply_filters('prime_mover_bypass_maintenance_mode', false)) {
+        
+        if (false === $force && apply_filters('prime_mover_bypass_maintenance_mode', false)) {
             return;
         }
+        
         global $wp_filesystem;
+        
         if ( ! $this->isWpFileSystemUsable($wp_filesystem)) {
             return;
         }
+        
         $file = $wp_filesystem->abspath() . '.maintenance';
         $maintenance_string = '<?php $upgrading = ' . time() . '; ?>';
         $wp_filesystem->delete($file);
@@ -2890,133 +2965,6 @@ class PrimeMoverSystemFunctions
             return;
         }         
         $ziparchive->setCompressionName($local_name, ZipArchive::CM_STORE);
-    }
-    
-    /**
-     * Add entity to Prime Mover zip package
-     * @param string $zippath
-     * @param boolean $createzip
-     * @param string $entity
-     * @param string $temp_folder_path
-     * @param boolean $delete_on_success
-     * @param boolean $encrypt
-     * @param boolean $store_mode
-     * @param boolean $inside_tmp_dir
-     * @return boolean
-     */
-    public function addToPrimeMoverZipPackage($zippath = '', $createzip = false, $entity = '', $temp_folder_path = '', 
-        $delete_on_success = false, $encrypt = false, $store_mode = false, $inside_tmp_dir = false, $close = true, $zip = null)
-    {
-        if ( ! $this->getSystemAuthorization()->isUserAuthorized()) {
-            return false;
-        }
-        if ( ! $zippath || ! $entity) {
-            return false;
-        }
-        if (!$store_mode) {
-            $store_mode = true;
-        }
-        if ( ! $this->nonCachedFileExists($zippath ) && ! $createzip ) {
-            do_action('prime_mover_log_processed_events', "Zip path DOES NOT exist: $zippath", 0, 'common', 'addToPrimeMoverZipPackage', $this);
-            return false;
-        }
-        $res = false;
-        if ( ! $zip ) {
-            /**
-             * An opened zip instance is NOT passed, create and set
-             */
-            $zip = $this->getZipArchiveInstance();
-            if ($createzip) {
-                $res = $zip->open($zippath, ZipArchive::CREATE);
-            } else {
-                $res = $zip->open($zippath);
-            } 
-        }
-        $zip_instance = $zip instanceof ZipArchive;
-        if (true === $zip_instance) {
-            $res = true;
-        } else {
-            return false;
-        }
-        
-        $result = false;
-        $entity = realpath($entity);
-        $entity = wp_normalize_path($entity);
-        $entity_to_delete = $entity;
-        $encrypt_name = '';
-        
-        $opened = false;
-        if (true === $res) {
-            do_action('prime_mover_log_processed_events', "Zip OPENED: $zippath", 0, 'common', 'addToPrimeMoverZipPackage', $this);
-            $opened = true;
-        }
-        
-        if ( ! $opened ) {
-            do_action('prime_mover_log_processed_events', "Zip NOT OPENED: $zippath", 0, 'common', 'addToPrimeMoverZipPackage', $this);
-            return $result;
-        }        
-        
-        if ($encrypt) {
-            do_action('prime_mover_log_processed_events', "Setting encryption password", 0, 'common', 'addToPrimeMoverZipPackage', $this);
-            $zip = $this->getSystemInitialization()->setEncryptionPassword($zip);
-        }  
-        
-        $local_name = '';
-        if ($temp_folder_path) {
-            $temp_folder_path = basename($temp_folder_path);
-            $local_name = $temp_folder_path . '/' . basename($entity);
-            $encrypt_name = $local_name;
-        }
-        
-        $is_file = false;        
-        if (is_file($entity)) {
-            $is_file = true;
-        }
-        
-        if ($is_file && $local_name) {
-            do_action('prime_mover_log_processed_events', "Adding file to archive: $entity", 0, 'common', 'addToPrimeMoverZipPackage', $this);
-            $result = $zip->addFile($entity, $local_name);            
-            $this->maybeUseStoreMode($store_mode, $zip, $local_name);
-        }         
-        
-        if ( ! $is_file && ! $inside_tmp_dir) {
-            $entity = basename($entity);
-            $encrypt_name = $entity;
-            do_action('prime_mover_log_processed_events', "Adding empty dir to archive: $entity", 0, 'common', 'addToPrimeMoverZipPackage', $this);
-            $result = $zip->addEmptyDir($entity);
-        }   
-        
-        if ( ! $is_file && $inside_tmp_dir && $local_name) {
-            $entity = $local_name;
-            $encrypt_name = $local_name;
-            do_action('prime_mover_log_processed_events', "Adding empty dir to archive: $entity", 0, 'common', 'addToPrimeMoverZipPackage', $this);
-            $result = $zip->addEmptyDir($entity);
-        }
-        
-        if ($encrypt && $result && $encrypt_name) {
-            do_action('prime_mover_log_processed_events', "Setting encryption name: $encrypt_name", 0, 'common', 'addToPrimeMoverZipPackage', $this);
-            $zip->setEncryptionName($encrypt_name, \ZipArchive::EM_AES_256);
-        }
-        
-        if ( ! $result ) {
-            do_action('prime_mover_log_processed_events', "Result FALSE, bailing out.", 0, 'common', 'addToPrimeMoverZipPackage', $this);
-            return $result;
-        }
-        
-        do_action('prime_mover_log_processed_events', "Closing ZIP archive after entity is added.", 0, 'common', 'addToPrimeMoverZipPackage', $this);
-        if ( ! $close ) {
-            return $zip;
-        }
-        
-        $result = $zip->close(); 
-        do_action('prime_mover_log_processed_events', "Zipped archive successfully closed.", 0, 'common', 'addToPrimeMoverZipPackage', $this);
-        
-        if ($result && $delete_on_success) {
-            do_action('prime_mover_log_processed_events', "Zipped archive successfully closed and we delete the entity.", 0, 'common', 'addToPrimeMoverZipPackage', $this);
-            $this->primeMoverDoDelete($entity_to_delete);
-        }
-        
-        return $result;
     }
     
     /**
@@ -5150,6 +5098,49 @@ class PrimeMoverSystemFunctions
         }
         
         return implode("|", $regex_array);         
+    }
+
+    /**
+     * Get profile directory
+     * @param array $ret
+     * @param boolean $avatar_mode
+     * @param number $blog_id
+     * @return boolean|string
+     */
+    public function getProfileDirectory($ret = [], $avatar_mode = true, $blog_id = 0)
+    {
+        if (!is_array($ret)) {
+            return false;
+        }
+        
+        $base_dir = '';
+        if (!empty($ret['canonical_uploads_information']['basedir'])) {
+            $base_dir = $ret['canonical_uploads_information']['basedir'];
+        }
+        
+        $uploads_info = [];
+        if (!$base_dir && $blog_id) {
+            $this->switchToBlog($blog_id);
+            $uploads_info = $this->getSystemInitialization()->getWpUploadsDir(true, true);
+            $this->restoreCurrentBlog($blog_id);
+        }
+        
+        if (!empty($uploads_info['basedir'])) {
+            $base_dir = $uploads_info['basedir'];
+        }
+        
+        if (!$base_dir) {
+            return false;
+        }
+        
+        $base_dir = untrailingslashit(wp_normalize_path($base_dir));
+        if ($avatar_mode) {
+            $avatar_dir = $base_dir . '/avatars/';
+            return $avatar_dir;
+        }
+        
+        $buddypress_dir = $base_dir . '/buddypress/members/';
+        return $buddypress_dir;
     }
     
     /**
