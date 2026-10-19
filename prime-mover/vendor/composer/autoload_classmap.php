@@ -109,6 +109,7 @@ return array(
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverGearBoxInitialization' => $baseDir . '/engines/prime-mover-gearbox/helpers/PrimeMoverGearBoxInitialization.php',
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverGearBoxValidationUtilities' => $baseDir . '/engines/prime-mover-gearbox/helpers/PrimeMoverGearBoxValidationUtilities.php',
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverMaintenanceMode' => $baseDir . '/engines/prime-mover-panel/helpers/PrimeMoverMaintenanceMode.php',
+    'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverSanitizeAdmins' => $baseDir . '/engines/prime-mover-panel/helpers/PrimeMoverSanitizeAdmins.php',
     'Codexonics\\PrimeMoverFramework\\interfaces\\PrimeMoverExport' => $baseDir . '/interfaces/PrimeMoverExport.php',
     'Codexonics\\PrimeMoverFramework\\interfaces\\PrimeMoverImport' => $baseDir . '/interfaces/PrimeMoverImport.php',
     'Codexonics\\PrimeMoverFramework\\interfaces\\PrimeMoverSystemCheck' => $baseDir . '/interfaces/PrimeMoverSystemCheck.php',

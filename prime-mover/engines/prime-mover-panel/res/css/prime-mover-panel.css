@@ -129,3 +129,147 @@
 	margin-right:3px;
 }  
     
+/* Container isolating controls on a single row */
+.prime-mover-password-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap; 
+    gap: 6px;
+    max-width: 100%;
+    margin-bottom: 0.8em;
+}
+
+/* Flexible password input (Cross-Browser & iOS Normalized) */
+.prime-mover-password-wrapper input[type="text"]#js-prime_mover_encryption_key_panel {
+    flex: 1 1 220px !important; /* Dynamically grows on desktop, wraps cleanly on mobile */
+    min-width: 180px !important;
+    max-width: 100% !important;
+    height: 30px !important;
+    margin: 0 !important;
+    vertical-align: middle;
+    box-sizing: border-box !important;
+    -webkit-appearance: none; /* Strips native iOS Safari input bevels/shadows */
+    border-radius: 3px;
+}
+
+/* Compact eye toggle button + Touch target normalization */
+.prime-mover-eye-toggle {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 8px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    margin: 0 !important;
+    cursor: pointer;
+    box-sizing: border-box !important;
+    
+    /* Cross-browser/mobile tap normalization */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+/* Perfect icon centering inside the button for Safari/Edge */
+.prime-mover-eye-toggle .dashicons {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+    width: 20px !important;
+    line-height: 1 !important;
+    font-size: 20px !important;
+}
+
+/* Hide checkbox completely without breaking DOM event listeners */
+.prime-mover-eye-toggle input[type="checkbox"] {
+    position: absolute !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    pointer-events: none !important;
+}
+
+/* CSS State Handler: Swaps to slashed eye icon across WebKit/Gecko/Blink */
+.prime-mover-eye-toggle input[type="checkbox"]:checked + .dashicons-visibility::before {
+    content: "\f530" !important; /* dashicons-hidden */
+    font-family: dashicons !important;
+}
+
+/* Force Copy Button alignment */
+.prime-mover-copy-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    height: 30px !important;
+    white-space: nowrap;
+    box-sizing: border-box !important;
+}
+
+/* Clipboard confirmation message positioning */
+.prime-mover-clipboard-key-confirmation {
+    margin-left: 4px;
+    font-weight: 600;
+}
+
+/* User Privacy Notice Container */
+.prime-mover-user-privacy-notice {
+    margin-top: 15px;
+    margin-bottom: 0;
+    padding: 12px 15px;
+}
+
+/* Notice Heading */
+.prime-mover-user-privacy-notice .prime-mover-notice-heading {
+    margin: 0 0 10px 0;
+    font-size: 15px;
+    line-height: 1.2;
+}
+
+/* List Formatting */
+.prime-mover-user-privacy-notice .prime-mover-notice-list {
+    margin: 0;
+    padding-left: 20px;
+    list-style-type: disc;
+}
+
+.prime-mover-user-privacy-notice .prime-mover-notice-list li {
+    line-height: 1.2;
+    margin-bottom: 10px;
+}
+
+.prime-mover-user-privacy-notice .prime-mover-notice-list li:last-child {
+    margin-bottom: 0;
+}
+
+/* Code Snippets & Notes */
+.prime-mover-user-privacy-notice code {
+    padding: 2px 6px;
+}
+
+.prime-mover-user-privacy-notice .prime-mover-notice-subtext {
+    display: inline-block;
+    margin-top: 6px;
+    margin-bottom: 4px;
+    line-height: 1.2;
+}
+
+.prime-mover-user-privacy-notice .prime-mover-code-block {
+    display: inline-block;
+    padding: 4px 8px;
+    margin: 4px 0 6px 0;
+    background-color: #f0f0f1;
+    border-radius: 3px;
+    line-height: 1.2;
+}
+
+.prime-mover-user-privacy-notice .prime-mover-notice-note {
+    display: inline-block;
+    margin-top: 4px;
+    color: #50575e;
+    line-height: 1.2;
+}

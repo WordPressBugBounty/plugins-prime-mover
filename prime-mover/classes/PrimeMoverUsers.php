@@ -134,7 +134,18 @@ class PrimeMoverUsers
         add_filter('prime_mover_process_userid_adjustment_db', [$this, 'dBCustomerUserIdsHelper'], 10, 13); 
         
         add_filter('prime_mover_filter_config_after_diff_check', [ $this, 'handleUserDifferences'], 99, 2);
+        add_filter('prime_mover_get_real_email_from_package', [$this, 'maybeGetRealEmailIfSanitized'], 10, 1);
     }   
+    
+    /**
+     * Get real email version of the sanitized package user email
+     * @param string $package_user_email
+     * @return string
+     */
+    public function maybeGetRealEmailIfSanitized($package_user_email = '')
+    {
+        return $this->getUserUtilities()->getUserFunctions()->maybeGetRealEmailIfSanitized($package_user_email);
+    }
     
     /**
      * Handle user differences
@@ -197,7 +208,15 @@ class PrimeMoverUsers
         if ($current_user_email === $package_user_email) {
             $same_email = true;
         }
+              
+        if (false === $same_email) {
+            $package_user_email = apply_filters('prime_mover_get_real_email_from_package', $package_user_email);
+        }
         
+        if (false === $same_email && $current_user_email === $package_user_email) {
+            $same_email = true;
+        }
+
         if ($current_user_id === $package_user_id) {
             $same_user_id = true;
         }
@@ -1052,7 +1071,7 @@ class PrimeMoverUsers
         $user_export_filepath = $this->getUserUtilities()->returnPathToUserExportFile($tmp_folderpath);
         $count = 0;
         foreach ($site_users as $user) {            
-            $result = $this->getUserUtilities()->writeUserToJson($user->data, $user_export_filepath, $ret, $blog_id);
+            $result = $this->getUserUtilities()->writeUserToJson(apply_filters('prime_mover_filter_user_exported_object', $user->data, $blog_id), $user_export_filepath, $ret, $blog_id);
             if ($result !== false) {
                 $count++;
             }

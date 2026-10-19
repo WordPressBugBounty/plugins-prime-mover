@@ -11,6 +11,8 @@ namespace Codexonics\PrimeMoverFramework\utilities;
  * source code.
  */
 
+use Codexonics\PrimeMoverBridgeIO;
+
 if (! defined('ABSPATH')) {
     exit;
 }
@@ -44,7 +46,7 @@ if (! defined('ABSPATH')) {
  */
 class DupxUpdateEngine
 {
-	/**
+    /**
      * Test if a string in properly serialized
      *
      * @param string $data  Any string type
@@ -52,11 +54,11 @@ class DupxUpdateEngine
      * @return bool Is the string a serialized string
      */
     public static function isSerialized($data)
-    {        
-        $test = @unserialize(($data));
+    {
+        $test = PrimeMoverBridgeIO::unserialize($data);
         return ($test !== false || $test === 'b:0;') ? true : false;
     }
-
+    
 	/**
 	 *  Fixes the string length of a string object that has been serialized but the length is broken
 	 *

@@ -12,6 +12,7 @@ namespace Codexonics\PrimeMoverFramework\compatibility;
  */
 
 use Codexonics\PrimeMoverFramework\classes\PrimeMover;
+use Codexonics\PrimeMoverBridgeIO;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -360,7 +361,7 @@ class PrimeMoverPageBuilderCompat
         $fromEncoded = urlencode($from);
         $toEncoded   = urlencode($to);
         
-        $data = maybe_unserialize($meta_value);
+        $data = PrimeMoverBridgeIO::unserialize($meta_value, true);
         if (false === $data) {
             return $primary_index_id;
         }

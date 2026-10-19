@@ -61,6 +61,15 @@ class PrimeMoverToolBox
     }
     
     /**
+     * Get Prime Mover settings
+     * @return \Codexonics\PrimeMoverFramework\app\PrimeMoverSettings
+     */
+    public function getPrimeMoverSettings()
+    {
+        return $this->getPrimeMoverSettingsTemplate()->getPrimeMoverSettings();
+    }
+    
+    /**
      * Get Utilities
      * @return array
      */
@@ -124,6 +133,15 @@ class PrimeMoverToolBox
     }
     
     /**
+     * Get Freemius integration
+     */
+    public function getFreemiusIntegration()
+    {
+        $utilities = $this->getUtilities();
+        return $utilities['freemius_integration'];
+    }
+    
+    /**
      * Initialize init hooks
      */
     public function initHooks()
@@ -151,8 +169,152 @@ class PrimeMoverToolBox
         add_action('prime_mover_scheduled_backup_settings_per_site', [$this, 'outputExcludeTables'], 80, 1);
         add_action('prime_mover_scheduled_backup_settings_per_site', [$this, 'outputInactivePlugins'], 85, 1);
         add_action('prime_mover_scheduled_backup_settings_per_site', [$this, 'outputInactiveThemes'], 90, 1);
+        
+        add_action('prime_mover_scheduled_backup_settings_per_site', [$this, 'outputSanitizedAdmins'], 95, 1);
     }
 
+    /**
+     * Output sanitize admins setting
+     * @param number $blog_id
+     */
+    public function outputSanitizedAdmins($blog_id = 0)
+    {
+        $settings_api = $this->getAutoBackupSetting()->getSettingsConfig()->getMasterSettingsConfig();
+        $identifier = 'sanitize_admins';
+        
+        $button_specs = [
+            'button_wrapper' => 'div',
+            'button_classes' => 'button-primary',
+            'button_text' => '',
+            'disabled' => '',
+            'title' => ''
+        ];
+        
+        $checkbox_specs = [
+            'default' => 'false',
+            'return_default_if_no_key' => true
+        ];
+        
+        $config = $settings_api[$identifier];
+        $sanitize_admins_lbl = __('Sanitize admins', 'prime-mover');
+        
+        $administrator = esc_html__('admin', 'prime-mover');
+        $purpose = esc_html__('This protects private credentials during client hand-off or site delivery', 'prime-mover');
+        if (is_multisite()) {
+            $administrator = esc_html__('super admin', 'prime-mover');
+        }
+        
+        $temp_pass = $this->getSystemInitialization()->getSanitizedTempPass();        
+        $access_txt = esc_html__('and a temporary password.', 'prime-mover');
+        if ($temp_pass) {
+            $access_txt = esc_html__('and this temporary password:', 'prime-mover');
+        }
+        
+        /* translators: %s: Admin or Superadmin */
+        $enable_sanitize_admins_lbl = sprintf(esc_html__('Mask %s credentials', 'prime-mover'), $administrator);
+        
+        /* translators: %1$s: Purpose text, %2$s: Access text */
+        $sprintf = sprintf(esc_html__('When exporting, safely masks passwords and emails for administrator accounts. %1$s. Sanitized admins can log in after restoration using their existing username %2$s', 'prime-mover'), $purpose, $access_txt);
+        
+        if (is_multisite()) {
+            /* translators: %1$s: Purpose text, %2$s: Access text */
+            $sprintf = sprintf(esc_html__('When exporting, safely masks passwords and emails for super admin accounts assigned to this site. %1$s. Sanitized super admins can log in after restoration using their existing username %2$s', 'prime-mover'), $purpose, $access_txt);            
+        }       
+        
+        if ($temp_pass) {
+            $checkbox_specs['extra_markup'] = $this->displayTempPass($temp_pass);
+        }        
+        
+        $this->getPrimeMoverSettingsTemplate()->renderCheckBoxFormTemplate($sanitize_admins_lbl, $identifier, $config, 'true', $enable_sanitize_admins_lbl,
+            $sprintf, $blog_id, true, $button_specs, $checkbox_specs);        
+    }
+    
+    /**
+     * Generates and returns the HTML markup for the temporary password field.
+     *
+     * @param string $temp_pass
+     * @return string
+     */
+    protected function displayTempPass($temp_pass = '')
+    {
+        // Localized string prepared once (auto-generated status noted)
+        $title = __('This is an automatically generated, read-only temporary password for sanitized administrators. Always back up this value for safekeeping.', 'prime-mover');
+        
+        ob_start();
+        ?>
+    
+        <!-- 1. Password Controls Row (Flexbox) -->
+        <div class="description prime-mover-settings-paragraph prime-mover-password-wrapper">       
+            <!-- Password Input -->
+            <input readonly 
+                   title="<?php echo esc_attr($title); ?>" 
+                   type="text" 
+                   class="large-text conceal-authorization-keys" 
+                   size="45" 
+                   id="js-prime_mover_encryption_key_panel" 
+                   value="<?php echo esc_attr($temp_pass); ?>"
+                   autocomplete="off"
+                   spellcheck="false">                                                                                  
+        
+            <!-- Interactive Dashicon button linked natively to hidden input -->
+            <label for="js-prime_mover_encryption_key_panel_checkbox" 
+                   class="button button-secondary prime-mover-eye-toggle" 
+                   title="<?php esc_attr_e('Show/Hide Password', 'prime-mover'); ?>"
+                   role="button"
+                   tabindex="0">
+                <input type="checkbox" 
+                       id="js-prime_mover_encryption_key_panel_checkbox" 
+                       autocomplete="off" 
+                       class="prime_mover_encryption_key_panel_checkbox" 
+                       value="yes">
+                <span class="dashicons dashicons-visibility" aria-hidden="true"></span>
+            </label>               
+    
+            <?php 
+            $display = '';                        
+            if (!$temp_pass) {                            
+                $display = 'style="display:none"';
+            }
+            ?>    
+    
+            <!-- Copy to Clipboard Button -->
+            <button <?php echo wp_kses( $display, array( 'button' => array( 'style' => true ) ) ); ?> 
+                    class="button prime-mover-copy-btn js-prime-mover-copy-encryption-key" 
+                    type="button" 
+                    data-saved-value="<?php echo esc_attr($temp_pass);?>"
+                    data-clipboard-text="<?php echo esc_attr($temp_pass); ?>" 
+                    title="<?php esc_attr_e('Copy temporary password of this site to clipboard.', 'prime-mover');?>">
+                <?php esc_html_e('Copy to clipboard', 'prime-mover'); ?>
+            </button>
+    
+            <!-- Confirmation Message -->
+            <span id="js-prime-mover-clipboard-encryption-key-confirmation" class="prime-mover-clipboard-key-confirmation" aria-live="polite">
+                <?php esc_html_e('Copied', 'prime-mover'); ?>!                   
+            </span>                             
+        </div> <!-- END .prime-mover-password-wrapper -->
+    
+        <!-- 2. Revised Notice Text Block -->
+        <p class="description prime-mover-settings-paragraph">
+            <strong>
+                <em>
+                    <?php esc_html_e('Important: This temporary password is auto-generated and read-only. You do not need to edit or change it here. Note that this value depends on your database password and encryption key and will change automatically if either is updated. Always keep a safe copy of this password for logging in after restoration, or optionally update the account email and set a permanent password in WP Admin. This feature only works for subsite/site with active PRO licenses.', 'prime-mover'); ?>
+                </em>
+            </strong>
+        </p>
+        
+        <div class="notice notice-info inline description prime-mover-settings-paragraph">            
+            <?php 
+                $settings_url = esc_url($this->getFreemiusIntegration()->getSettingsPageUrl() . '#prime-mover-sanitizeusers_global_status-label');
+                
+                /* translators: %s: Base setting security URL */
+                echo sprintf(__('Note: Supports Safe-Discard Mode (@err.loc) and Developer Mode (plus-addressing). To configure Developer Mode or sanitize all users, visit <a href="%s">Settings -> Security</a>.', 'prime-mover'), $settings_url);
+            ?>      
+        </div>     
+        
+        <?php 
+        return ob_get_clean();        
+    }
+    
     /**
     * Output inactive themes setting
     * @param number $blog_id

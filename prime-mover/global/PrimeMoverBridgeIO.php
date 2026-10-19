@@ -12,7 +12,7 @@ use Throwable;
 use ReflectionFunction;
 
 /**
- * Prime Mover File system IO
+ * Prime Mover File system IO and global level static methods
  */
 final class PrimeMoverBridgeIO 
 {
@@ -57,5 +57,34 @@ final class PrimeMoverBridgeIO
         } catch (Throwable $t) {            
             return false;
         }
+    }
+    
+    /**
+     * Safely unserialize
+     * If $return_if_not_serialized is TRUE, it will behave like maybe_unserialize()
+     * @param mixed $serialized_string
+     * @param boolean $return_if_not_serialized
+     * @return boolean|mixed|mixed|boolean
+     */
+    public static function unserialize($serialized_string, $return_if_not_serialized = false)
+    {
+        if (!is_serialized($serialized_string)) {
+            return $return_if_not_serialized ? $serialized_string : false;
+        }
+        
+        $serialized_string = trim($serialized_string);
+        if (PHP_VERSION_ID >= 70000) {            
+            return @unserialize($serialized_string, [
+                'allowed_classes' => [
+                    'stdClass', 
+                ]
+            ]);
+        }
+
+        if (preg_match('/(^|;|{)(O|C):\d+:"/', $serialized_string)) {
+            return false;
+        }
+
+        return @unserialize($serialized_string);
     }
 }

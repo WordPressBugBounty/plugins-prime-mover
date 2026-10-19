@@ -41,6 +41,7 @@ return array(
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedUploadsUtilities' => $baseDir . '/helpers/PrimeMoverExcludedUploadsUtilities.php',
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverGdriveSettings' => $baseDir . '/helpers/PrimeMoverGdriveSettings.php',
     'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverMaintenanceMode' => $baseDir . '/helpers/PrimeMoverMaintenanceMode.php',
+    'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverSanitizeAdmins' => $baseDir . '/helpers/PrimeMoverSanitizeAdmins.php',
     'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverAutoBackupSetting' => $baseDir . '/utilities/PrimeMoverAutoBackupSetting.php',
     'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverBackupDirectorySize' => $baseDir . '/utilities/PrimeMoverBackupDirectorySize.php',
     'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverBackupManagement' => $baseDir . '/utilities/PrimeMoverBackupManagement.php',

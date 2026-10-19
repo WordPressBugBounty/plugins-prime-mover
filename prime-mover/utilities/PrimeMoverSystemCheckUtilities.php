@@ -730,7 +730,7 @@ class PrimeMoverSystemCheckUtilities
         $delay = [];
         $sleep = 0;
         if (defined('PRIME_MOVER_TEST_SLOW_COPY') && PRIME_MOVER_TEST_SLOW_COPY) {
-            $delay = unserialize (PRIME_MOVER_TEST_SLOW_COPY);
+            $delay = PrimeMoverBridgeIO::unserialize(PRIME_MOVER_TEST_SLOW_COPY);
         }
         if (empty($delay)) {
             return;

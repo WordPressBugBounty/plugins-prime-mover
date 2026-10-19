@@ -110,6 +110,7 @@ class ComposerStaticInite36762576a8e146defcac77c8c834828
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverGearBoxInitialization' => __DIR__ . '/../..' . '/engines/prime-mover-gearbox/helpers/PrimeMoverGearBoxInitialization.php',
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverGearBoxValidationUtilities' => __DIR__ . '/../..' . '/engines/prime-mover-gearbox/helpers/PrimeMoverGearBoxValidationUtilities.php',
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverMaintenanceMode' => __DIR__ . '/../..' . '/engines/prime-mover-panel/helpers/PrimeMoverMaintenanceMode.php',
+        'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverSanitizeAdmins' => __DIR__ . '/../..' . '/engines/prime-mover-panel/helpers/PrimeMoverSanitizeAdmins.php',
         'Codexonics\\PrimeMoverFramework\\interfaces\\PrimeMoverExport' => __DIR__ . '/../..' . '/interfaces/PrimeMoverExport.php',
         'Codexonics\\PrimeMoverFramework\\interfaces\\PrimeMoverImport' => __DIR__ . '/../..' . '/interfaces/PrimeMoverImport.php',
         'Codexonics\\PrimeMoverFramework\\interfaces\\PrimeMoverSystemCheck' => __DIR__ . '/../..' . '/interfaces/PrimeMoverSystemCheck.php',

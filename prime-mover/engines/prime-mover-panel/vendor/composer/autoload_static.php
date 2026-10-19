@@ -42,6 +42,7 @@ class ComposerStaticInitb531163b37830d127c8f48479f7cab62
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverExcludedUploadsUtilities' => __DIR__ . '/../..' . '/helpers/PrimeMoverExcludedUploadsUtilities.php',
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverGdriveSettings' => __DIR__ . '/../..' . '/helpers/PrimeMoverGdriveSettings.php',
         'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverMaintenanceMode' => __DIR__ . '/../..' . '/helpers/PrimeMoverMaintenanceMode.php',
+        'Codexonics\\PrimeMoverFramework\\helpers\\PrimeMoverSanitizeAdmins' => __DIR__ . '/../..' . '/helpers/PrimeMoverSanitizeAdmins.php',
         'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverAutoBackupSetting' => __DIR__ . '/../..' . '/utilities/PrimeMoverAutoBackupSetting.php',
         'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverBackupDirectorySize' => __DIR__ . '/../..' . '/utilities/PrimeMoverBackupDirectorySize.php',
         'Codexonics\\PrimeMoverFramework\\utilities\\PrimeMoverBackupManagement' => __DIR__ . '/../..' . '/utilities/PrimeMoverBackupManagement.php',

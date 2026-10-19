@@ -250,6 +250,13 @@ class PrimeMoverSettingsTemplate
         if (isset($checkbox_specs['return_default_if_no_key'])) {
             $return_default_if_no_key = $checkbox_specs['return_default_if_no_key'];
         }
+        
+        $extra_markup = '';
+        if (isset($checkbox_specs['extra_markup'])) {
+            $extra_markup = $checkbox_specs['extra_markup'];
+        }
+        
+        $allowed_html = $this->getAllowedHTML();        
     ?>
         <table class="form-table">
         <tbody>
@@ -271,10 +278,75 @@ class PrimeMoverSettingsTemplate
                     <p class="description prime-mover-settings-paragraph">
          <?php 
              echo wp_kses_post($description);
+             echo wp_kses($extra_markup, $allowed_html);
          ?>
                 </p>
          <?php 
          $this->renderTemplateEnd($button_specs, $config, $pro, $blog_id);
+    }
+ 
+    /**
+     * Get allowed HTML
+     * @return array[]|boolean[][]
+     */
+    protected function getAllowedHTML()
+    {
+        $allowed_html = [
+            'a' => [
+                'href'   => true,
+                'target' => true,
+                'title'  => true,
+                'class'  => true,
+                'id'     => true,
+            ],
+            'div' => [
+                'class' => true,
+            ],
+            'p' => [
+                'class' => true,
+            ],
+            'input' => [
+                'readonly'     => true,
+                'title'        => true,
+                'type'         => true,
+                'class'        => true,
+                'size'         => true,
+                'id'           => true,
+                'value'        => true,
+                'style'        => true,
+                'autocomplete' => true,
+                'spellcheck'   => true,
+            ],
+            'label' => [
+                'for'      => true,
+                'class'    => true,
+                'title'    => true,
+                'role'     => true,
+                'tabindex' => true,
+            ],
+            'button' => [
+                'class'               => true,
+                'type'                => true,
+                'data-saved-value'    => true,
+                'data-clipboard-text' => true,
+                'title'               => true,
+                'style'               => true,
+            ],
+            'span' => [
+                'id'          => true,
+                'class'       => true,
+                'aria-hidden' => true,
+                'aria-live'   => true,
+            ],
+            'strong' => [],
+            'em'     => [],
+            'br'     => [],
+            'ul'     => [],
+            'li'     => [],
+            'code'   => [],
+        ];
+        
+        return $allowed_html;
     }
     
     /**

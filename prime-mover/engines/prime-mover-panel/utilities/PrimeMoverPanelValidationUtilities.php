@@ -121,8 +121,22 @@ class PrimeMoverPanelValidationUtilities
         
         add_filter("prime_mover_get_validation_id_settings_radio_validation", [$this, 'returnValidationRadioSettings'], 10, 2);
         add_filter("prime_mover_get_validation_id_settings_autobackup_schedule_validation", [$this, 'returnValidationAutoBackupSchedule'], 10, 2);
+        
+        add_filter("prime_mover_get_validation_id_save_user_sanitization_exclusion", [$this, 'returnValidationUserExclusionSanitization'], 10); 
     }  
- 
+
+    /**
+     * Return validation exclusion sanitization for users
+     * @return string[]
+     */
+    public function returnValidationUserExclusionSanitization()
+    {
+        return [
+            'prime_mover_user_exclusion_nonce' => 'nonce',
+            'prime_mover_exclude_sanitization' => 'positive_int'
+        ];
+    }
+    
     /**
      * Return validation auto backup schedule
      * @param array $default

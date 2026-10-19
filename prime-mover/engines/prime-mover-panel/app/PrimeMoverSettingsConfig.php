@@ -237,6 +237,46 @@ class PrimeMoverSettingsConfig
                 "show_as_required" => false,
                 "documentation" => ''
             ],
+
+            'sanitize_admins' =>
+            [
+                "button_selector" => "#js-save-prime-mover-sanitize-admins",
+                "spinner_selector" => ".js-save-prime-mover-sanitize-admins-spinner",
+                "data_selector" => "#js-prime_mover_sanitize_admins_checkbox",
+                "ajax_action" => "prime_mover_save_sanitize_admins",
+                "ajax_key" => "sanitize_admins_enabled",
+                "datatype" => "checkbox",
+                "dialog" => false,
+                "encrypted" => false,
+                "nonce" => "prime_mover_sanitize_admins_nonce",
+                "description" => __('Sanitize admins', 'prime-mover'),
+                "on_status" => __('enabled', 'prime-mover'),
+                "off_status" => __('off', 'prime-mover'),
+                "purpose" => __('If this is checked - it will sanitize admin users during export.', 'prime-mover'),
+                "validation_id" => 'settings_checkbox_validation',
+                "show_as_required" => false,
+                "documentation" => 'https://codexonics.com/prime_mover/prime-mover/user-privacy-feature-in-prime-mover-pro/'
+            ],
+ 
+            'sanitizeusers_global_status' =>
+            [
+                "button_selector" => '#js-save-prime-mover-globalsanitizeusers',
+                "spinner_selector" => '.js-save-prime-mover-global-sanitize-users-spinner',
+                "data_selector" => '#js-prime_mover_global_sanitize_users_checkbox',
+                "ajax_action" => 'prime_mover_save_global_sanitize_users_settings',
+                "ajax_key" => 'global_sanitize_users_enabled',
+                "datatype" => "checkbox",
+                "dialog" => false,
+                "encrypted" => false,
+                "nonce" => "prime_mover_save_global_sanitize_users_settings_nonce",
+                "description" => __('Sanitize users', 'prime-mover'),
+                "on_status" => __('enabled', 'prime-mover'),
+                "off_status" => __('off', 'prime-mover'),
+                "purpose" => __('Automatically anonymize all user email addresses and passwords during backup/export.', 'prime-mover'),
+                "validation_id" => 'settings_checkbox_validation',
+                "show_as_required" => false,
+                "documentation" => 'https://codexonics.com/prime_mover/prime-mover/user-privacy-feature-in-prime-mover-pro/'
+            ], 
             
             'autobackup_timeout_options' =>
             [
@@ -466,8 +506,7 @@ class PrimeMoverSettingsConfig
                 "validation_id" => '',
                 "show_as_required" => false,
                 "documentation" => 'https://codexonics.com/prime_mover/prime-mover/how-do-we-exclude-database-tables-in-prime-mover-export/'
-            ],
-            
+            ],            
         ];
         
         $this->non_js_config = ["encrypted", "nonce", "description", "on_status", "off_status", "purpose", "validation_id", "show_as_required", "documentation", "default_value", "return_default_if_no_key"];

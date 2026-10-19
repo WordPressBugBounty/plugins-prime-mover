@@ -5,7 +5,7 @@ Tags: migrate wordpress, multisite migration, clone, backup
 Requires at least: 5.2
 Tested up to: 7.1
 Requires PHP: 5.6
-Stable tag: 2.2.1
+Stable tag: 2.2.2
 License: GPLv3 or later
 License URI: https://codexonics.com
 
@@ -105,6 +105,12 @@ Update now to get all the latest bug fixes, improvements, and features!
 
 == Changelog ==
 
+= 2.2.2 =
+
+* Feature: Added support for PRO feature: user sanitization and privacy during export/import.
+* Security: Hardened unserialize implementation to prevent object injection. (Credit: Civitasmass/Wordfence)
+* Fixed: Updated Freemius SDK to the latest version.
+
 = 2.2.1 =
 
 * Feature: Added support for exporting inactive installed plugins.
@@ -131,12 +137,6 @@ Update now to get all the latest bug fixes, improvements, and features!
 * Usability: Reduce the plugin's total zip file size to make it easier to use in limited shared environments.
 * Security: Fixed remaining unescaped outputs in direct plugin HTML.
 * Compatibility: Bump the minimum supported WordPress version to 5.2.
-* Compatibility: Tested for compatibility with WordPress 7.1 release.
-
-= 2.1.6 =
-
-* Compatibility: Better compatibility with multisite parallel import and restore. 
-* Fixed: Uncaught TypeError mysqli_num_rows(): Argument #1 ($result) must be of type mysqli_result during search replace. 
-* Fixed: Missing or corrupted Freemius data after simultaneous restore. 
+* Compatibility: Tested for compatibility with WordPress 7.1 release. 
 
 See the previous changelogs in changelog.txt.

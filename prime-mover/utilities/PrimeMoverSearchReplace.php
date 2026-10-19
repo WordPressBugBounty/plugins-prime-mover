@@ -17,6 +17,7 @@ use SplFixedArray;
 use Error;
 use Exception;
 use mysqli_result;
+use Codexonics\PrimeMoverBridgeIO;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -1278,7 +1279,7 @@ final class PrimeMoverSearchReplace extends DupxUpdateEngine
     public static function recursiveUnserializeReplace($from = '', $to = '', $data = '', $serialised = false, $is_processing_relative = false)
     {
         try {
-            if (is_string($data) && ($unserialized = @unserialize($data)) !== false) {
+            if (is_string($data) && ($unserialized = PrimeMoverBridgeIO::unserialize($data)) !== false) {
                 $data = self::recursiveUnserializeReplace($from, $to, $unserialized, true, $is_processing_relative);
             } elseif (is_array($data)) {
                 $_tmp = array();

@@ -750,4 +750,171 @@ class PrimeMoverUserFunctions
         }
         return $neg;
     }
+    
+    /**
+     * Checks if site hash the same
+     * @param string $current_site_hash
+     * @param string $package_site_hash
+     * @return boolean
+     */
+    protected function isSiteHashSame($current_site_hash = '', $package_site_hash = '')
+    {        
+        return ($current_site_hash === $package_site_hash);
+    }
+    
+    /**
+     * Unsanitize/Decode an email address during Restore.
+     * @param string $sanitized_email
+     * @return string|false Real email string, original string, or false on validation/hash failure.
+     */
+    public function getEmailFromSanitized($sanitized_email = '') 
+    {
+        $sanitized_email = (string) $sanitized_email;
+        
+        /** @var array $matches */
+        if (preg_match('/\+s_([a-f0-9]{8})_u(\d+)@/i', $sanitized_email, $matches)) {
+            $package_site_hash = $matches[1];
+            $package_user_id = (int) $matches[2];
+
+            $current_site_hash = $this->getSystemInitialization()->getSiteURLHash();
+            $user_db = get_userdata($package_user_id);
+            $user_id_db = ($user_db && !empty($user_db->ID)) ? (int) $user_db->ID : 0;
+            $user_id_db = (int) $user_id_db;     
+            
+            if ($user_id_db && $package_user_id && $user_id_db > 0 && $user_id_db === $package_user_id && $this->isSiteHashSame($current_site_hash, $package_site_hash))  {
+                $email_db = ($user_db && !empty($user_db->user_email)) ? $user_db->user_email : '';
+
+                return $email_db;
+            }
+
+            return false;
+        }
+
+        if (!preg_match('/^clr_(.+)@err\.loc$/i', $sanitized_email, $matches)) {
+            return false;
+        }
+
+        $data = $matches[1];
+        if (16 === strlen($data) && ctype_xdigit($data)) {
+            return false;
+        }
+
+        $b64 = strtr($data, '-_', '+/');
+        $padded = str_pad($b64, ceil(strlen($b64) / 4) * 4, '=', STR_PAD_RIGHT);        
+        $real_email = base64_decode($padded, true);
+        
+        return (false !== $real_email) ? $real_email : false;
+    }
+ 
+    /**
+     * Check if user email is already sanitized
+     * @param string $email
+     * @return boolean
+     */
+    public function isAlreadySanitized($email = '')
+    {
+        $email = (string) $email;
+        if (0 === stripos($email, 'clr_') && false !== stripos($email, '@err.loc')) {
+            return true;
+        }
+        
+        if (preg_match('/\+s_[a-f0-9]{8}_u\d+@/i', $email)) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Maybe resolve sanitized or plus-addressed emails during email_exists() checks.
+     * Hooked on 'email_exists' filter.
+     *
+     * @param int|false $user_id The user ID returned by WordPress core email_exists query (or false).
+     * @param string    $email   The email address being tested.
+     * @return int|false Returns existing user ID if found, otherwise false/original $user_id.
+     */
+    public function maybeSanitizedEmailExists($user_id = false, $email = '')
+    {
+        $email = (string) $email;
+        if ('' === $email) {
+            return $user_id;
+        }
+
+        if ($user_id && (int) $user_id > 0) {
+            return $user_id;
+        }
+
+        if (!$this->isAlreadySanitized($email)) {
+            return $user_id;
+        }
+        
+        $real_email = $this->getEmailFromSanitized($email);
+        if (!$real_email) {
+            $existing_sanitized = get_user_by('email', $email);
+            return $existing_sanitized ? (int) $existing_sanitized->ID : false;
+        }
+        
+        $existing_user = get_user_by('email', $real_email);
+        if ($existing_user) {
+            return (int) $existing_user->ID;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Clean up email string before comparison
+     * @param string $email
+     * @return string
+     */
+    protected function cleanupEmailString($email = '')
+    {
+        if (!is_string($email)) {
+            return '';
+        }
+
+        $email = trim($email);        
+        return $email;        
+    }
+    
+    /**
+     * Get real email version of the sanitized package user email
+     * Hooked to 'prime_mover_get_real_email_from_package'
+     * @param string $package_user_email
+     * @return string
+     */
+    public function maybeGetRealEmailIfSanitized($package_user_email = '')
+    {                
+        $package_user_email = $this->cleanupEmailString($package_user_email);
+        if (!$package_user_email) {
+            return $package_user_email;
+        }
+        
+        if (!$this->isAlreadySanitized($package_user_email)) {
+            return $package_user_email;
+        }
+               
+        $real_package_email = $this->getEmailFromSanitized($package_user_email);
+        if (!$real_package_email) {
+            return $package_user_email;
+        }
+        
+        return $this->cleanupEmailString($real_package_email);
+    }
+    
+    /**
+     * Check if email exists during import.
+     * Works across both real emails, Base64url sanitized emails, and dev plus-addressed emails.
+     *
+     * @param string $user_email
+     * @return int|false User ID if email exists, false if not.
+     */
+    public function emailExists($user_email = '')
+    {
+        add_filter('email_exists', [$this, 'maybeSanitizedEmailExists'], 10, 2);
+        $ret = email_exists($user_email);
+        remove_filter('email_exists', [$this, 'maybeSanitizedEmailExists'], 10, 2);
+        
+        return $ret;
+    }
 }

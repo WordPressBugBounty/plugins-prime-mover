@@ -12,6 +12,7 @@ namespace Codexonics\PrimeMoverFramework\compatibility;
  */
 
 use Codexonics\PrimeMoverFramework\classes\PrimeMover;
+use Codexonics\PrimeMoverBridgeIO;
 
 if (! defined('ABSPATH')) {
     exit;
@@ -581,7 +582,7 @@ class PrimeMoverBuddyPressCompat
             return $migrated_user_id;
         }
         
-        $raw_data = maybe_unserialize($raw_data);
+        $raw_data = PrimeMoverBridgeIO::unserialize($raw_data, true);
         if (!is_array($raw_data)) {
             return $migrated_user_id;
         }

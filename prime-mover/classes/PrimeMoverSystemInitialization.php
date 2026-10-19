@@ -256,6 +256,9 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
     private $autobackup_global_user;
     
     /** @var string */
+    private $prime_mover_exclude_sanitization;
+    
+    /** @var string */
     private $prime_mover_singlesite_upgraded_2;
     
     /** @var integer */
@@ -434,6 +437,7 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
         $this->prime_mover_singlesite_upgraded_2 = 'prime_mover_singlesite_upgraded_2';
         $this->prime_mover_current_db_export_user = 0;
         $this->root_backup_dir_unwritable = [];
+        $this->prime_mover_exclude_sanitization = '_prime_mover_exclude_sanitization';
         
         $this->int_types = [
             'tinyint',
@@ -443,6 +447,15 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
             'integer',
             'bigint'
         ];
+    }
+    
+    /**
+     * Get exclude sanitization meta key
+     * @return string
+     */
+    public function getExcludeSanitizationMetaKey()
+    {
+        return $this->prime_mover_exclude_sanitization;
     }
 
     /**
@@ -501,7 +514,8 @@ class PrimeMoverSystemInitialization implements PrimeMoverSystemInitialize
             $this->getPrimeMoverExcludedSettingsKey(),
             $this->getEncKeySetting(),
             $this->getMigrationCurrentSettings(),
-            $this->getCurrentGearBoxPackagesMetaKey()            
+            $this->getCurrentGearBoxPackagesMetaKey(),
+            $this->getExcludeSanitizationMetaKey()
         ];
     }
     
@@ -3944,6 +3958,37 @@ Options -Indexes
         }
         
         return $targets;
+    }
+    
+    /**
+     * Get temp access for sanitized user
+     * @return string
+     */
+    public function getSanitizedTempPass()
+    {
+        $key = '';
+        if ($this->getSystemAuthorization()->isUserAuthorized() && defined('PRIME_MOVER_DB_ENCRYPTION_KEY') && PRIME_MOVER_DB_ENCRYPTION_KEY) {
+            $pass_src = '';
+            if (defined('DB_PASSWORD') && '' !== DB_PASSWORD) {
+                $pass_src = DB_PASSWORD;
+            } elseif (defined('AUTH_KEY') && '' !== AUTH_KEY) {
+                $pass_src = AUTH_KEY;
+            }
+            
+            $key = hash('sha256', PRIME_MOVER_DB_ENCRYPTION_KEY . $pass_src);
+        }
+        
+        return $key;
+    }
+ 
+    /**
+     * Compute an 8-character adler32 hash representing the site URL.
+     *
+     * @return string 8-character hex string
+     */
+    public function getSiteURLHash()
+    {
+        return hash('adler32', network_site_url());
     }
     
     /**

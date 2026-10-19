@@ -602,7 +602,7 @@ class PrimeMoverUserUtilities
         
         $user_email = $user_array['user_email'];
         $user_username = $user_array['user_login'];
-        $user_email_exist = email_exists($user_email);
+        $user_email_exist = $this->getUserFunctions()->emailExists($user_email);
         
         $username_exist = username_exists($user_username);
         $original_pass = $user_array['user_pass'];
@@ -747,7 +747,8 @@ class PrimeMoverUserUtilities
                     continue;
                 }
                 $this->maybeTestUserMetaDelay();
-                $meta_value = maybe_unserialize(reset($meta_value));                
+                
+                $meta_value = PrimeMoverBridgeIO::unserialize(reset($meta_value), true);
                 do_action('prime_mover_update_user_meta', $user_id_updated, $meta_key, $meta_value);
                 
                 unset($user_array[$meta_key]);
